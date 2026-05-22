@@ -153,11 +153,9 @@ export function usePortfolioGsap(
       .fromTo(
         sphereState,
         { groupX: SPHERE_HERO_X, rotateY: 0, outerExplode: 0, innerExplode: 0 },
-        { groupX: SPHERE_ABOUT_X, rotateY: 0.35, duration: 1, ease: "power2.inOut" },
+        { groupX: SPHERE_ABOUT_X, rotateY: 0.06, duration: 1, ease: "power2.inOut" },
         0,
-      )
-      .to(sphereState, { outerExplode: 0.3, duration: 0.12, ease: "power1.in" }, 0.38)
-      .to(sphereState, { outerExplode: 0, rotateY: 0.06, duration: 0.18, ease: "power1.out" }, 0.58);
+      );
 
     if (skillsRef.current) {
       gsap.timeline({
@@ -165,19 +163,18 @@ export function usePortfolioGsap(
           trigger: skillsRef.current,
           start: "top bottom",
           end: "top top",
-          scrub: true,
+          scrub: 1.4,
           invalidateOnRefresh: true,
         },
         defaults: { ease: "none" },
-      })
-        .fromTo(
-          sphereState,
-          { groupX: SPHERE_ABOUT_X, rotateY: 0.06, outerExplode: 0, innerExplode: 0 },
-          { groupX: SPHERE_CENTER_X, rotateY: 0, duration: 0.45, ease: "power2.inOut" },
-          0,
-        )
-        .to(sphereState, { outerExplode: 0.9, innerExplode: 0.35, duration: 0.12, ease: "power2.in" }, 0.4)
-        .to(sphereState, { outerExplode: 0, innerExplode: 0, duration: 0.28, ease: "power2.out" }, 0.58);
+      }).to(sphereState, {
+        groupX: SPHERE_HERO_X,
+        rotateY: 0,
+        outerExplode: 0,
+        innerExplode: 0,
+        ease: "power2.inOut",
+        duration: 1,
+      });
     }
 
     gsap.from(".about-label", {
@@ -255,6 +252,39 @@ export function usePortfolioGsap(
           fastScrollEnd: true,
         },
       });
+
+      gsap.fromTo(
+        sphereState,
+        { groupX: SPHERE_HERO_X, rotateY: 0 },
+        {
+          groupX: SPHERE_ABOUT_X,
+          rotateY: 0.06,
+          ease: "none",
+          scrollTrigger: {
+            trigger: skillsRef.current,
+            start: "top top",
+            end: () => `+=${horizontalPx}`,
+            scrub: 1.2,
+            invalidateOnRefresh: true,
+          },
+        },
+      );
+
+      gsap.fromTo(
+        sphereState,
+        { outerExplode: 0 },
+        {
+          outerExplode: 1,
+          ease: "none",
+          scrollTrigger: {
+            trigger: skillsRef.current,
+            start: "top top",
+            end: () => `+=${horizontalPx}`,
+            scrub: 1.2,
+            invalidateOnRefresh: true,
+          },
+        },
+      );
 
       if (headline && headlineStage) {
         gsap.fromTo(
@@ -375,6 +405,22 @@ export function usePortfolioGsap(
         },
       });
 
+      gsap.fromTo(
+        sphereState,
+        { innerExplode: 0 },
+        {
+          innerExplode: 1,
+          ease: "none",
+          scrollTrigger: {
+            trigger: projectsRef.current,
+            start: "top top",
+            end: () => `+=${horizontalPx}`,
+            scrub: 0.8,
+            invalidateOnRefresh: true,
+          },
+        },
+      );
+
       projectCards.forEach((card, i) => {
         gsap
           .timeline({
@@ -396,6 +442,26 @@ export function usePortfolioGsap(
             ease: "power2.out",
             immediateRender: true,
           });
+      });
+    }
+
+    if (experienceRef.current) {
+      gsap.timeline({
+        scrollTrigger: {
+          trigger: experienceRef.current,
+          start: "top bottom",
+          end: "top 40%",
+          scrub: 1.8,
+          invalidateOnRefresh: true,
+        },
+        defaults: { ease: "none" },
+      }).to(sphereState, {
+        outerExplode: 0,
+        innerExplode: 0,
+        groupX: SPHERE_CENTER_X,
+        rotateY: 0,
+        ease: "power2.inOut",
+        duration: 1,
       });
     }
 

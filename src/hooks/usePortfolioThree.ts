@@ -1,4 +1,5 @@
 import { type RefObject, useEffect } from "react";
+import { sphereState } from "../lib/sphereState";
 
 export function usePortfolioThree(
   canvasRef: RefObject<HTMLCanvasElement | null>,
@@ -114,12 +115,6 @@ export function usePortfolioThree(
     };
     window.addEventListener("mousemove", onMouseMove);
 
-    let scrollProgress = 0;
-    const onScroll = () => {
-      scrollProgress = window.scrollY / (document.body.scrollHeight - window.innerHeight);
-    };
-    window.addEventListener("scroll", onScroll);
-
     const onResize = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
@@ -127,14 +122,7 @@ export function usePortfolioThree(
     };
     window.addEventListener("resize", onResize);
 
-    const easeIn = (t: number) => t * t * t;
-    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
     const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
-    const invlerp = (a: number, b: number, v: number) => clamp01((v - a) / (b - a));
-
-    // ── YENİ: lerp yardımcısı ─────────────────────────────────────────────
-    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-    // ─────────────────────────────────────────────────────────────────────
 
     const morphSphere = (
       geo: any,
@@ -172,83 +160,27 @@ export function usePortfolioThree(
     };
 
     let frame = 0;
+    let outerExplodeRender = 0;
+    let innerExplodeRender = 0;
     const animate = () => {
       const id = requestAnimationFrame(animate);
       (animate as any)._id = id;
       frame += 0.004;
-      const sp = scrollProgress;
 
-      // ── YENİ: grup sağa kayma miktarı ────────────────────────────────────
-      // GSAP animasyonunun sağa gittiği scroll aralığıyla (0.17–0.33) eşleş
-      const SLIDE_AMOUNT = -8; // birim — gerekirse ayarla
-      let groupTargetX: number;
-      if (sp < 0.17) {
-        groupTargetX = 0;
-      } else if (sp < 0.33) {
-        // patlama başlarken sağa kayıyor
-        groupTargetX = lerp(0, SLIDE_AMOUNT, easeIn(invlerp(0.17, 0.33, sp)));
-      } else if (sp < 0.75) {
-        // sağda parçalanmış halde bekliyor
-        groupTargetX = SLIDE_AMOUNT;
-      } else if (sp < 0.9) {
-        // toparlanırken geri dönüyor
-        groupTargetX = lerp(SLIDE_AMOUNT, 0, easeOut(invlerp(0.75, 0.9, sp)));
-      } else {
-        groupTargetX = 0;
-      }
-      // smooth lag ile pozisyonu güncelle
-      group.position.x += (groupTargetX - group.position.x) * 0.08;
-      // ─────────────────────────────────────────────────────────────────────
+      group.position.x += (sphereState.groupX - group.position.x) * 0.08;
+      group.rotation.y += (sphereState.rotateY - group.rotation.y) * 0.08;
 
-      let outerExplodeT: number;
-      let outerOpacity: number;
-      if (sp < 0.17) {
-        outerExplodeT = 0;
-        outerOpacity = outer.baseOpacity;
-      } else if (sp < 0.33) {
-        const t = easeIn(invlerp(0.17, 0.33, sp));
-        outerExplodeT = t;
-        outerOpacity = outer.baseOpacity * (1 - t * 0.85);
-      } else if (sp < 0.75) {
-        outerExplodeT = 1;
-        outerOpacity = 0.01;
-      } else if (sp < 0.9) {
-        const t = easeOut(invlerp(0.75, 0.9, sp));
-        outerExplodeT = 1 - t;
-        outerOpacity = outer.baseOpacity * t;
-      } else {
-        outerExplodeT = 0;
-        outerOpacity = outer.baseOpacity;
-      }
+      outerExplodeRender += (sphereState.outerExplode - outerExplodeRender) * 0.1;
+      innerExplodeRender += (sphereState.innerExplode - innerExplodeRender) * 0.1;
 
-      let innerExplodeT: number;
-      let innerOpacity: number;
-      if (sp < 0.5) {
-        innerExplodeT = 0;
-        innerOpacity = inner.baseOpacity;
-      } else if (sp < 0.62) {
-        const t = easeIn(invlerp(0.5, 0.62, sp));
-        innerExplodeT = t;
-        innerOpacity = inner.baseOpacity * (1 - t * 0.85);
-      } else if (sp < 0.75) {
-        innerExplodeT = 1;
-        innerOpacity = 0.01;
-      } else if (sp < 0.88) {
-        const t = easeOut(invlerp(0.75, 0.88, sp));
-        innerExplodeT = 1 - t;
-        innerOpacity = inner.baseOpacity * t;
-      } else {
-        innerExplodeT = 0;
-        innerOpacity = inner.baseOpacity;
-      }
+      const outerExplodeT = outerExplodeRender;
+      const innerExplodeT = innerExplodeRender;
+      const outerOpacity = outer.baseOpacity * (1 - outerExplodeT * 0.85);
+      const innerOpacity = inner.baseOpacity * (1 - innerExplodeT * 0.85);
 
-      const ringFade =
-        1 - clamp01(invlerp(0.17, 0.3, sp)) + clamp01(invlerp(0.75, 0.88, sp));
-      ring1.mat.opacity = ring1.baseOpacity * clamp01(ringFade);
-      ring2.mat.opacity = ring2.baseOpacity * clamp01(ringFade);
-      ring3.mat.opacity =
-        ring3.baseOpacity *
-        clamp01(1 - clamp01(invlerp(0.5, 0.62, sp)) + clamp01(invlerp(0.75, 0.88, sp)));
+      ring1.mat.opacity = ring1.baseOpacity * clamp01(1 - outerExplodeT);
+      ring2.mat.opacity = ring2.baseOpacity * clamp01(1 - outerExplodeT);
+      ring3.mat.opacity = ring3.baseOpacity * clamp01(1 - innerExplodeT);
 
       morphSphere(outer.geo, outer.originPos, outer.explodeTargets, outerExplodeT, 0.06, 1.8, 0, frame, mx, my);
       morphSphere(inner.geo, inner.originPos, inner.explodeTargets, innerExplodeT, 0.1, 2.4, 1.8, frame, mx, my);
@@ -300,7 +232,6 @@ export function usePortfolioThree(
     return () => {
       cancelAnimationFrame((animate as any)._id);
       window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       renderer.dispose();
     };

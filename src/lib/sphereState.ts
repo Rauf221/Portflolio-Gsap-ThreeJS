@@ -1,6 +1,6 @@
-/** GSAP animates these; Three.js reads them each frame. */
-export const SPHERE_HERO_X = 5.5;
-export const SPHERE_ABOUT_X = -5.5;
+/** GSAP animates these; Three.js reads groupX each frame. Scene group origin stays 0. */
+export const SPHERE_HERO_X = 6.2;
+export const SPHERE_ABOUT_X = -6.2;
 export const SPHERE_CENTER_X = 0;
 
 export const sphereState = {
