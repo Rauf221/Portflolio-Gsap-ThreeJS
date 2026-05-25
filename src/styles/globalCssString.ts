@@ -407,6 +407,99 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
   backface-visibility: hidden;
 }
 
+.skills-carousel-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 2;
+ 
+}
+
+.skills-carousel-stage.is-active {
+  visibility: visible;
+}
+
+.skills-carousel-name-list {
+  position: absolute;
+  top: 50%;
+  left: clamp(30%, 36vw, 40%);
+  width: 0;
+  height: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.skills-carousel-name-row {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  font-size: clamp(1.05rem, 2.1vw, 1.65rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: #f0ede8;
+  opacity: 0.35;
+  will-change: transform, opacity;
+  transform-origin: left center;
+}
+
+.skills-carousel-stage.is-active .skills-icon-track {
+  pointer-events: auto;
+}
+
+.skills-icon-track {
+  position: absolute;
+  top: 50%;
+  left: clamp(56%, 62vw, 66%);
+  right: auto;
+  width: 0;
+  height: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.skills-icon-item {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform, opacity;
+  transform-origin: center center;
+}
+
+.skills-icon-tile {
+  width: clamp(154px, 14vw, 218px);
+  height: clamp(154px, 14vw, 218px);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  transform: translate(-50%, -50%);
+  user-select: none;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.skills-icon-model-host {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.skills-icon-model-host:active {
+  cursor: grabbing;
+}
+
+.skills-icon-model-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 @media (max-width: 900px) {
   .hero-grid {
     grid-template-columns: 1fr;

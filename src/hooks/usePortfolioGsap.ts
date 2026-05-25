@@ -2,23 +2,121 @@ import { type RefObject, useEffect } from "react";
 import { resetSphereState, sphereState, SPHERE_ABOUT_X, SPHERE_CENTER_X, SPHERE_HERO_X } from "../lib/sphereState";
 
 const SKILLS_HEADLINE_CHAR_FROM = [
-  { x: 450, y: -240, ease: "power4.out" },
-  { x: 420, y: -250, ease: "power3.out" },
-  { x: 400, y: 230, ease: "power4.out" },
-  { x: 460, y: 150, ease: "power2.out" },
-  { x: 440, y: -240, ease: "power3.out" },
-  { x: 400, y: -240, ease: "power4.out" },
-  { x: 480, y: 170, ease: "power2.out" },
-  { x: 450, y: -200, ease: "power3.out" },
-  { x: 440, y: 260, ease: "power4.out" },
-  { x: 410, y: 200, ease: "back.out(1.4)" },
-  { x: 430, y: -260, ease: "power3.out" },
-  { x: 480, y: -130, ease: "power2.out" },
-  { x: 490, y: 290, ease: "power4.out" },
-  { x: 470, y: -220, ease: "power3.out" },
-  { x: 450, y: -220, ease: "power2.out" },
-  { x: 460, y: 250, ease: "elastic.out(1, 0.7)" },
+  { x: 550, y: -440, ease: "power4.out" },
+  { x: 420, y: -450, ease: "power3.out" },
+  { x: 400, y: 430, ease: "power4.out" },
+  { x: 460, y: 350, ease: "power2.out" },
+  { x: 440, y: -440, ease: "power3.out" },
+  { x: 400, y: -440, ease: "power4.out" },
+  { x: 480, y: 370, ease: "power2.out" },
+  { x: 450, y: -400, ease: "power3.out" },
+  { x: 440, y: 460, ease: "power4.out" },
+  { x: 410, y: 400, ease: "back.out(1.4)" },
+  { x: 430, y: -460, ease: "power3.out" },
+  { x: 480, y: -330, ease: "power2.out" },
+  { x: 490, y: 490, ease: "power4.out" },
+  { x: 470, y: -420, ease: "power3.out" },
+  { x: 450, y: -420, ease: "power2.out" },
+  { x: 460, y: 450, ease: "elastic.out(1, 0.7)" },
 ] as const;
+
+const SKILLS_STREAM_LEAD = 1.35;
+const SKILLS_STREAM_PREROLL = 1.25;
+const SKILLS_CAROUSEL_INTRO = 0.14;
+
+function getSkillsCarouselMetrics(itemCount: number) {
+  const vh = window.innerHeight;
+  const vw = window.innerWidth;
+  const cardSize = Math.min(Math.max(vw * 0.14, 154), 218);
+  const cardGap = cardSize * 1.38;
+  const progressMin = -SKILLS_STREAM_LEAD;
+  const progressMax = Math.max(itemCount - 1, 0) + SKILLS_STREAM_LEAD;
+  const progressSpan = progressMax - progressMin;
+  const streamPx = progressSpan * cardGap * 0.96;
+  const introPx = vh * 0.28;
+  const carouselPx =
+    streamPx / (1 - SKILLS_CAROUSEL_INTRO) + introPx;
+  return {
+    cardGap,
+    cardSize,
+    progressSpan,
+    progressMin,
+    progressMax,
+    streamStart: progressMin - SKILLS_STREAM_PREROLL,
+    carouselPx: Math.max(carouselPx, vh * 0.95),
+  };
+}
+
+function layoutSkillsStack(
+  iconItems: NodeListOf<Element>,
+  nameRows: NodeListOf<Element>,
+  progress: number,
+) {
+  const gsap = window.gsap;
+  if (!gsap) return;
+
+  const vh = window.innerHeight;
+  const vw = window.innerWidth;
+  const { cardGap, cardSize } = getSkillsCarouselMetrics(iconItems.length);
+  const nameGap = cardGap * 0.82;
+  const cardArc = vw * 0.022;
+  const nameArc = vw * 0.018;
+  const edgeLimit = vh * 0.54 - cardSize * 0.48;
+  const fadeBand = vh * 0.11;
+
+  const fadeFromBottomExitTop = (y: number) => {
+    if (y > edgeLimit + fadeBand) return 0;
+    if (y < -(edgeLimit + fadeBand)) return 0;
+    if (y > edgeLimit) return gsap.utils.mapRange(edgeLimit + fadeBand, edgeLimit, 0, 1, y);
+    if (y < -edgeLimit) return gsap.utils.mapRange(-(edgeLimit + fadeBand), -edgeLimit, 0, 1, y);
+    return 1;
+  };
+
+  const fadeFromTopExitBottom = (y: number) => {
+    if (y < -(edgeLimit + fadeBand)) return 0;
+    if (y > edgeLimit + fadeBand) return 0;
+    if (y < -edgeLimit) return gsap.utils.mapRange(-(edgeLimit + fadeBand), -edgeLimit, 0, 1, y);
+    if (y > edgeLimit) return gsap.utils.mapRange(edgeLimit + fadeBand, edgeLimit, 0, 1, y);
+    return 1;
+  };
+
+  iconItems.forEach((item, i) => {
+    const y = (progress - i) * cardGap;
+    const dist = Math.abs(i - progress);
+    const arcX = Math.pow(Math.min(dist, 2.2), 1.15) * cardArc;
+    const scale = gsap.utils.clamp(0.92, 1, 1.12 - dist * 0.07);
+    const edgeOpacity = fadeFromTopExitBottom(y);
+    const focusOpacity = gsap.utils.clamp(0, 1, 1.15 - dist * 0.55);
+    const opacity = edgeOpacity * focusOpacity;
+    gsap.set(item, {
+      x: arcX,
+      y,
+      scale,
+      opacity,
+      rotation: gsap.utils.clamp(-4, 4, y * 0.011),
+      zIndex: Math.round(100 + i),
+      force3D: true,
+    });
+  });
+
+  nameRows.forEach((row, i) => {
+    const y = (i - progress) * nameGap;
+    const dist = Math.abs(i - progress);
+    const arcX = -Math.pow(Math.min(dist, 2.2), 1.1) * nameArc;
+    const scale = gsap.utils.clamp(0.92, 1, 1.08 - dist * 0.035);
+    const edgeOpacity = fadeFromBottomExitTop(y);
+    const focusOpacity = gsap.utils.clamp(0, 1, 1.15 - dist * 0.55);
+    const opacity = edgeOpacity * focusOpacity;
+
+    gsap.set(row, {
+      x: arcX,
+      y,
+      scale,
+      opacity,
+      force3D: true,
+    });
+  });
+}
 
 export type PortfolioGsapRefs = {
   progressRef: RefObject<HTMLDivElement | null>;
@@ -228,28 +326,143 @@ export function usePortfolioGsap(
 
     const skillsTrack = skillsRef.current?.querySelector(".skills-track") as HTMLElement;
     if (skillsTrack && skillsRef.current) {
-      const trackWidth = Math.max(skillsTrack.scrollWidth - window.innerWidth, 0);
-      const horizontalPx = Math.max(trackWidth + window.innerHeight * 1.05, window.innerHeight);
-      const skillCards = skillsTrack.querySelectorAll(".skill-card");
-      const headlineStage = skillsTrack.querySelector(".skills-headline-stage") as HTMLElement | null;
+      const carouselStage = skillsRef.current.querySelector(".skills-carousel-stage") as HTMLElement | null;
+      const iconTrack = skillsRef.current.querySelector(".skills-icon-track") as HTMLElement | null;
+      const iconItems = skillsRef.current.querySelectorAll(".skills-icon-item");
+      const nameRows = skillsRef.current.querySelectorAll(".skills-carousel-name-row");
+
       const headline = skillsTrack.querySelector(".skills-headline") as HTMLElement | null;
       const headlineChars = skillsTrack.querySelectorAll(".skills-headline-char");
 
-      const trackTween = gsap.to(skillsTrack, {
-        x: -trackWidth,
+      const measureHeadlineScroll = () => {
+        if (!headline) {
+          return { exitTrackX: window.innerWidth * 0.65 };
+        }
+
+        const savedTrackX = gsap.getProperty(skillsTrack, "x") as number;
+
+        gsap.set(skillsTrack, { x: 0 });
+        gsap.set(headline, { x: 0 });
+
+        const exitTrackX = headline.getBoundingClientRect().right + 80;
+
+        gsap.set(skillsTrack, { x: savedTrackX });
+
+        return { exitTrackX };
+      };
+
+      const getSkillsPinMetrics = () => {
+        const { exitTrackX } = measureHeadlineScroll();
+        const headlinePx = Math.max(exitTrackX + window.innerHeight * 0.35, window.innerHeight);
+        const bufferPx = window.innerHeight * 0.18;
+        const carouselMetrics = getSkillsCarouselMetrics(iconItems.length);
+        const totalPinPx = headlinePx + bufferPx + carouselMetrics.carouselPx;
+        return {
+          exitTrackX,
+          totalPinPx,
+          headlineRatio: headlinePx / totalPinPx,
+          carouselStartRatio: (headlinePx + bufferPx) / totalPinPx,
+          ...carouselMetrics,
+        };
+      };
+
+      const headlineScroll = measureHeadlineScroll();
+      const pinMetrics = getSkillsPinMetrics();
+      const carouselProgress = { value: 0 };
+      const headlinePx = Math.max(
+        headlineScroll.exitTrackX + window.innerHeight * 0.35,
+        window.innerHeight,
+      );
+
+      ST.create({
+        trigger: skillsRef.current,
+        start: "top top",
+        end: () => `+=${pinMetrics.totalPinPx}`,
+        pin: true,
+        pinSpacing: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+        fastScrollEnd: true,
+        onRefresh: () => {
+          Object.assign(headlineScroll, measureHeadlineScroll());
+        },
+        onUpdate: (self: { progress: number }) => {
+          const bufferRatio = headlinePx / pinMetrics.totalPinPx;
+          if (self.progress >= bufferRatio) {
+            gsap.set(skillsTrack, { opacity: 0 });
+          } else {
+            gsap.set(skillsTrack, { opacity: 1 });
+          }
+
+          if (!carouselStage || !iconTrack || !iconItems.length) return;
+          const carouselStartRatio = (headlinePx + window.innerHeight * 0.18) / pinMetrics.totalPinPx;
+
+          if (self.progress >= carouselStartRatio) {
+            carouselStage.removeAttribute("aria-hidden");
+            carouselStage.classList.add("is-active");
+            const carouselT = gsap.utils.clamp(
+              0,
+              1,
+              (self.progress - carouselStartRatio) / (1 - carouselStartRatio),
+            );
+            const introT = gsap.utils.clamp(0, 1, carouselT / SKILLS_CAROUSEL_INTRO);
+            const streamT = gsap.utils.clamp(
+              0,
+              1,
+              (carouselT - SKILLS_CAROUSEL_INTRO) / (1 - SKILLS_CAROUSEL_INTRO),
+            );
+            const tailFade = gsap.utils.clamp(0, 1, (carouselT - 0.9) / 0.1);
+            gsap.set(carouselStage, {
+              opacity: introT * (1 - tailFade),
+              visibility: introT > 0.02 && tailFade < 1 ? "visible" : "hidden",
+            });
+            carouselProgress.value =
+              pinMetrics.streamStart +
+              streamT * (pinMetrics.progressMax - pinMetrics.streamStart);
+            layoutSkillsStack(iconItems, nameRows, carouselProgress.value);
+          } else {
+            gsap.set(carouselStage, { opacity: 0, visibility: "hidden" });
+            layoutSkillsStack(iconItems, nameRows, pinMetrics.streamStart - 0.5);
+          }
+        },
+      });
+
+      const headlineTrackTween = gsap.to(skillsTrack, {
+        x: () => -headlineScroll.exitTrackX,
         ease: "none",
         scrollTrigger: {
           trigger: skillsRef.current,
-          pin: true,
-          pinSpacing: true,
           start: "top top",
-          end: () => `+=${horizontalPx}`,
+          end: () => `+=${headlinePx}`,
           scrub: 1.2,
-          anticipatePin: 1,
           invalidateOnRefresh: true,
-          fastScrollEnd: true,
         },
       });
+
+      if (headline && headlineChars.length) {
+        Array.from(headlineChars).forEach((char: Element, i: number) => {
+          const from = SKILLS_HEADLINE_CHAR_FROM[i % SKILLS_HEADLINE_CHAR_FROM.length];
+          gsap.fromTo(
+            char,
+            { x: from.x, y: from.y, immediateRender: true },
+            {
+              x: 0,
+              y: 0,
+              ease: from.ease,
+              immediateRender: false,
+              scrollTrigger: {
+                trigger: char,
+                containerAnimation: headlineTrackTween,
+                start: "left 108%",
+                end: "left 54%",
+                horizontal: true,
+                scrub: 0.65,
+                invalidateOnRefresh: true,
+              },
+            },
+          );
+        });
+      }
 
       gsap.fromTo(
         sphereState,
@@ -261,7 +474,7 @@ export function usePortfolioGsap(
           scrollTrigger: {
             trigger: skillsRef.current,
             start: "top top",
-            end: () => `+=${horizontalPx}`,
+            end: () => `+=${pinMetrics.totalPinPx}`,
             scrub: 1.2,
             invalidateOnRefresh: true,
           },
@@ -277,108 +490,17 @@ export function usePortfolioGsap(
           scrollTrigger: {
             trigger: skillsRef.current,
             start: "top top",
-            end: () => `+=${horizontalPx}`,
+            end: () => `+=${pinMetrics.totalPinPx}`,
             scrub: 1.2,
             invalidateOnRefresh: true,
           },
         },
       );
 
-      if (headline && headlineStage) {
-        gsap.fromTo(
-          headline,
-          { x: 0 },
-          {
-            x: () => -window.innerWidth * 0.42,
-            ease: "none",
-            scrollTrigger: {
-              trigger: headlineStage,
-              containerAnimation: trackTween,
-              start: "left left",
-              end: "right left",
-              horizontal: true,
-              scrub: true,
-            },
-          },
-        );
-
-        if (headline && headlineChars.length) {
-          const headlineCharTl = gsap.timeline({
-            scrollTrigger: {
-              trigger: headline,
-              containerAnimation: trackTween,
-              start: "left 95%",
-              end: "left 20%",
-              horizontal: true,
-              scrub: 0.65,
-              invalidateOnRefresh: true,
-            },
-          });
-
-          Array.from(headlineChars).forEach((char: Element, i: number) => {
-            const from = SKILLS_HEADLINE_CHAR_FROM[i % SKILLS_HEADLINE_CHAR_FROM.length];
-            headlineCharTl.fromTo(
-              char,
-              { x: from.x, y: from.y },
-              {
-                x: 0,
-                y: 0,
-                duration: 0.14,
-                ease: from.ease,
-              },
-              i * 0.035,
-            );
-          });
-        }
+      if (iconTrack && iconItems.length) {
+        const initMetrics = getSkillsCarouselMetrics(iconItems.length);
+        layoutSkillsStack(iconItems, nameRows, initMetrics.streamStart - 0.5);
       }
-
-      skillCards.forEach((card) => {
-        const bar = card.querySelector(".skill-bar-fill") as HTMLElement | null;
-        const pct = card.querySelector(".skill-pct") as HTMLElement | null;
-        const cardTl = gsap.timeline({
-          scrollTrigger: {
-            trigger: card,
-            containerAnimation: trackTween,
-            start: "left 105%",
-            end: "left 38%",
-            horizontal: true,
-            toggleActions: "play none none reverse",
-          },
-        });
-        cardTl.from(card, {
-          opacity: 0,
-          x: 160,
-          y: 24,
-          scale: 0.88,
-          rotateY: -12,
-          duration: 0.7,
-          ease: "power4.out",
-          immediateRender: true,
-        });
-        if (bar) {
-          cardTl.from(
-            bar,
-            { scaleX: 0, transformOrigin: "left center", duration: 0.65, ease: "power3.out", immediateRender: true },
-            0.08,
-          );
-        }
-        if (pct) {
-          const targetVal = parseInt(pct.dataset.val || "0", 10);
-          cardTl.from(
-            { val: 0 },
-            {
-              val: targetVal,
-              duration: 0.65,
-              ease: "power3.out",
-              onUpdate: function () {
-                pct.textContent = Math.round(this.targets()[0].val) + "%";
-              },
-              immediateRender: false,
-            },
-            0.08,
-          );
-        }
-      });
     }
 
     if (projectsRef.current) {
