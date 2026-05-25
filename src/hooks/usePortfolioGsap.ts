@@ -23,6 +23,9 @@ const SKILLS_HEADLINE_CHAR_FROM = [
 const SKILLS_STREAM_LEAD = 1.35;
 const SKILLS_STREAM_PREROLL = 1.25;
 const SKILLS_CAROUSEL_INTRO = 0.14;
+/** Carousel fades in once headline scroll reaches this fraction (before exit completes). */
+const SKILLS_CAROUSEL_HEADLINE_START = 0.38;
+const SKILLS_HEADLINE_BUFFER_VH = 0.05;
 
 function getSkillsCarouselMetrics(itemCount: number) {
   const vh = window.innerHeight;
@@ -354,25 +357,24 @@ export function usePortfolioGsap(
       const getSkillsPinMetrics = () => {
         const { exitTrackX } = measureHeadlineScroll();
         const headlinePx = Math.max(exitTrackX + window.innerHeight * 0.35, window.innerHeight);
-        const bufferPx = window.innerHeight * 0.18;
+        const bufferPx = window.innerHeight * SKILLS_HEADLINE_BUFFER_VH;
         const carouselMetrics = getSkillsCarouselMetrics(iconItems.length);
+        const carouselStartPx = headlinePx * SKILLS_CAROUSEL_HEADLINE_START;
         const totalPinPx = headlinePx + bufferPx + carouselMetrics.carouselPx;
         return {
           exitTrackX,
+          headlinePx,
+          bufferPx,
+          carouselStartPx,
           totalPinPx,
-          headlineRatio: headlinePx / totalPinPx,
-          carouselStartRatio: (headlinePx + bufferPx) / totalPinPx,
+          carouselStartRatio: carouselStartPx / totalPinPx,
           ...carouselMetrics,
         };
       };
 
       const headlineScroll = measureHeadlineScroll();
-      const pinMetrics = getSkillsPinMetrics();
+      let pinMetrics = getSkillsPinMetrics();
       const carouselProgress = { value: 0 };
-      const headlinePx = Math.max(
-        headlineScroll.exitTrackX + window.innerHeight * 0.35,
-        window.innerHeight,
-      );
 
       ST.create({
         trigger: skillsRef.current,
@@ -385,17 +387,11 @@ export function usePortfolioGsap(
         fastScrollEnd: true,
         onRefresh: () => {
           Object.assign(headlineScroll, measureHeadlineScroll());
+          pinMetrics = getSkillsPinMetrics();
         },
         onUpdate: (self: { progress: number }) => {
-          const bufferRatio = headlinePx / pinMetrics.totalPinPx;
-          if (self.progress >= bufferRatio) {
-            gsap.set(skillsTrack, { opacity: 0 });
-          } else {
-            gsap.set(skillsTrack, { opacity: 1 });
-          }
-
           if (!carouselStage || !iconTrack || !iconItems.length) return;
-          const carouselStartRatio = (headlinePx + window.innerHeight * 0.18) / pinMetrics.totalPinPx;
+          const { carouselStartRatio } = pinMetrics;
 
           if (self.progress >= carouselStartRatio) {
             carouselStage.removeAttribute("aria-hidden");
@@ -421,6 +417,8 @@ export function usePortfolioGsap(
               streamT * (pinMetrics.progressMax - pinMetrics.streamStart);
             layoutSkillsStack(iconItems, nameRows, carouselProgress.value);
           } else {
+            carouselStage.setAttribute("aria-hidden", "true");
+            carouselStage.classList.remove("is-active");
             gsap.set(carouselStage, { opacity: 0, visibility: "hidden" });
             layoutSkillsStack(iconItems, nameRows, pinMetrics.streamStart - 0.5);
           }
@@ -428,12 +426,12 @@ export function usePortfolioGsap(
       });
 
       const headlineTrackTween = gsap.to(skillsTrack, {
-        x: () => -headlineScroll.exitTrackX,
+        x: () => -measureHeadlineScroll().exitTrackX,
         ease: "none",
         scrollTrigger: {
           trigger: skillsRef.current,
           start: "top top",
-          end: () => `+=${headlinePx}`,
+          end: () => `+=${getSkillsPinMetrics().headlinePx}`,
           scrub: 1.2,
           invalidateOnRefresh: true,
         },
