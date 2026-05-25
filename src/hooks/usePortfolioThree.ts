@@ -26,7 +26,7 @@ export function usePortfolioThree(
     );
     camera.position.set(0, 0, 14);
 
-    // ── YENİ: tüm objeleri taşıyacak grup ──────────────────────────────────
+
     const group = new THREE.Group();
     scene.add(group);
     // ────────────────────────────────────────────────────────────────────────
@@ -218,8 +218,7 @@ export function usePortfolioThree(
       particles.rotation.y = frame * 0.06 + mx * 0.05;
       particles.rotation.x = my * 0.04;
 
-      // ── mouse parallax artık grup üzerinden değil camera üzerinden ───────
-      // (group sağa kayarken kamera da takip etsin ama daha az miktarda)
+   
       camera.position.x += (mx * 0.6 + group.position.x * 0.15 - camera.position.x) * 0.05;
       camera.position.y += (my * 0.35 - camera.position.y) * 0.05;
       // ─────────────────────────────────────────────────────────────────────

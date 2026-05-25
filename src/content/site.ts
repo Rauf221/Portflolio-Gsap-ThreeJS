@@ -82,6 +82,7 @@ export const projects = {
   headingLine1: "Work",
   headingAccent: "that speaks",
   headingLine2: ".",
+  viewLabel: "View project",
   screenshotLabel: "[ SCREENSHOT ]",
   items: {
     burdaqal: {

@@ -28,7 +28,6 @@ export default function Portfolio() {
   const aboutRef = useRef<HTMLElement>(null);
   const skillsRef = useRef<HTMLElement>(null);
   const projectsRef = useRef<HTMLElement>(null);
-  const projectsTrackRef = useRef<HTMLDivElement>(null);
   const experienceRef = useRef<HTMLElement>(null);
   const contactRef = useRef<HTMLElement>(null);
   const navRef = useRef<HTMLElement>(null);
@@ -51,7 +50,6 @@ export default function Portfolio() {
     aboutRef,
     skillsRef,
     projectsRef,
-    projectsTrackRef,
     experienceRef,
     contactRef,
   }, setActiveSection);
@@ -66,7 +64,7 @@ export default function Portfolio() {
       <HeroSection heroRef={heroRef} heroTextRef={heroTextRef} />
       <AboutSection aboutRef={aboutRef} />
       <SkillsSection skillsRef={skillsRef} />
-      <ProjectsSection projectsRef={projectsRef} projectsTrackRef={projectsTrackRef} />
+      <ProjectsSection projectsRef={projectsRef} />
       <ExperienceSection experienceRef={experienceRef} />
       <ContactSection contactRef={contactRef} />
       <SiteFooter />

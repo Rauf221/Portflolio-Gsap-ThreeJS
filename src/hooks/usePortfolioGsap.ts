@@ -28,7 +28,6 @@ export type PortfolioGsapRefs = {
   aboutRef: RefObject<HTMLElement | null>;
   skillsRef: RefObject<HTMLElement | null>;
   projectsRef: RefObject<HTMLElement | null>;
-  projectsTrackRef: RefObject<HTMLDivElement | null>;
   experienceRef: RefObject<HTMLElement | null>;
   contactRef: RefObject<HTMLElement | null>;
 };
@@ -46,7 +45,6 @@ export function usePortfolioGsap(
     aboutRef,
     skillsRef,
     projectsRef,
-    projectsTrackRef,
     experienceRef,
     contactRef,
   } = refs;
@@ -383,27 +381,30 @@ export function usePortfolioGsap(
       });
     }
 
-    const pTrack = projectsTrackRef.current;
-    if (pTrack && projectsRef.current) {
-      const totalScroll = Math.max(pTrack.scrollWidth - window.innerWidth, 0);
-      const horizontalPx = Math.max(totalScroll + window.innerHeight * 1.05, window.innerHeight);
-      const projectCards = pTrack.querySelectorAll(".project-card");
-
-      const projTrackTween = gsap.to(pTrack, {
-        x: -totalScroll,
-        ease: "none",
+    if (projectsRef.current) {
+      gsap.timeline({
         scrollTrigger: {
           trigger: projectsRef.current,
-          pin: true,
-          pinSpacing: true,
-          start: "top top",
-          end: () => `+=${horizontalPx}`,
-          scrub: 0.8,
-          anticipatePin: 1,
+          start: "top bottom",
+          end: "top top",
+          scrub: 1.4,
           invalidateOnRefresh: true,
-          fastScrollEnd: true,
         },
+        defaults: { ease: "none" },
+      }).to(sphereState, {
+        groupX: SPHERE_CENTER_X,
+        rotateY: 0,
+        ease: "power2.inOut",
+        duration: 1,
       });
+    }
+
+    const projectPanels = projectsRef.current
+      ? Array.from(projectsRef.current.querySelectorAll<HTMLElement>(".project-panel"))
+      : [];
+
+    if (projectsRef.current && projectPanels.length) {
+      const lastPanel = projectPanels[projectPanels.length - 1];
 
       gsap.fromTo(
         sphereState,
@@ -412,36 +413,54 @@ export function usePortfolioGsap(
           innerExplode: 1,
           ease: "none",
           scrollTrigger: {
-            trigger: projectsRef.current,
+            trigger: projectPanels[0],
+            endTrigger: lastPanel,
             start: "top top",
-            end: () => `+=${horizontalPx}`,
-            scrub: 0.8,
+            end: "bottom bottom",
+            scrub: 1,
             invalidateOnRefresh: true,
           },
         },
       );
 
-      projectCards.forEach((card, i) => {
-        gsap
-          .timeline({
-            scrollTrigger: {
-              trigger: card,
-              containerAnimation: projTrackTween,
-              start: "left 92%",
-              end: "left 38%",
-              horizontal: true,
-              toggleActions: "play none none reverse",
+      projectPanels.forEach((panel, index) => {
+        const isLast = index === projectPanels.length - 1;
+        const card = panel.querySelector(".project-panel-inner");
+        const visual = panel.querySelector(".project-panel-visual");
+
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: panel,
+            start: "top top",
+            scrub: 1,
+            invalidateOnRefresh: true,
+          },
+        });
+
+        if (card && !isLast) {
+          tl.fromTo(
+            card,
+            { filter: "brightness(100%) blur(0px)", scale: 1, borderRadius: 0 },
+            {
+              filter: "brightness(50%) blur(10px)",
+              scale: 0.9,
+              borderRadius: 40,
+              ease: "none",
             },
-          })
-          .from(card, {
-            y: 80,
-            opacity: 0,
-            scale: 0.9,
-            rotateY: i % 2 === 0 ? -8 : 8,
-            duration: 0.65,
-            ease: "power2.out",
-            immediateRender: true,
-          });
+          );
+        }
+
+        if (visual) {
+          tl.to(
+            visual,
+            {
+              yPercent: -40,
+              rotation: index % 2 === 0 ? 20 : -20,
+              ease: "power1.in",
+            },
+            isLast ? 0 : "<",
+          );
+        }
       });
     }
 
