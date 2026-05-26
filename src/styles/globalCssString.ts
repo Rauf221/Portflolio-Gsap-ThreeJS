@@ -111,7 +111,7 @@ body::before {
   height: 100vh;
   overflow: hidden;
   background: transparent;
-  z-index: 1;
+  z-index: 5; 
 }
 .projects-path-label {
   position: absolute;
@@ -186,8 +186,12 @@ body::before {
 }
 .projects-after-path {
   position: relative;
-  z-index: 1;
-  visibility: hidden;
+  z-index: 2;
+  opacity: 1;          
+  pointer-events: none; 
+  margin-top: -100vh;   
+  background: var(--bg); 
+}
 }
 .projects-intro-count {
   margin-top: 1.25rem;

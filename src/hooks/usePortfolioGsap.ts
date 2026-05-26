@@ -31,9 +31,18 @@ const PROJECTS_PATH_POV_SCALE = { from: 2.22, to: 2.42 };
 const PROJECTS_CHAR_WRITE_LEAD = 0.045;
 const PROJECTS_CHAR_WRITE_WINDOW = 0.028;
 const PROJECTS_WRITE_SCROLL_VH = 2.1;
-const PROJECTS_EXIT_SCROLL_VH = 0.85;
-/** 0 = panels rise as soon as exit slide starts; 1 = only at path end. */
-const PROJECTS_PANELS_EXIT_ENTER = 0.12;
+/**
+ * Exit scroll — path camera slides left while section curtain rises simultaneously.
+ * 0.7vh gives enough room for the curtain animation to feel smooth.
+ */
+const PROJECTS_EXIT_SCROLL_VH = 0.7;
+/** Path focal point: starts left, drifts toward center as text writes. */
+const PROJECTS_PATH_FOCUS = {
+  startX: 0.24,
+  endX: 0.5,
+  startY: 0.6,
+  endY: 1 / 1.5,
+};
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 type ProjectsPathChar = {
@@ -97,6 +106,18 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
 
   if (!scrollWrap || !stage || !camera || !path || !textPath || !charsGroup) return;
 
+  // afterPath stays in normal document flow (so sticky panels work correctly).
+  // We translate it upward to overlap the pinned stage using a negative translateY.
+  // Stage gets a high z-index initially; afterPath overtakes it as it rises.
+  if (afterPath) {
+    gsap.set(afterPath, {
+      opacity: 1,
+      pointerEvents: "none",
+      zIndex: 2,
+      y: "100vh",
+    });
+  }
+
   const pathChars = reducedMotion ? [] : splitProjectsPathHeadline(textPath, charsGroup, "#projects-headline-path");
 
   if (!reducedMotion && measureText && pathChars.length) {
@@ -118,6 +139,14 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
     vh: stage.clientHeight,
   });
 
+  const getPathFocus = (t: number) => {
+    const { vw, vh } = getMetrics();
+    return {
+      x: gsap.utils.interpolate(vw * PROJECTS_PATH_FOCUS.startX, vw * PROJECTS_PATH_FOCUS.endX, t),
+      y: gsap.utils.interpolate(vh * PROJECTS_PATH_FOCUS.startY, vh * PROJECTS_PATH_FOCUS.endY, t),
+    };
+  };
+
   const updatePathChars = (progress: number) => {
     pathChars.forEach(({ el, progress: charProgress }) => {
       const t = gsap.utils.clamp(
@@ -131,14 +160,14 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
   };
 
   const applyWriteScene = (writeT: number) => {
-    const { vw, vh } = getMetrics();
     const cameraProgress = writeT * textPathRatio;
     const pt = pointOnPath(path, cameraProgress);
     const scale = gsap.utils.interpolate(PROJECTS_PATH_POV_SCALE.from, PROJECTS_PATH_POV_SCALE.to, writeT);
+    const focus = getPathFocus(writeT);
 
     gsap.set(camera, {
-      x: vw / 2 - pt.x * scale,
-      y: vh / 1.5 - pt.y * scale,
+      x: focus.x - pt.x * scale,
+      y: focus.y - pt.y * scale,
       scale,
       transformOrigin: "0 0",
       force3D: true,
@@ -149,14 +178,15 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
   };
 
   const applyExitScene = (exitT: number) => {
-    const { vw, vh } = getMetrics();
+    const { vw } = getMetrics();
     const pt = pointOnPath(path, textPathRatio);
     const scale = gsap.utils.interpolate(PROJECTS_PATH_POV_SCALE.from, PROJECTS_PATH_POV_SCALE.to, 1);
     const exitX = -exitT * vw * 1.35;
+    const focus = getPathFocus(1);
 
     gsap.set(camera, {
-      x: vw / 2 - pt.x * scale + exitX,
-      y: vh / 1.5 - pt.y * scale,
+      x: focus.x - pt.x * scale + exitX,
+      y: focus.y - pt.y * scale,
       scale,
       transformOrigin: "0 0",
       force3D: true,
@@ -168,32 +198,59 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
 
   const getPathWriteRatio = () => getWriteScrollPx() / getTotalPathScrollPx();
 
-  const getPanelsEnterProgress = () => {
-    const writeRatio = getPathWriteRatio();
-    return writeRatio + (1 - writeRatio) * PROJECTS_PANELS_EXIT_ENTER;
-  };
+  // Track whether we've already triggered a ScrollTrigger.refresh() after
+  // afterPath becomes visible, so we only do it once per scroll-through.
+  let didRefreshAfterReveal = false;
+
+  /**
+   * Curtain timeline:
+   *
+   *   0 → curtainStart   write phase early  — y=100vh, fully hidden
+   *   curtainStart → 1   write phase late + entire exit phase
+   *                       — y: 100vh → 0, rises while "solved." still on screen
+   *                          and continues as it slides left
+   *
+   * curtainStart = writeRatio * (1 - OVERLAP)
+   * OVERLAP=0.35 means curtain begins at 65% of the write phase,
+   * so there's plenty of "solved." still visible when it starts rising.
+   */
+  const CURTAIN_OVERLAP = 0.9; // fraction of write phase to start early
+  const getCurtainStart = () => getPathWriteRatio() * (1 - CURTAIN_OVERLAP);
 
   const updateAfterPathGate = (progress: number) => {
     if (!afterPath) return;
 
-    const vh = window.innerHeight;
-    const enterAt = getPanelsEnterProgress();
+    const curtainStart = getCurtainStart();
 
-    if (progress >= 1) {
-      gsap.set(afterPath, { marginTop: 0, visibility: "visible" });
+    // fully hidden
+    if (progress <= curtainStart) {
+      gsap.set(afterPath, { y: "100vh", pointerEvents: "none", zIndex: 2 });
+      gsap.set(stage, { zIndex: 5 });
+      didRefreshAfterReveal = false;
       return;
     }
 
-    if (progress < enterAt) {
-      gsap.set(afterPath, { marginTop: vh, visibility: "hidden" });
-      return;
-    }
+    // curtainStart → 1  (covers both late write phase AND full exit phase)
+    const curtainT = gsap.utils.clamp(0, 1, (progress - curtainStart) / (1 - curtainStart));
+    const easedT = gsap.parseEase("power2.inOut")(curtainT);
+    const yVh = (1 - easedT) * 100;
 
-    const t = gsap.utils.clamp(0, 1, (progress - enterAt) / (1 - enterAt));
     gsap.set(afterPath, {
-      marginTop: (1 - t) * vh,
-      visibility: "visible",
+      y: `${yVh}vh`,
+      pointerEvents: curtainT > 0.08 ? "auto" : "none",
+      zIndex: 6,
     });
+    gsap.set(stage, { zIndex: 5 });
+
+    if (!didRefreshAfterReveal && curtainT > 0.08) {
+      didRefreshAfterReveal = true;
+      window.ScrollTrigger?.refresh();
+    }
+
+    if (curtainT >= 0.98) {
+      gsap.set(afterPath, { y: 0, pointerEvents: "auto", zIndex: 6 });
+      gsap.set(stage, { zIndex: 1 });
+    }
   };
 
   const updatePathScene = (progress: number) => {
@@ -214,7 +271,9 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
 
   if (reducedMotion) {
     applyWriteScene(1);
-    if (afterPath) gsap.set(afterPath, { marginTop: 0, visibility: "visible" });
+    if (afterPath) {
+      gsap.set(afterPath, { y: 0, pointerEvents: "auto", zIndex: 6 });
+    }
     return;
   }
 
@@ -228,10 +287,9 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
     invalidateOnRefresh: true,
     anticipatePin: 1,
     onUpdate: (self: { progress: number }) => updatePathScene(self.progress),
-    onLeave: () => {
-      if (afterPath) gsap.set(afterPath, { marginTop: 0, visibility: "visible" });
-    },
-    onEnterBack: () => updateAfterPathGate(0),
+    onLeave: () => gsap.set(stage, { zIndex: 1 }),
+    onLeaveBack: (self: { progress: number }) => updatePathScene(self.progress),
+    onEnterBack: (self: { progress: number }) => updatePathScene(self.progress),
   });
 
   requestAnimationFrame(() => window.ScrollTrigger?.refresh());
@@ -729,6 +787,31 @@ export function usePortfolioGsap(
         ease: "power2.inOut",
         duration: 1,
       });
+
+      const pathScrollWrap = projectsRef.current.querySelector(
+        ".projects-path-scroll",
+      ) as HTMLElement | null;
+
+      if (pathScrollWrap) {
+        const getProjectsPathScrollPx = () =>
+          window.innerHeight * (PROJECTS_WRITE_SCROLL_VH + PROJECTS_EXIT_SCROLL_VH);
+
+        gsap.fromTo(
+          sphereState,
+          { innerExplode: 0 },
+          {
+            innerExplode: 1,
+            ease: "none",
+            scrollTrigger: {
+              trigger: pathScrollWrap,
+              start: "top top",
+              end: () => `+=${getProjectsPathScrollPx()}`,
+              scrub: 1,
+              invalidateOnRefresh: true,
+            },
+          },
+        );
+      }
     }
 
     const projectPanels = projectsRef.current
@@ -736,25 +819,6 @@ export function usePortfolioGsap(
       : [];
 
     if (projectsRef.current && projectPanels.length) {
-      const lastPanel = projectPanels[projectPanels.length - 1];
-
-      gsap.fromTo(
-        sphereState,
-        { innerExplode: 0 },
-        {
-          innerExplode: 1,
-          ease: "none",
-          scrollTrigger: {
-            trigger: projectPanels[0],
-            endTrigger: lastPanel,
-            start: "top top",
-            end: "bottom bottom",
-            scrub: 1,
-            invalidateOnRefresh: true,
-          },
-        },
-      );
-
       projectPanels.forEach((panel, index) => {
         const isLast = index === projectPanels.length - 1;
         const card = panel.querySelector(".project-panel-inner");
@@ -766,6 +830,9 @@ export function usePortfolioGsap(
             start: "top top",
             scrub: 1,
             invalidateOnRefresh: true,
+            // FIX: lower refresh priority so path ScrollTrigger pins are
+            // fully resolved before panel positions are calculated.
+            refreshPriority: -1,
           },
         });
 
