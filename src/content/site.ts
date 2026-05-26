@@ -85,6 +85,7 @@ export const skills = {
 export const projects = {
   label: "Selected projects",
   countLabel: (count: number) => `${count} projects`,
+  pathHeadline: "Every project below reflects a different technical challenge I've solved.",
   headingLine1: "Work",
   headingAccent: "that speaks",
   headingLine2: ".",

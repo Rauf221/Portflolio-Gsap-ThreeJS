@@ -12,7 +12,7 @@ export function ScrollProgress({ progressRef }: Props) {
         right: 0,
         height: 3,
         background: "rgba(255,255,255,0.06)",
-        zIndex: 9998,
+        zIndex: 10001,
       }}
     >
       <div

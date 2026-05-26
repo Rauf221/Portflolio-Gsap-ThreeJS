@@ -4,6 +4,13 @@ import { type CSSProperties, type RefObject } from "react";
 import { projects as projectsContent } from "../content/site";
 import { PROJECTS_META } from "../data";
 
+const PATH_D =
+  "M 200 200 " +
+  "C 500 200, 600 520, 900 520 " +
+  "C 1200 520, 1300 160, 1600 160 " +
+  "C 1900 160, 2000 540, 2300 540 " +
+  "C 2600 540, 2700 180, 3000 180 " +
+  "C 3200 180, 3350 200, 3400 200";
 type Props = {
   projectsRef: RefObject<HTMLElement | null>;
 };
@@ -11,20 +18,50 @@ type Props = {
 export function ProjectsSection({ projectsRef }: Props) {
   return (
     <section id="projects" ref={projectsRef} className="projects-section">
-      <div className="projects-intro">
-        <div className="projects-intro-label">
-          <div className="projects-intro-line" />
-          <span className="font-mono">{projectsContent.label}</span>
+      <div className="projects-path-scroll">
+        <div className="projects-path-stage">
+          <div className="projects-path-label">
+            <div className="projects-intro-line" />
+            <span className="font-mono">{projectsContent.label}</span>
+          </div>
+
+          <h2 className="projects-path-fallback font-display">{projectsContent.pathHeadline}</h2>
+
+          <div className="projects-path-camera">
+            <svg
+              className="projects-path-svg"
+              viewBox="0 0 3200 1000"
+              width={3200}
+              height={900}
+              aria-hidden="true"
+            >
+              <path
+                id="projects-headline-path"
+                className="projects-path-curve"
+                d={PATH_D}
+                fill="none"
+                stroke="none"
+              />
+              <text className="projects-path-text projects-path-text-measure" fill="#f0ede8">
+                <textPath
+                  className="projects-path-textpath"
+                  href="#projects-headline-path"
+                  startOffset="0"
+                  textAnchor="start"
+                >
+                  {projectsContent.pathHeadline}
+                </textPath>
+              </text>
+              <g className="projects-path-chars" aria-hidden="true" />
+            </svg>
+          </div>
         </div>
-        <h2 className="projects-intro-headline font-display">
-          <span>{projectsContent.headingLine1}</span>
-          <span className="grad-indigo">{projectsContent.headingAccent}</span>
-          <span>{projectsContent.headingLine2}</span>
-        </h2>
-        <p className="projects-intro-count font-mono">{projectsContent.countLabel(PROJECTS_META.length)}</p>
       </div>
 
-      <div className="projects-sticky-list">
+      <div className="projects-after-path">
+        <p className="projects-intro-count font-mono">{projectsContent.countLabel(PROJECTS_META.length)}</p>
+
+        <div className="projects-sticky-list">
         {PROJECTS_META.map((p, i) => {
           const item = projectsContent.items[p.key];
           const tags = item.tags.split(",").map((s) => s.trim()).filter(Boolean);
@@ -91,6 +128,7 @@ export function ProjectsSection({ projectsRef }: Props) {
             </article>
           );
         })}
+        </div>
       </div>
     </section>
   );

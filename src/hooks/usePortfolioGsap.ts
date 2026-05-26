@@ -27,6 +27,216 @@ const SKILLS_CAROUSEL_INTRO = 0.14;
 const SKILLS_CAROUSEL_HEADLINE_START = 0.38;
 const SKILLS_HEADLINE_BUFFER_VH = 0.05;
 
+const PROJECTS_PATH_POV_SCALE = { from: 2.22, to: 2.42 };
+const PROJECTS_CHAR_WRITE_LEAD = 0.045;
+const PROJECTS_CHAR_WRITE_WINDOW = 0.028;
+const PROJECTS_WRITE_SCROLL_VH = 2.1;
+const PROJECTS_EXIT_SCROLL_VH = 0.85;
+/** 0 = panels rise as soon as exit slide starts; 1 = only at path end. */
+const PROJECTS_PANELS_EXIT_ENTER = 0.12;
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+type ProjectsPathChar = {
+  el: SVGTextElement;
+  progress: number;
+};
+
+function pointOnPath(path: SVGPathElement, progress: number) {
+  const length = path.getTotalLength();
+  const t = Math.max(0, Math.min(1, progress));
+  return path.getPointAtLength(length * t);
+}
+
+function splitProjectsPathHeadline(
+  textPath: SVGTextPathElement,
+  charsGroup: SVGGElement,
+  pathId: string,
+): ProjectsPathChar[] {
+  const headline = textPath.textContent ?? "";
+  const numChars = textPath.getNumberOfChars();
+  if (!headline || numChars === 0) return [];
+
+  const textContent = textPath as SVGTextContentElement;
+  const span = textContent.getSubStringLength(0, numChars) || 1;
+  const chars: ProjectsPathChar[] = [];
+
+  for (let i = 0; i < numChars; i += 1) {
+    const raw = headline[i] ?? "";
+    const glyph = raw === " " ? "\u00A0" : raw;
+    const offset = textContent.getSubStringLength(0, i);
+
+    const charText = document.createElementNS(SVG_NS, "text");
+    charText.setAttribute("class", "projects-path-char");
+    charText.setAttribute("fill", "#f0ede8");
+
+    const charPath = document.createElementNS(SVG_NS, "textPath");
+    charPath.setAttribute("href", pathId);
+    charPath.setAttribute("startOffset", String(offset));
+    charPath.textContent = glyph;
+    charText.appendChild(charPath);
+    charsGroup.appendChild(charText);
+
+    chars.push({ el: charText, progress: offset / span });
+  }
+
+  return chars;
+}
+
+function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const scrollWrap = root.querySelector(".projects-path-scroll") as HTMLElement | null;
+  const stage = root.querySelector(".projects-path-stage") as HTMLElement | null;
+  const camera = root.querySelector(".projects-path-camera") as HTMLElement | null;
+  const path = root.querySelector(".projects-path-curve") as SVGPathElement | null;
+  const textPath = root.querySelector(".projects-path-textpath") as SVGTextPathElement | null;
+  const measureText = root.querySelector(".projects-path-text-measure") as SVGTextElement | null;
+  const charsGroup = root.querySelector(".projects-path-chars") as SVGGElement | null;
+  const pathLabel = root.querySelector(".projects-path-label") as HTMLElement | null;
+  const afterPath = root.querySelector(".projects-after-path") as HTMLElement | null;
+
+  if (!scrollWrap || !stage || !camera || !path || !textPath || !charsGroup) return;
+
+  const pathChars = reducedMotion ? [] : splitProjectsPathHeadline(textPath, charsGroup, "#projects-headline-path");
+
+  if (!reducedMotion && measureText && pathChars.length) {
+    measureText.classList.add("is-split");
+  }
+
+  const numChars = textPath.getNumberOfChars();
+  const textSpan =
+    numChars > 0 ? (textPath as SVGTextContentElement).getSubStringLength(0, numChars) : 0;
+  const pathLen = path.getTotalLength();
+  const textPathRatio = pathLen > 0 && textSpan > 0 ? Math.min(1, textSpan / pathLen) : 0.72;
+
+  const getWriteScrollPx = () => window.innerHeight * PROJECTS_WRITE_SCROLL_VH;
+  const getExitScrollPx = () => window.innerHeight * PROJECTS_EXIT_SCROLL_VH;
+  const getTotalPathScrollPx = () => getWriteScrollPx() + getExitScrollPx();
+
+  const getMetrics = () => ({
+    vw: stage.clientWidth,
+    vh: stage.clientHeight,
+  });
+
+  const updatePathChars = (progress: number) => {
+    pathChars.forEach(({ el, progress: charProgress }) => {
+      const t = gsap.utils.clamp(
+        0,
+        1,
+        (progress - charProgress + PROJECTS_CHAR_WRITE_LEAD) / PROJECTS_CHAR_WRITE_WINDOW,
+      );
+      const eased = gsap.parseEase("power2.out")(t);
+      gsap.set(el, { opacity: eased });
+    });
+  };
+
+  const applyWriteScene = (writeT: number) => {
+    const { vw, vh } = getMetrics();
+    const cameraProgress = writeT * textPathRatio;
+    const pt = pointOnPath(path, cameraProgress);
+    const scale = gsap.utils.interpolate(PROJECTS_PATH_POV_SCALE.from, PROJECTS_PATH_POV_SCALE.to, writeT);
+
+    gsap.set(camera, {
+      x: vw / 2 - pt.x * scale,
+      y: vh / 1.5 - pt.y * scale,
+      scale,
+      transformOrigin: "0 0",
+      force3D: true,
+    });
+
+    if (pathLabel) gsap.set(pathLabel, { x: 0, y: 0 });
+    updatePathChars(writeT);
+  };
+
+  const applyExitScene = (exitT: number) => {
+    const { vw, vh } = getMetrics();
+    const pt = pointOnPath(path, textPathRatio);
+    const scale = gsap.utils.interpolate(PROJECTS_PATH_POV_SCALE.from, PROJECTS_PATH_POV_SCALE.to, 1);
+    const exitX = -exitT * vw * 1.35;
+
+    gsap.set(camera, {
+      x: vw / 2 - pt.x * scale + exitX,
+      y: vh / 1.5 - pt.y * scale,
+      scale,
+      transformOrigin: "0 0",
+      force3D: true,
+    });
+
+    if (pathLabel) gsap.set(pathLabel, { x: exitX, y: 0 });
+    updatePathChars(1);
+  };
+
+  const getPathWriteRatio = () => getWriteScrollPx() / getTotalPathScrollPx();
+
+  const getPanelsEnterProgress = () => {
+    const writeRatio = getPathWriteRatio();
+    return writeRatio + (1 - writeRatio) * PROJECTS_PANELS_EXIT_ENTER;
+  };
+
+  const updateAfterPathGate = (progress: number) => {
+    if (!afterPath) return;
+
+    const vh = window.innerHeight;
+    const enterAt = getPanelsEnterProgress();
+
+    if (progress >= 1) {
+      gsap.set(afterPath, { marginTop: 0, visibility: "visible" });
+      return;
+    }
+
+    if (progress < enterAt) {
+      gsap.set(afterPath, { marginTop: vh, visibility: "hidden" });
+      return;
+    }
+
+    const t = gsap.utils.clamp(0, 1, (progress - enterAt) / (1 - enterAt));
+    gsap.set(afterPath, {
+      marginTop: (1 - t) * vh,
+      visibility: "visible",
+    });
+  };
+
+  const updatePathScene = (progress: number) => {
+    const writeRatio = getPathWriteRatio();
+
+    if (progress <= writeRatio) {
+      applyWriteScene(progress / writeRatio);
+    } else {
+      const exitT = (progress - writeRatio) / (1 - writeRatio);
+      applyExitScene(exitT);
+    }
+
+    updateAfterPathGate(progress);
+  };
+
+  applyWriteScene(0);
+  updateAfterPathGate(0);
+
+  if (reducedMotion) {
+    applyWriteScene(1);
+    if (afterPath) gsap.set(afterPath, { marginTop: 0, visibility: "visible" });
+    return;
+  }
+
+  window.ScrollTrigger.create({
+    trigger: scrollWrap,
+    start: "top top",
+    end: () => `+=${getTotalPathScrollPx()}`,
+    pin: stage,
+    pinSpacing: true,
+    scrub: 1,
+    invalidateOnRefresh: true,
+    anticipatePin: 1,
+    onUpdate: (self: { progress: number }) => updatePathScene(self.progress),
+    onLeave: () => {
+      if (afterPath) gsap.set(afterPath, { marginTop: 0, visibility: "visible" });
+    },
+    onEnterBack: () => updateAfterPathGate(0),
+  });
+
+  requestAnimationFrame(() => window.ScrollTrigger?.refresh());
+}
+
 function getSkillsCarouselMetrics(itemCount: number) {
   const vh = window.innerHeight;
   const vw = window.innerWidth;
@@ -502,6 +712,8 @@ export function usePortfolioGsap(
     }
 
     if (projectsRef.current) {
+      initProjectsPathHeadline(projectsRef.current, gsap);
+
       gsap.timeline({
         scrollTrigger: {
           trigger: projectsRef.current,

@@ -17,14 +17,19 @@ export function useLoadPortfolioScripts(setLoaded: (v: boolean) => void) {
 
     Promise.all([
       loadScript("https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"),
-      loadScript("https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"),
+      import("gsap"),
+      import("gsap/ScrollTrigger"),
+      import("gsap/MotionPathPlugin"),
     ])
-      .then(() =>
-        loadScript("https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"),
-      )
-      .then(() => {
-        window.gsap.registerPlugin(window.ScrollTrigger);
+      .then(([, gsapMod, stMod, mpMod]) => {
+        window.gsap = gsapMod.gsap;
+        window.ScrollTrigger = stMod.ScrollTrigger;
+        window.MotionPathPlugin = mpMod.MotionPathPlugin;
+        window.gsap.registerPlugin(window.ScrollTrigger, window.MotionPathPlugin);
         setLoaded(true);
+      })
+      .catch((err) => {
+        console.error("[portfolio] script load failed:", err);
       });
   }, [setLoaded]);
 }

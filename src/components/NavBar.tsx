@@ -19,7 +19,7 @@ export function NavBar({ navRef, activeSection }: Props) {
         top: 0,
         left: 0,
         right: 0,
-        zIndex: 1000,
+        zIndex: 10000,
         background: "linear-gradient(to bottom, rgba(8,8,16,0.8) 0%, transparent 100%)",
         backdropFilter: "blur(1px)",
       }}
