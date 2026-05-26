@@ -15,7 +15,14 @@ import {
   ThreeCanvas,
 } from "../../components";
 import "../../globals";
-import { useLoadPortfolioScripts, usePortfolioCursor, usePortfolioGsap, usePortfolioThree } from "../../hooks";
+import {
+  useLoadPortfolioScripts,
+  usePortfolioCursor,
+  usePortfolioGsap,
+  usePortfolioLenis,
+  usePortfolioThree,
+} from "../../hooks";
+import { scrollToTop } from "../../lib/scroll";
 import { PortfolioStyles } from "../../styles/PortfolioStyles";
 
 export default function Portfolio() {
@@ -36,10 +43,11 @@ export default function Portfolio() {
   const [activeSection, setActiveSection] = useState("hero");
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    scrollToTop(true);
   }, []);
 
   useLoadPortfolioScripts(setLoaded);
+  usePortfolioLenis(loaded);
   usePortfolioThree(canvasRef, loaded);
   usePortfolioCursor(cursorRef, cursorDotRef, loaded);
   usePortfolioGsap(loaded, {

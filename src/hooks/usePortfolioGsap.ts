@@ -1,4 +1,5 @@
 import { type RefObject, useEffect } from "react";
+import { scrollToTop } from "../lib/scroll";
 import { resetSphereState, sphereState, SPHERE_ABOUT_X, SPHERE_CENTER_X, SPHERE_HERO_X } from "../lib/sphereState";
 
 const SKILLS_HEADLINE_CHAR_FROM = [
@@ -422,7 +423,7 @@ export function usePortfolioGsap(
     if (!loaded) return;
 
     let cancelled = false;
-    window.scrollTo(0, 0);
+    scrollToTop(true);
 
     const initId = requestAnimationFrame(() => {
       requestAnimationFrame(() => {
