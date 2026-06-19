@@ -51,8 +51,16 @@ type ProjectsPathChar = {
   progress: number;
 };
 
+// Path "d" is in fixed user units, so its total length never changes with the
+// viewport — cache it instead of recomputing (a layout-forcing call) every
+// scroll frame.
+const pathLengthCache = new WeakMap<SVGPathElement, number>();
 function pointOnPath(path: SVGPathElement, progress: number) {
-  const length = path.getTotalLength();
+  let length = pathLengthCache.get(path);
+  if (length === undefined) {
+    length = path.getTotalLength();
+    pathLengthCache.set(path, length);
+  }
   const t = Math.max(0, Math.min(1, progress));
   return path.getPointAtLength(length * t);
 }
@@ -135,10 +143,15 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
   const getExitScrollPx = () => window.innerHeight * PROJECTS_EXIT_SCROLL_VH;
   const getTotalPathScrollPx = () => getWriteScrollPx() + getExitScrollPx();
 
-  const getMetrics = () => ({
-    vw: stage.clientWidth,
-    vh: stage.clientHeight,
-  });
+  // stage size only changes on resize/refresh — cache it so the per-frame
+  // scrub handler doesn't force a layout read every frame.
+  let cachedVw = stage.clientWidth;
+  let cachedVh = stage.clientHeight;
+  const refreshMetrics = () => {
+    cachedVw = stage.clientWidth;
+    cachedVh = stage.clientHeight;
+  };
+  const getMetrics = () => ({ vw: cachedVw, vh: cachedVh });
 
   const getPathFocus = (t: number) => {
     const { vw, vh } = getMetrics();
@@ -148,6 +161,10 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
     };
   };
 
+  // Pre-parse easing functions once instead of re-parsing on every scroll frame.
+  const easePower2Out = gsap.parseEase("power2.out");
+  const easePower2InOut = gsap.parseEase("power2.inOut");
+
   const updatePathChars = (progress: number) => {
     pathChars.forEach(({ el, progress: charProgress }) => {
       const t = gsap.utils.clamp(
@@ -155,7 +172,7 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
         1,
         (progress - charProgress + PROJECTS_CHAR_WRITE_LEAD) / PROJECTS_CHAR_WRITE_WINDOW,
       );
-      const eased = gsap.parseEase("power2.out")(t);
+      const eased = easePower2Out(t);
       gsap.set(el, { opacity: eased });
     });
   };
@@ -233,7 +250,7 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
 
     // curtainStart → 1  (covers both late write phase AND full exit phase)
     const curtainT = gsap.utils.clamp(0, 1, (progress - curtainStart) / (1 - curtainStart));
-    const easedT = gsap.parseEase("power2.inOut")(curtainT);
+    const easedT = easePower2InOut(curtainT);
     const yVh = (1 - easedT) * 100;
 
     gsap.set(afterPath, {
@@ -287,6 +304,7 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
     scrub: 1,
     invalidateOnRefresh: true,
     anticipatePin: 1,
+    onRefresh: refreshMetrics,
     onUpdate: (self: { progress: number }) => updatePathScene(self.progress),
     onLeave: () => gsap.set(stage, { zIndex: 1 }),
     onLeaveBack: (self: { progress: number }) => updatePathScene(self.progress),
@@ -423,6 +441,7 @@ export function usePortfolioGsap(
     if (!loaded) return;
 
     let cancelled = false;
+    let heroCtx: { revert: () => void } | undefined;
     scrollToTop(true);
 
     const initId = requestAnimationFrame(() => {
@@ -430,26 +449,11 @@ export function usePortfolioGsap(
         if (cancelled) return;
 
         const gsap = window.gsap;
-        const ST = window.ScrollTrigger;
 
-    const toggleRv = "play none none reverse";
-    const afterPrevSection = (prevEl: HTMLElement | null | undefined) => ({
-      trigger: prevEl as HTMLElement | undefined,
-      start: "bottom top" as const,
-      toggleActions: toggleRv,
-    });
-
-    gsap.to(progressRef.current, {
-      scaleX: 1,
-      ease: "none",
-      scrollTrigger: {
-        trigger: document.body,
-        start: "top top",
-        end: "bottom bottom",
-        scrub: 0.3,
-      },
-    });
-
+        // Phase A creates NO ScrollTriggers — only the immediate entrance tweens
+        // — so nothing forces a ScrollTrigger.refresh() (full-page reflow) while
+        // the preloader entrance is playing. All scroll-driven setup is Phase B.
+        heroCtx = gsap.context(() => {
     gsap.from(navRef.current, { y: -60, opacity: 0, duration: 1.2, ease: "power4.out", delay: 0.4 });
 
     gsap.from(".nav-link", {
@@ -481,9 +485,6 @@ export function usePortfolioGsap(
         delay: 0.3,
       });
     }
-    gsap.from(".hero-sub", { y: 40, opacity: 0, duration: 1, ease: "power3.out", delay: 1.2 });
-    gsap.from(".hero-cta", { y: 30, opacity: 0, duration: 0.8, ease: "power3.out", delay: 1.6 });
-
     gsap.from(".hero-badge", {
       y: -16,
       opacity: 0,
@@ -491,6 +492,58 @@ export function usePortfolioGsap(
       duration: 0.9,
       ease: "back.out(1.7)",
       delay: 0.2,
+    });
+
+    resetSphereState();
+        }); // end Phase A (heroCtx)
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(initId);
+      if (window.gsap) window.gsap.killTweensOf(sphereState);
+      resetSphereState();
+      heroCtx?.revert();
+    };
+  }, [loaded]);
+
+  // Scroll-driven setup: progress bar, hero exit, sphere choreography, and all
+  // below-the-fold sections (skills pin, projects path, experience, contact).
+  // Built up-front on `loaded` — model A: the whole page is wired before the
+  // preloader plays its reveal, so the reveal runs on a ready page. Scroll stays
+  // locked until `introDone` (released in Portfolio).
+  useEffect(() => {
+    if (!loaded) return;
+
+    const gsap = window.gsap;
+    const ST = window.ScrollTrigger;
+    if (!gsap || !ST) return;
+
+    let cancelled = false;
+    let sectionsCtx: { revert: () => void } | undefined;
+    const rafs: number[] = [];
+
+    rafs.push(
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+        sectionsCtx = gsap.context(() => {
+    const toggleRv = "play none none reverse";
+    const afterPrevSection = (prevEl: HTMLElement | null | undefined) => ({
+      trigger: prevEl as HTMLElement | undefined,
+      start: "bottom top" as const,
+      toggleActions: toggleRv,
+    });
+
+    gsap.to(progressRef.current, {
+      scaleX: 1,
+      ease: "none",
+      scrollTrigger: {
+        trigger: document.body,
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 0.3,
+      },
     });
 
     gsap.to(heroTextRef.current, {
@@ -505,7 +558,19 @@ export function usePortfolioGsap(
       },
     });
 
-    resetSphereState();
+    // Hero background parallax — glow drifts on scroll.
+    gsap.to(".hero-parallax-glow", {
+      yPercent: 40,
+      scale: 1.15,
+      ease: "none",
+      scrollTrigger: {
+        trigger: heroRef.current,
+        start: "top top",
+        end: "bottom top",
+        scrub: true,
+      },
+    });
+
     const sphereSlide = gsap.timeline({
       scrollTrigger: {
         trigger: heroRef.current,
@@ -543,6 +608,22 @@ export function usePortfolioGsap(
         ease: "power2.inOut",
         duration: 1,
       });
+
+      gsap.fromTo(
+        sphereState,
+        { globalOpacity: 0 },
+        {
+          globalOpacity: 1,
+          ease: "none",
+          scrollTrigger: {
+            trigger: skillsRef.current,
+            start: "top 85%",
+            end: "top 40%",
+            scrub: 1,
+            invalidateOnRefresh: true,
+          },
+        },
+      );
     }
 
     gsap.from(".about-label", {
@@ -984,25 +1065,23 @@ export function usePortfolioGsap(
       });
     });
 
-    ST.refresh();
-      });
-    });
+        }); // end scroll-setup context
+
+        // Refresh once all section triggers exist.
+        rafs.push(
+          requestAnimationFrame(() => {
+            if (cancelled) return;
+            ST.refresh();
+          }),
+        );
+      })
+    );
 
     return () => {
       cancelled = true;
-      cancelAnimationFrame(initId);
-      if (window.gsap) {
-        window.gsap.killTweensOf(sphereState);
-      }
-      resetSphereState();
-      if (window.ScrollTrigger) {
-        window.ScrollTrigger.getAll().forEach((trigger: { kill: (reset?: boolean) => void }) => {
-          trigger.kill(true);
-        });
-        if (typeof window.ScrollTrigger.clearScrollMemory === "function") {
-          window.ScrollTrigger.clearScrollMemory();
-        }
-      }
+      rafs.forEach((id) => cancelAnimationFrame(id));
+      if (window.gsap) window.gsap.killTweensOf(sphereState);
+      sectionsCtx?.revert();
     };
   }, [loaded, setActiveSection]);
 }

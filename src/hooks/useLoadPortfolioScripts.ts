@@ -2,26 +2,16 @@ import { useEffect } from "react";
 
 export function useLoadPortfolioScripts(setLoaded: (v: boolean) => void) {
   useEffect(() => {
-    const loadScript = (src: string) =>
-      new Promise<void>((res, rej) => {
-        if (document.querySelector(`script[src="${src}"]`)) {
-          res();
-          return;
-        }
-        const s = document.createElement("script");
-        s.src = src;
-        s.onload = () => res();
-        s.onerror = rej;
-        document.head.appendChild(s);
-      });
-
+    // three is bundled from npm (also used by SkillModelViewer) — sharing the
+    // single module avoids loading a second, duplicate copy from a CDN.
     Promise.all([
-      loadScript("https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"),
+      import("three"),
       import("gsap"),
       import("gsap/ScrollTrigger"),
       import("gsap/MotionPathPlugin"),
     ])
-      .then(([, gsapMod, stMod, mpMod]) => {
+      .then(([threeMod, gsapMod, stMod, mpMod]) => {
+        window.THREE = threeMod;
         window.gsap = gsapMod.gsap;
         window.ScrollTrigger = stMod.ScrollTrigger;
         window.MotionPathPlugin = mpMod.MotionPathPlugin;

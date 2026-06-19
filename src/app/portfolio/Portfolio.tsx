@@ -8,6 +8,7 @@ import {
   ExperienceSection,
   HeroSection,
   NavBar,
+  Preloader,
   ProjectsSection,
   ScrollProgress,
   SiteFooter,
@@ -22,7 +23,8 @@ import {
   usePortfolioLenis,
   usePortfolioThree,
 } from "../../hooks";
-import { scrollToTop } from "../../lib/scroll";
+import { lockScroll, scrollToTop, unlockScroll } from "../../lib/scroll";
+import { sphereState } from "../../lib/sphereState";
 import { PortfolioStyles } from "../../styles/PortfolioStyles";
 
 export default function Portfolio() {
@@ -40,11 +42,23 @@ export default function Portfolio() {
   const navRef = useRef<HTMLElement>(null);
 
   const [loaded, setLoaded] = useState(false);
+  const [introDone, setIntroDone] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
 
   useEffect(() => {
     scrollToTop(true);
+    lockScroll();
+    sphereState.paused = true;
   }, []);
+
+  useEffect(() => {
+    if (introDone) {
+      // Everything is wired up-front on `loaded` (model A); we just release the
+      // scroll lock and start the 3D render loop once the intro reveal is done.
+      unlockScroll();
+      sphereState.paused = false;
+    }
+  }, [introDone]);
 
   useLoadPortfolioScripts(setLoaded);
   usePortfolioLenis(loaded);
@@ -65,6 +79,7 @@ export default function Portfolio() {
   return (
     <>
       <PortfolioStyles />
+      <Preloader loaded={loaded} onDone={() => setIntroDone(true)} />
       <CustomCursor cursorRef={cursorRef} cursorDotRef={cursorDotRef} />
       <ScrollProgress progressRef={progressRef} />
       <ThreeCanvas canvasRef={canvasRef} />

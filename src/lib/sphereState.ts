@@ -8,6 +8,9 @@ export const sphereState = {
   rotateY: 0,
   outerExplode: 0,
   innerExplode: 0,
+  globalOpacity: 0,
+  /** While true the Three.js render loop idles (set false once the intro finishes). */
+  paused: true,
 };
 
 export function resetSphereState() {
@@ -15,4 +18,5 @@ export function resetSphereState() {
   sphereState.rotateY = 0;
   sphereState.outerExplode = 0;
   sphereState.innerExplode = 0;
+  sphereState.globalOpacity = 0;
 }

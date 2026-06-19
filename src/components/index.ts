@@ -5,6 +5,7 @@ export { CustomCursor } from "./CustomCursor";
 export { ExperienceSection } from "./ExperienceSection";
 export { HeroSection } from "./HeroSection";
 export { NavBar } from "./NavBar";
+export { Preloader } from "./Preloader";
 export { ProjectsSection } from "./ProjectsSection";
 export { ScrollProgress } from "./ScrollProgress";
 export { SiteFooter } from "./SiteFooter";

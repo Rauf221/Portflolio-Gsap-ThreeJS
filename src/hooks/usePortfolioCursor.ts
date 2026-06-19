@@ -21,11 +21,12 @@ export function usePortfolioCursor(
     };
     window.addEventListener("mousemove", move);
 
+    let rafId = 0;
     const lerp = () => {
       cx += (dx - cx) * 0.12;
       cy += (dy - cy) * 0.12;
       cursor.style.transform = `translate(${cx - 20}px, ${cy - 20}px)`;
-      requestAnimationFrame(lerp);
+      rafId = requestAnimationFrame(lerp);
     };
     lerp();
 
@@ -39,11 +40,19 @@ export function usePortfolioCursor(
       cursor.style.height = "40px";
       cursor.style.opacity = "0.6";
     };
-    document.querySelectorAll("a,button,[data-cursor]").forEach((el) => {
+    const interactive = document.querySelectorAll("a,button,[data-cursor]");
+    interactive.forEach((el) => {
       el.addEventListener("mouseenter", expand);
       el.addEventListener("mouseleave", shrink);
     });
 
-    return () => window.removeEventListener("mousemove", move);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("mousemove", move);
+      interactive.forEach((el) => {
+        el.removeEventListener("mouseenter", expand);
+        el.removeEventListener("mouseleave", shrink);
+      });
+    };
   }, [loaded, cursorRef, cursorDotRef]);
 }

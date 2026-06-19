@@ -1,10 +1,18 @@
 "use client";
 
 import { type RefObject } from "react";
+import dynamic from "next/dynamic";
 import { skills } from "../content/site";
 import { SKILLS_META } from "../data";
 import { splitGraphemes } from "../lib/splitGraphemes";
-import { SkillModelViewer } from "./SkillModelViewer";
+
+// three + GLTFLoader are heavy; keep them out of the initial bundle. The host
+// tile keeps its fixed CSS size, so layout/ScrollTrigger measurements are
+// unchanged whether the canvas has mounted yet or not.
+const SkillModelViewer = dynamic(
+  () => import("./SkillModelViewer").then((m) => m.SkillModelViewer),
+  { ssr: false },
+);
 
 type Props = { skillsRef: RefObject<HTMLElement | null> };
 

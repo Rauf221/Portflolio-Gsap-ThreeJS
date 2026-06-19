@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import type { SkillModelTune } from "../data/portfolioMeta";
 
 type Props = {
@@ -125,131 +126,160 @@ export function SkillModelViewer({ modelPath, modelTune, className }: Props) {
     const host = hostRef.current;
     if (!host) return;
 
-    const canvas = document.createElement("canvas");
-    canvas.className = "skills-icon-model-canvas";
-    host.appendChild(canvas);
-
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      alpha: true,
-      antialias: true,
-    });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x000000, 0);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-    const scene = new THREE.Scene();
-    const cameraZ = modelTune?.cameraZ ?? 4.2;
-    const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
-    camera.position.set(0, 0, cameraZ);
-
-    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-    const key = new THREE.DirectionalLight(0xffffff, 0.6);
-    key.position.set(2, 3, 4);
-    scene.add(key);
-
-    const pivot = new THREE.Group();
-    scene.add(pivot);
-
-    let model: THREE.Object3D | null = null;
-    let targetRotX = 0;
-    let targetRotY = 0;
-    let raf = 0;
+    // Shared between the IntersectionObserver and the lazily-built WebGL instance.
     let isVisible = false;
-    let hasRendered = false;
+    let started = false;
+    let teardown: (() => void) | null = null;
 
-    const resize = () => {
-      const { width, height } = host.getBoundingClientRect();
-      if (width < 2 || height < 2) return;
-      renderer.setSize(width, height, false);
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
+    // ALL WebGL setup (canvas, renderer, scene, GLB) is deferred until the tile
+    // first nears the viewport. Building on mount would spin up ~14 WebGLRenderers
+    // (one per skill) at once — a big synchronous freeze that lands right on the
+    // preloader intro. Skills sit far below the fold, so during the intro nothing
+    // here runs.
+    const start = () => {
+      if (started) return;
+      started = true;
+
+      const canvas = document.createElement("canvas");
+      canvas.className = "skills-icon-model-canvas";
+      host.appendChild(canvas);
+
+      const renderer = new THREE.WebGLRenderer({
+        canvas,
+        alpha: true,
+        antialias: true,
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setClearColor(0x000000, 0);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+      const scene = new THREE.Scene();
+      const cameraZ = modelTune?.cameraZ ?? 4.2;
+      const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
+      camera.position.set(0, 0, cameraZ);
+
+      scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+      const key = new THREE.DirectionalLight(0xffffff, 0.6);
+      key.position.set(2, 3, 4);
+      scene.add(key);
+
+      const pivot = new THREE.Group();
+      scene.add(pivot);
+
+      let model: THREE.Object3D | null = null;
+      let targetRotX = 0;
+      let targetRotY = 0;
+      let raf = 0;
+      let hasRendered = false;
+
+      const resize = () => {
+        const { width, height } = host.getBoundingClientRect();
+        if (width < 2 || height < 2) return;
+        renderer.setSize(width, height, false);
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+      };
+
+      const loader = new GLTFLoader();
+      // Models are meshopt-compressed (EXT_meshopt_compression) to shrink them
+      // from ~20 MB down to ~2 MB; the decoder is required to read them.
+      loader.setMeshoptDecoder(MeshoptDecoder);
+      loader.load(
+        modelPath,
+        (gltf) => {
+          const root = gltf.scene;
+          prepareModelMaterials(root);
+          const fitted = fitModel(root, modelTune);
+          if (!fitted) {
+            console.warn("[SkillModelViewer] empty bounds:", modelPath);
+            return;
+          }
+          pivot.add(fitted);
+          model = pivot;
+          hasRendered = false;
+        },
+        undefined,
+        (err) => {
+          console.warn("[SkillModelViewer] load failed:", modelPath, err);
+        },
+      );
+
+      const ro = new ResizeObserver(resize);
+      ro.observe(host);
+
+      const onPointerMove = (e: PointerEvent) => {
+        const rect = host.getBoundingClientRect();
+        const nx = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+        const ny = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+        targetRotY = nx * 0.65;
+        targetRotX = -ny * 0.45;
+      };
+
+      const onPointerLeave = () => {
+        targetRotX = 0;
+        targetRotY = 0;
+      };
+
+      host.addEventListener("pointermove", onPointerMove);
+      host.addEventListener("pointerleave", onPointerLeave);
+      resize();
+
+      const animate = () => {
+        raf = requestAnimationFrame(animate);
+        if (!isVisible && hasRendered) return;
+
+        if (model) {
+          model.rotation.x += (targetRotX - model.rotation.x) * 0.09;
+          model.rotation.y += (targetRotY - model.rotation.y) * 0.09;
+          model.rotation.y += 0.004;
+          hasRendered = true;
+        }
+
+        if (isVisible || !hasRendered) {
+          renderer.render(scene, camera);
+        }
+      };
+      animate();
+
+      teardown = () => {
+        cancelAnimationFrame(raf);
+        ro.disconnect();
+        host.removeEventListener("pointermove", onPointerMove);
+        host.removeEventListener("pointerleave", onPointerLeave);
+
+        const disposeMaterial = (m: THREE.Material) => {
+          // Free any textures held by the material before the material itself.
+          for (const value of Object.values(m)) {
+            if (value instanceof THREE.Texture) value.dispose();
+          }
+          m.dispose();
+        };
+        scene.traverse((obj) => {
+          if (obj instanceof THREE.Mesh) {
+            obj.geometry?.dispose();
+            const { material } = obj;
+            if (Array.isArray(material)) material.forEach(disposeMaterial);
+            else if (material) disposeMaterial(material);
+          }
+        });
+
+        renderer.dispose();
+        canvas.remove();
+      };
     };
 
     const io = new IntersectionObserver(
       ([entry]) => {
         isVisible = entry.isIntersecting && entry.intersectionRatio > 0.02;
+        if (entry.isIntersecting) start();
       },
-      { threshold: [0, 0.02, 0.1, 0.25] },
+      { rootMargin: "200px", threshold: [0, 0.02, 0.1, 0.25] },
     );
     io.observe(host);
 
-    const ro = new ResizeObserver(resize);
-    ro.observe(host);
-
-    const loader = new GLTFLoader();
-    loader.load(
-      modelPath,
-      (gltf) => {
-        const root = gltf.scene;
-        prepareModelMaterials(root);
-        const fitted = fitModel(root, modelTune);
-        if (!fitted) {
-          console.warn("[SkillModelViewer] empty bounds:", modelPath);
-          return;
-        }
-        pivot.add(fitted);
-        model = pivot;
-        hasRendered = false;
-      },
-      undefined,
-      (err) => {
-        console.warn("[SkillModelViewer] load failed:", modelPath, err);
-      },
-    );
-
-    const onPointerMove = (e: PointerEvent) => {
-      const rect = host.getBoundingClientRect();
-      const nx = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
-      const ny = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
-      targetRotY = nx * 0.65;
-      targetRotX = -ny * 0.45;
-    };
-
-    const onPointerLeave = () => {
-      targetRotX = 0;
-      targetRotY = 0;
-    };
-
-    host.addEventListener("pointermove", onPointerMove);
-    host.addEventListener("pointerleave", onPointerLeave);
-    resize();
-
-    const animate = () => {
-      raf = requestAnimationFrame(animate);
-      if (!isVisible && hasRendered) return;
-
-      if (model) {
-        model.rotation.x += (targetRotX - model.rotation.x) * 0.09;
-        model.rotation.y += (targetRotY - model.rotation.y) * 0.09;
-        model.rotation.y += 0.004;
-        hasRendered = true;
-      }
-
-      if (isVisible || !hasRendered) {
-        renderer.render(scene, camera);
-      }
-    };
-    animate();
-
     return () => {
-      cancelAnimationFrame(raf);
       io.disconnect();
-      ro.disconnect();
-      host.removeEventListener("pointermove", onPointerMove);
-      host.removeEventListener("pointerleave", onPointerLeave);
-
-      scene.traverse((obj) => {
-        if (obj instanceof THREE.Mesh) {
-          obj.geometry?.dispose();
-          const { material } = obj;
-          if (Array.isArray(material)) material.forEach((m) => m.dispose());
-          else material?.dispose();
-        }
-      });
-
-      renderer.dispose();
-      canvas.remove();
+      teardown?.();
     };
   }, [modelPath, modelTune]);
 

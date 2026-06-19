@@ -165,6 +165,11 @@ export function usePortfolioThree(
     const animate = () => {
       const id = requestAnimationFrame(animate);
       (animate as any)._id = id;
+
+      // Idle the heavy loop while the intro plays (canvas is hidden behind the
+      // preloader and globalOpacity is 0 anyway) — frees the main thread for GSAP.
+      if (sphereState.paused) return;
+
       frame += 0.004;
 
       group.position.x += (sphereState.groupX - group.position.x) * 0.08;
@@ -224,6 +229,7 @@ export function usePortfolioThree(
       // ─────────────────────────────────────────────────────────────────────
       camera.lookAt(0, 0, 0);
 
+      renderer.domElement.style.opacity = String(sphereState.globalOpacity);
       renderer.render(scene, camera);
     };
     animate();
@@ -232,6 +238,20 @@ export function usePortfolioThree(
       cancelAnimationFrame((animate as any)._id);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("resize", onResize);
+
+      outer.geo.dispose();
+      outer.mat.dispose();
+      inner.geo.dispose();
+      inner.mat.dispose();
+      ring1.mesh.geometry.dispose();
+      ring1.mat.dispose();
+      ring2.mesh.geometry.dispose();
+      ring2.mat.dispose();
+      ring3.mesh.geometry.dispose();
+      ring3.mat.dispose();
+      pGeo.dispose();
+      pMat.dispose();
+
       renderer.dispose();
     };
   }, [loaded, canvasRef]);
