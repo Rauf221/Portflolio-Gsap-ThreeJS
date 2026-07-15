@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { type RefObject } from "react";
 import { hero } from "../content/site";
 import { UnicornHeroBackground } from "./UnicornHeroBackground";
 
@@ -10,42 +10,6 @@ type Props = {
 };
 
 export function HeroSection({ heroRef, heroTextRef }: Props) {
-  const glowRef = useRef<HTMLDivElement>(null);
-
-  // Lightweight, self-contained mouse parallax (independent of GSAP load order).
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    const glow = glowRef.current;
-    if (!glow) return;
-
-    let targetX = 0;
-    let targetY = 0;
-    let curX = 0;
-    let curY = 0;
-    let raf = 0;
-
-    const onMove = (e: PointerEvent) => {
-      targetX = (e.clientX / window.innerWidth - 0.5) * 2;
-      targetY = (e.clientY / window.innerHeight - 0.5) * 2;
-    };
-
-    const tick = () => {
-      curX += (targetX - curX) * 0.06;
-      curY += (targetY - curY) * 0.06;
-      glow.style.transform = `translate3d(${curX * 40}px, ${curY * 40}px, 0)`;
-      raf = requestAnimationFrame(tick);
-    };
-
-    window.addEventListener("pointermove", onMove);
-    raf = requestAnimationFrame(tick);
-
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
-
   return (
     <section
       id="hero"
@@ -62,9 +26,6 @@ export function HeroSection({ heroRef, heroTextRef }: Props) {
     >
       <UnicornHeroBackground />
 
-      <div className="hero-parallax-glow" aria-hidden="true">
-        <div ref={glowRef} className="hero-parallax-glow-inner" />
-      </div>
       <div className="hero-fade-bottom" aria-hidden="true" />
 
       <div ref={heroTextRef} className="hero-minimal">

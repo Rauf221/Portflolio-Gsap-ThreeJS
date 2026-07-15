@@ -558,19 +558,6 @@ export function usePortfolioGsap(
       },
     });
 
-    // Hero background parallax — glow drifts on scroll.
-    gsap.to(".hero-parallax-glow", {
-      yPercent: 40,
-      scale: 1.15,
-      ease: "none",
-      scrollTrigger: {
-        trigger: heroRef.current,
-        start: "top top",
-        end: "bottom top",
-        scrub: true,
-      },
-    });
-
     const sphereSlide = gsap.timeline({
       scrollTrigger: {
         trigger: heroRef.current,

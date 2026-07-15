@@ -400,30 +400,6 @@ body::before {
 .contact-input::placeholder { color: var(--muted); }
 textarea.contact-input { resize: vertical; min-height: 140px; }
 
-/* Hero parallax glow layer (outer = GSAP scroll, inner = mouse parallax) */
-.hero-parallax-glow {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  overflow: hidden;
-  will-change: transform;
-}
-
-.hero-parallax-glow-inner {
-  position: absolute;
-  top: 30%;
-  left: 50%;
-  width: 60vw;
-  height: 60vw;
-  max-width: 760px;
-  max-height: 760px;
-  transform: translate3d(0, 0, 0);
-  background: radial-gradient(circle, var(--sphere-glow) 0%, rgba(108,99,255,0.12) 35%, transparent 70%);
-  filter: blur(20px);
-  will-change: transform;
-}
-
 .hero-fade-bottom {
   position: absolute;
   left: 0;

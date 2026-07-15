@@ -45,3 +45,6 @@ next-env.d.ts
 .env.local
 HESABAT.MD
 AGENTS.MD
+
+# graphify (regenerated knowledge graph, don't version)
+/graphify-out/
