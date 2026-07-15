@@ -1,6 +1,5 @@
 import { type RefObject, useEffect } from "react";
 import { sphereState } from "../lib/sphereState";
-import { DESKTOP_REFERENCE_HEIGHT } from "../lib/viewport";
 
 export function usePortfolioThree(
   canvasRef: RefObject<HTMLCanvasElement | null>,
@@ -16,12 +15,12 @@ export function usePortfolioThree(
       antialias: true,
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(window.innerWidth, DESKTOP_REFERENCE_HEIGHT);
+    renderer.setSize(window.innerWidth, window.innerHeight);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
       60,
-      window.innerWidth / DESKTOP_REFERENCE_HEIGHT,
+      window.innerWidth / window.innerHeight,
       0.1,
       1000,
     );
@@ -122,28 +121,27 @@ export function usePortfolioThree(
     // in progress. Every event is compensated immediately and unconditionally
     // — the canvas's actual pixel size is never touched mid-gesture, so it
     // cannot visibly snap even if a single event's dpr/innerWidth reading is
-    // momentarily inconsistent. The canvas stays top-anchored (top: 0,
-    // matching the original un-frozen layout) so the sphere's vertical
-    // framing never shifts just because the fixed height doesn't match a
-    // given viewport's real height; only the horizontal axis is centered
-    // (left 50%, recomputed live from the current viewport) since width is
-    // the axis that actually varies. scale()'s transform-origin is pinned to
-    // the top edge too, so zoom-compensation grows/shrinks the canvas
-    // without moving that top edge. Only after the
-    // resize events settle (RESIZE_SETTLE_MS of silence) do we check whether
-    // the physical *width* actually changed — that distinguishes a real
-    // device switch (DevTools device toolbar) or window resize, which must
-    // resize immediately with no page refresh required, from zoom on the
-    // same screen, which never touches the canvas's real size at all. Height
-    // is intentionally frozen at a fixed reference value (never each
-    // machine's own window.innerHeight, and never revisited on resize) so
-    // the sphere's framing renders identically on every machine, not just
-    // consistently within a single session.
+    // momentarily inconsistent. The canvas stays top-anchored (top: 0) so
+    // the sphere's vertical framing never drifts during zoom; only the
+    // horizontal axis is centered (left 50%, recomputed live from the
+    // current viewport) since real resizes are what should move the canvas,
+    // not zoom. scale()'s transform-origin is pinned to the top edge too, so
+    // zoom-compensation grows/shrinks the canvas without moving that top
+    // edge. Only after the resize events settle (RESIZE_SETTLE_MS of
+    // silence) do we check whether the physical size actually changed —
+    // that distinguishes a real device switch (DevTools device toolbar) or
+    // window resize, which must resize immediately with no page refresh
+    // required, from zoom on the same screen, which never touches the
+    // canvas's real size at all. Both width and height live-track the real
+    // viewport on a genuine resize, so the canvas always fully fills the
+    // actual screen on every machine (no fixed reference size — a frozen
+    // value gaps or overflows on viewports whose real height differs from
+    // it).
     const PHYSICAL_SIZE_TOLERANCE = 4;
     const RESIZE_SETTLE_MS = 200;
-    const frozenHeight = DESKTOP_REFERENCE_HEIGHT;
     let baseDpr = window.devicePixelRatio;
     let baseInnerW = window.innerWidth;
+    let baseInnerH = window.innerHeight;
     let settleTimer: ReturnType<typeof setTimeout> | null = null;
     const applyTransform = (zoomScale: number) => {
       if (canvasRef.current) {
@@ -155,13 +153,15 @@ export function usePortfolioThree(
     const commitResize = () => {
       const dpr = window.devicePixelRatio;
       const w = window.innerWidth;
+      const h = window.innerHeight;
       baseDpr = dpr;
       baseInnerW = w;
+      baseInnerH = h;
       applyTransform(1);
       renderer.setPixelRatio(Math.min(dpr, 2));
-      camera.aspect = w / frozenHeight;
+      camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(w, frozenHeight);
+      renderer.setSize(w, h);
     };
     const onResize = () => {
       applyTransform(baseDpr / window.devicePixelRatio);
@@ -170,8 +170,11 @@ export function usePortfolioThree(
         settleTimer = null;
         const dpr = window.devicePixelRatio;
         const w = window.innerWidth;
-        const sameWidth = Math.abs(w * dpr - baseInnerW * baseDpr) <= PHYSICAL_SIZE_TOLERANCE;
-        if (!sameWidth) commitResize();
+        const h = window.innerHeight;
+        const samePhysicalSize =
+          Math.abs(w * dpr - baseInnerW * baseDpr) <= PHYSICAL_SIZE_TOLERANCE &&
+          Math.abs(h * dpr - baseInnerH * baseDpr) <= PHYSICAL_SIZE_TOLERANCE;
+        if (!samePhysicalSize) commitResize();
       }, RESIZE_SETTLE_MS);
     };
     window.addEventListener("resize", onResize);
