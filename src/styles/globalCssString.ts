@@ -405,7 +405,7 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
   left: 0;
   right: 0;
   bottom: 0;
-  height: 28vh;
+  height: 16vh;
   z-index: 2;
   pointer-events: none;
   background: linear-gradient(to bottom, transparent, var(--bg));
