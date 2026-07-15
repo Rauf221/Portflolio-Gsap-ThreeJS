@@ -1,5 +1,6 @@
 import { type RefObject, useEffect } from "react";
 import { sphereState } from "../lib/sphereState";
+import { DESKTOP_REFERENCE_HEIGHT } from "../lib/viewport";
 
 export function usePortfolioThree(
   canvasRef: RefObject<HTMLCanvasElement | null>,
@@ -15,12 +16,12 @@ export function usePortfolioThree(
       antialias: true,
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.innerWidth, DESKTOP_REFERENCE_HEIGHT);
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
       60,
-      window.innerWidth / window.innerHeight,
+      window.innerWidth / DESKTOP_REFERENCE_HEIGHT,
       0.1,
       1000,
     );
@@ -121,25 +122,34 @@ export function usePortfolioThree(
     // in progress. Every event is compensated immediately and unconditionally
     // — the canvas's actual pixel size is never touched mid-gesture, so it
     // cannot visibly snap even if a single event's dpr/innerWidth reading is
-    // momentarily inconsistent. Anchoring at top/left 50% (recomputed live
-    // from the current viewport) and re-centering with translate(-50%, -50%)
-    // keeps the sphere pinned to the true center; scale() cancels the
-    // zoom-driven growth of the canvas's fixed pixel size. Only after the
+    // momentarily inconsistent. The canvas stays top-anchored (top: 0,
+    // matching the original un-frozen layout) so the sphere's vertical
+    // framing never shifts just because the fixed height doesn't match a
+    // given viewport's real height; only the horizontal axis is centered
+    // (left 50%, recomputed live from the current viewport) since width is
+    // the axis that actually varies. scale()'s transform-origin is pinned to
+    // the top edge too, so zoom-compensation grows/shrinks the canvas
+    // without moving that top edge. Only after the
     // resize events settle (RESIZE_SETTLE_MS of silence) do we check whether
     // the physical *width* actually changed — that distinguishes a real
     // device switch (DevTools device toolbar) or window resize, which must
     // resize immediately with no page refresh required, from zoom on the
     // same screen, which never touches the canvas's real size at all. Height
-    // is intentionally frozen at whatever it was on first mount and never
-    // revisited, even on a genuine device switch — only width adapts.
+    // is intentionally frozen at a fixed reference value (never each
+    // machine's own window.innerHeight, and never revisited on resize) so
+    // the sphere's framing renders identically on every machine, not just
+    // consistently within a single session.
     const PHYSICAL_SIZE_TOLERANCE = 4;
     const RESIZE_SETTLE_MS = 200;
-    const frozenHeight = window.innerHeight;
+    const frozenHeight = DESKTOP_REFERENCE_HEIGHT;
     let baseDpr = window.devicePixelRatio;
     let baseInnerW = window.innerWidth;
     let settleTimer: ReturnType<typeof setTimeout> | null = null;
     const applyTransform = (zoomScale: number) => {
-      if (canvasRef.current) canvasRef.current.style.transform = `translate(-50%, -50%) scale(${zoomScale})`;
+      if (canvasRef.current) {
+        canvasRef.current.style.transform = `translateX(-50%) scale(${zoomScale})`;
+        canvasRef.current.style.transformOrigin = "center top";
+      }
     };
     applyTransform(1);
     const commitResize = () => {

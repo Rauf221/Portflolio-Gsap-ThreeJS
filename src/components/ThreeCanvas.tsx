@@ -6,7 +6,7 @@ export function ThreeCanvas({ canvasRef }: Props) {
   return (
     <canvas
       ref={canvasRef}
-      style={{ position: "fixed", top: "50%", left: "50%", pointerEvents: "none", zIndex: 0 }}
+      style={{ position: "fixed", top: 0, left: "50%", pointerEvents: "none", zIndex: 0 }}
     />
   );
 }
