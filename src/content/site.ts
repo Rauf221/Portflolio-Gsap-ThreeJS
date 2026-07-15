@@ -19,7 +19,6 @@ export const nav = {
 } as const;
 
 export const hero = {
-  badge: "Available for new work · 2026",
   line1: "Rauf",
   line2: "Huseynzade",
   subBefore: "I build",

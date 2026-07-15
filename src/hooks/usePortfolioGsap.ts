@@ -485,15 +485,6 @@ export function usePortfolioGsap(
         delay: 0.3,
       });
     }
-    gsap.from(".hero-badge", {
-      y: -16,
-      opacity: 0,
-      scale: 0.9,
-      duration: 0.9,
-      ease: "back.out(1.7)",
-      delay: 0.2,
-    });
-
     resetSphereState();
         }); // end Phase A (heroCtx)
       });

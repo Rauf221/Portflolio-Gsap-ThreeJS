@@ -28,36 +28,7 @@ export function HeroSection({ heroRef, heroTextRef }: Props) {
 
       <div className="hero-fade-bottom" aria-hidden="true" />
 
-      <div ref={heroTextRef} className="hero-minimal">
-        <div className="hero-badge">
-          <div
-            className="glass font-mono"
-            style={{
-              padding: "0.4rem 1.2rem",
-              borderRadius: 100,
-              fontSize: "0.72rem",
-              letterSpacing: "0.15em",
-              color: "var(--sphere)",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "var(--sphere)",
-                display: "inline-block",
-                animation: "pulse-glow 2s ease-in-out infinite",
-              }}
-            />
-            {hero.badge}
-          </div>
-        </div>
-      </div>
+      <div ref={heroTextRef} className="hero-minimal" />
 
       <div className="hero-scroll-hint">
         <span className="font-mono" style={{ fontSize: "0.65rem", color: "var(--muted)", letterSpacing: "0.2em" }}>

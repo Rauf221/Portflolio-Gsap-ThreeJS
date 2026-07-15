@@ -419,10 +419,6 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
   pointer-events: none;
 }
 
-.hero-minimal .hero-badge {
-  pointer-events: auto;
-}
-
 .hero-scroll-hint {
   position: absolute;
   bottom: 2.5rem;
