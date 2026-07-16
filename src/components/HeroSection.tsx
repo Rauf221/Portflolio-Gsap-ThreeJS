@@ -2,7 +2,7 @@
 
 import { type RefObject } from "react";
 import { hero } from "../content/site";
-import { HERO_VISIBLE_HEIGHT } from "../lib/viewport";
+import { DESKTOP_REFERENCE_HEIGHT } from "../lib/viewport";
 import { UnicornHeroBackground } from "./UnicornHeroBackground";
 
 type Props = {
@@ -18,13 +18,15 @@ export function HeroSection({ heroRef, heroTextRef }: Props) {
       style={{
         position: "relative",
         width: "100%",
-        // The Unicorn scene sits absolutely inside this section and stands
-        // HERO_VISIBLE_HEIGHT tall once its dead top margin is cropped, so the
-        // section must be at least that tall or `overflow: hidden` clips the
-        // scene's bottom edge away entirely on shorter viewports. With the
-        // floor, the overflow instead falls below the fold and scrolls into
-        // view. Taller viewports keep their existing 100vh behaviour.
-        minHeight: `max(100vh, ${HERO_VISIBLE_HEIGHT}px)`,
+        // The Unicorn scene box is a fixed DESKTOP_REFERENCE_HEIGHT tall and
+        // bottom-anchored inside this section. Sizing the section to
+        // min(100vh, DESKTOP_REFERENCE_HEIGHT) means: on short viewports it
+        // equals 100vh and `overflow: hidden` crops the scene's dead top space
+        // so the viewport fills with no scroll; on tall viewports it stops at
+        // the scene's bottom so the next section starts immediately with no
+        // empty backdrop below. All hero children are absolutely positioned, so
+        // the section's actual height equals this minHeight.
+        minHeight: `min(100vh, ${DESKTOP_REFERENCE_HEIGHT}px)`,
         display: "flex",
         alignItems: "center",
         overflow: "hidden",
