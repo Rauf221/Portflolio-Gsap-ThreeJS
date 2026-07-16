@@ -38,16 +38,27 @@ export function UnicornHeroBackground() {
     let baseInnerW = window.innerWidth;
     let settleTimer: ReturnType<typeof setTimeout> | null = null;
 
+    // Publish the same zoom-compensation factor the scene box uses so the hero
+    // section can compensate its own `min(100vh, 900px)` cap by it. The cap is
+    // in CSS px, which shrink under zoom-out; without this the section clips
+    // fewer physical px than the (physically-constant) scene box on zoom-out,
+    // shifting the crop. Multiplying the cap by this factor keeps it physically
+    // 900px, so the crop stays put in both zoom directions.
+    const applyZoomScale = (z: number) => {
+      setZoomScale(z);
+      document.documentElement.style.setProperty("--hero-zoom-scale", String(z));
+    };
+
     const commitResize = () => {
       baseDpr = window.devicePixelRatio;
       baseInnerW = window.innerWidth;
-      setZoomScale(1);
+      applyZoomScale(1);
       setWidth(baseInnerW);
     };
     commitResize();
 
     const onResize = () => {
-      setZoomScale(baseDpr / window.devicePixelRatio);
+      applyZoomScale(baseDpr / window.devicePixelRatio);
       if (settleTimer) clearTimeout(settleTimer);
       settleTimer = setTimeout(() => {
         settleTimer = null;
@@ -62,6 +73,7 @@ export function UnicornHeroBackground() {
     return () => {
       window.removeEventListener("resize", onResize);
       if (settleTimer) clearTimeout(settleTimer);
+      document.documentElement.style.removeProperty("--hero-zoom-scale");
     };
   }, []);
 

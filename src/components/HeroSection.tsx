@@ -26,7 +26,15 @@ export function HeroSection({ heroRef, heroTextRef }: Props) {
         // the scene's bottom so the next section starts immediately with no
         // empty backdrop below. All hero children are absolutely positioned, so
         // the section's actual height equals this minHeight.
-        minHeight: `min(100vh, ${DESKTOP_REFERENCE_HEIGHT}px)`,
+        //
+        // The cap is multiplied by --hero-zoom-scale (published by
+        // UnicornHeroBackground, the same factor its scale() uses). Page zoom
+        // shrinks/grows CSS px, but the scene box is zoom-compensated to a
+        // constant physical size; scaling the cap the same way keeps it
+        // physically DESKTOP_REFERENCE_HEIGHT so the top crop stays put under
+        // zoom-out instead of jumping. Fallback 1 = plain min(100vh, 900px)
+        // before the variable is set (SSR / first paint).
+        minHeight: `min(100vh, calc(${DESKTOP_REFERENCE_HEIGHT}px * var(--hero-zoom-scale, 1)))`,
         display: "flex",
         alignItems: "center",
         overflow: "hidden",
