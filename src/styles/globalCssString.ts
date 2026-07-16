@@ -1,3 +1,5 @@
+import { HERO_VISIBLE_HEIGHT } from "../lib/viewport";
+
 /** Inline global styles for the portfolio page (fonts, tokens, utilities). */
 export const PORTFOLIO_GLOBAL_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&display=swap');
@@ -562,6 +564,20 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
   .hero-minimal { top: 9%; }
   .hero-scroll-hint {
     bottom: 1.5rem;
+  }
+}
+
+/* Keyed on viewport *height*, unlike the width query above — both can match at
+   once on a small screen, and this one must win. When the hero is taller than
+   the viewport its bottom edge is below the fold, so the hint has to be pinned
+   to the fold instead to stay visible on first paint. #hero is the first
+   in-flow element on the page, so calc(100vh - …) measured from its top lands
+   exactly on the fold. 7.5rem = the hint's own ~5rem height plus the 2.5rem
+   gap it keeps from the bottom edge elsewhere. */
+@media (max-height: ${HERO_VISIBLE_HEIGHT}px) {
+  .hero-scroll-hint {
+    top: calc(100vh - 7.5rem);
+    bottom: auto;
   }
 }
 
