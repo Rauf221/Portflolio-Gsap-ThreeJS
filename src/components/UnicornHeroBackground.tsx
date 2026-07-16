@@ -5,27 +5,24 @@ import { DESKTOP_REFERENCE_HEIGHT } from "../lib/viewport";
 
 export function UnicornHeroBackground() {
   // The Unicorn Studio scene watches its container with a ResizeObserver and
-  // redraws whenever the box size changes. Browser page-zoom (Ctrl +/-, Ctrl
-  // + scroll) fires a burst of `resize` events while a smooth (trackpad)
-  // zoom is in progress. Every event is compensated immediately and
-  // unconditionally — the container's actual pixel size is never touched
-  // mid-gesture, so it cannot visibly snap even if a single event's
-  // dpr/innerWidth reading is momentarily inconsistent. Only the horizontal
-  // axis is centered (left 50%, recomputed live from the current viewport)
-  // since width is the only axis that varies — the box's height is frozen at
-  // DESKTOP_REFERENCE_HEIGHT, so the SDK never sees a vertical resize at all.
-  // Only after the resize events settle (RESIZE_SETTLE_MS of silence) do we
-  // check whether the physical *width* actually changed — that distinguishes
-  // a real device switch (DevTools device toolbar) or window resize, which
-  // must resize immediately with no page refresh required, from zoom on the
-  // same screen, which never touches the container's real size at all.
+  // re-renders (re-covers) whenever the box size changes. If we let the box
+  // track the live viewport, browser page-zoom (which changes innerWidth /
+  // innerHeight in CSS px) makes the SDK re-cover on every zoom step, so the
+  // PHOTO ITSELF reframes — the subject grows/shrinks. To stop that, the box is
+  // frozen: its width is captured once (state) and its height is a constant
+  // DESKTOP_REFERENCE_HEIGHT, so the SDK renders the scene ONCE and never
+  // reframes. A compensating transform: scale(zoomScale) then keeps that frozen
+  // box visually the same physical size across zoom levels, so the whole hero
+  // just scales uniformly with the rest of the page — it does not drift.
   //
-  // The box is bottom-anchored (bottom: 0) with transform-origin at the bottom
-  // edge, so the subject's bottom edge stays pinned while zoom-compensation and
-  // the parent section's crop both act on the top. The section is only
-  // min(100vh, DESKTOP_REFERENCE_HEIGHT) tall and clips this box with
-  // overflow: hidden, so on short viewports the scene's dead top space is cut
-  // and the viewport is filled without ever scaling the scene.
+  // Only after the resize events settle (RESIZE_SETTLE_MS of silence) do we
+  // check whether the physical *width* actually changed — that distinguishes a
+  // real device switch / window resize (must re-freeze so the scene re-covers
+  // at the new width) from zoom on the same screen (physical width unchanged,
+  // so the box is left frozen and only compensated). The box is bottom-anchored
+  // (bottom: 0, transform-origin bottom) so the subject's bottom edge stays
+  // pinned; the parent section is only min(100vh, DESKTOP_REFERENCE_HEIGHT) tall
+  // and clips the dead space off the TOP with overflow: hidden.
   const PHYSICAL_SIZE_TOLERANCE = 4;
   const RESIZE_SETTLE_MS = 200;
   // Only width lives in state — height is a compile-time constant, since it is
@@ -39,11 +36,11 @@ export function UnicornHeroBackground() {
     let settleTimer: ReturnType<typeof setTimeout> | null = null;
 
     // Publish the same zoom-compensation factor the scene box uses so the hero
-    // section can compensate its own `min(100vh, 900px)` cap by it. The cap is
-    // in CSS px, which shrink under zoom-out; without this the section clips
-    // fewer physical px than the (physically-constant) scene box on zoom-out,
-    // shifting the crop. Multiplying the cap by this factor keeps it physically
-    // 900px, so the crop stays put in both zoom directions.
+    // section can compensate its own min(100vh, 900px) cap by it. The cap is in
+    // CSS px, which shrink under zoom-out; without this the section would clip
+    // fewer physical px than the (physically-constant) frozen scene box on
+    // zoom-out, shifting the top crop. Multiplying the cap by this factor keeps
+    // it physically DESKTOP_REFERENCE_HEIGHT, so the crop stays put both ways.
     const applyZoomScale = (z: number) => {
       setZoomScale(z);
       document.documentElement.style.setProperty("--hero-zoom-scale", String(z));

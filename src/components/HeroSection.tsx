@@ -28,12 +28,9 @@ export function HeroSection({ heroRef, heroTextRef }: Props) {
         // the section's actual height equals this minHeight.
         //
         // The cap is multiplied by --hero-zoom-scale (published by
-        // UnicornHeroBackground, the same factor its scale() uses). Page zoom
-        // shrinks/grows CSS px, but the scene box is zoom-compensated to a
-        // constant physical size; scaling the cap the same way keeps it
-        // physically DESKTOP_REFERENCE_HEIGHT so the top crop stays put under
-        // zoom-out instead of jumping. Fallback 1 = plain min(100vh, 900px)
-        // before the variable is set (SSR / first paint).
+        // UnicornHeroBackground, the same factor its scale() uses) so the top
+        // crop stays put under zoom-out instead of jumping. Fallback 1 = plain
+        // min(100vh, 900px) before the variable is set (SSR / first paint).
         minHeight: `min(100vh, calc(${DESKTOP_REFERENCE_HEIGHT}px * var(--hero-zoom-scale, 1)))`,
         display: "flex",
         alignItems: "center",
