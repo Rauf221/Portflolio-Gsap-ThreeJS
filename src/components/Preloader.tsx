@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { RHLogoMark } from "./RHLogoMark";
 
 type Props = {
   loaded: boolean;
@@ -11,14 +12,13 @@ type Props = {
 // finishes (Phase B in usePortfolioGsap), so only the lightweight hero setup runs
 // before this animation. A short settle is enough for that to land.
 const SETTLE_MS = 300;
-const LOGO_SRC = "/Logos/RHLogoWhite.webp";
 
 export function Preloader({ loaded, onDone }: Props) {
   const [done, setDone] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const rRef = useRef<HTMLSpanElement>(null);
   const hRef = useRef<HTMLSpanElement>(null);
-  const logoRef = useRef<HTMLImageElement>(null);
+  const logoRef = useRef<SVGSVGElement>(null);
   const firedRef = useRef(false);
 
   useEffect(() => {
@@ -55,6 +55,7 @@ export function Preloader({ loaded, onDone }: Props) {
       const r = rRef.current;
       const h = hRef.current;
       const logo = logoRef.current;
+      const logoPaths = logo ? Array.from(logo.querySelectorAll("path")) : [];
       // Entrance order must read R → logo → H, so list them in that order; the
       // stagger below walks this array.
       const all = [r, logo, h];
@@ -68,12 +69,32 @@ export function Preloader({ loaded, onDone }: Props) {
       gsap.set(logo, { x: W * 0.30, scale: 1.3 , yPercent: -20});
       gsap.set(h, { x: W * 0.42 });
 
+      // Vector logo starts as bare, unfilled outlines; the strokes "draw"
+      // themselves in, then the shard shapes fill solid — see stage 1 below.
+      if (logoPaths.length) {
+        gsap.set(logoPaths, { drawSVG: "0%", fillOpacity: 0 });
+      }
+
       const tl = gsap.timeline({ onComplete: finish });
 
       // 1) Rise from below one-by-one (R, then logo, then H) into the cluster.
       //    Larger stagger + shorter per-item duration so the sequence reads
       //    clearly instead of looking like they all appear at once.
       tl.to(all, { y: H * 0.28, opacity: 1, duration: 0.6, ease: "power3.out", stagger: 0.22 }, 0);
+
+      // 1b) While the logo rises, sketch each vector path in one-by-one, then
+      // fill the shards solid — reads as the mark being hand-drawn.
+      if (logoPaths.length) {
+        tl.to(
+          logoPaths,
+          { drawSVG: "100%", duration: 0.45, ease: "power2.inOut", stagger: 0.02 },
+          0.25
+        ).to(
+          logoPaths,
+          { fillOpacity: 1, duration: 0.3, ease: "power1.out", stagger: 0.015 },
+          0.6
+        );
+      }
 
       // 2) Spread (frame 175921): R far-left, logo to center, H stays right; letters shrink a bit.
       tl.to(r, { x: -W * 0.42, y: H * 0.3, scale: 0.72, duration: 0.9, ease: "power3.inOut" }, 1.0)
@@ -109,8 +130,7 @@ export function Preloader({ loaded, onDone }: Props) {
       <div className="pl-panel pl-right" />
       <div className="pl-stage">
         <span ref={rRef} className="pl-letter font-display">R</span>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img ref={logoRef} className="pl-logo" src={LOGO_SRC} alt="" />
+        <RHLogoMark ref={logoRef} className="pl-logo" />
         <span ref={hRef} className="pl-letter font-display">H</span>
       </div>
     </div>

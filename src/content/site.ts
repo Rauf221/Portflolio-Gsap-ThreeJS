@@ -21,13 +21,16 @@ export const nav = {
 export const hero = {
   line1: "Rauf",
   line2: "Huseynzade",
+  wordLeft: "Code",
+  wordRight: "Has",
+  wordIdenLeft: "Iden",
+  wordIdenRight: "tity",
   subBefore: "I build",
   subStrong: " high-performance, production-ready web applications ",
   subAfter:
     "with the modern React ecosystem — interactive UI, motion, 3D visuals, and scalable frontend architecture.",
   ctaWork: "View work",
   ctaTalk: "Let's talk",
-  scroll: "SCROLL",
 } as const;
 
 export const about = {
@@ -37,9 +40,8 @@ export const about = {
     "I'm Rauf Huseynzade — a Full Stack developer focused on Next.js App Router, TypeScript, Tailwind, animation pipelines, dashboards, and multilingual platforms.",
   body2:
     "I ship production apps, real-estate platforms, CMS/editor experiences, real-time systems, and creative WebGL/Three.js showcases.",
-  photoLabel: "[ PHOTO ]",
-  currentLabel: "Focus",
-  currentCompany: "Full Stack / Creative Web",
+  mantra:
+    "Somewhere between logic and imagination — that's where the interesting work happens.",
   stats: {
     projects: { num: "10+", label: "Projects" },
     stack: { num: "Full", label: "Stack" },

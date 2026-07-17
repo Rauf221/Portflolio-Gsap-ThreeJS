@@ -604,56 +604,149 @@ export function usePortfolioGsap(
       );
     }
 
-    gsap.from(".about-label", {
-      clipPath: "inset(0 100% 0 0)",
-      opacity: 0,
-      duration: 1.1,
-      ease: "power3.out",
-      scrollTrigger: {
-        trigger: aboutRef.current,
-        start: "top 80%",
-        toggleActions: toggleRv,
-      },
-    });
+    // ===== About — mystic observatory =====
+    const aboutEl = aboutRef.current;
+    if (aboutEl) {
+      gsap.from(".about-label", {
+        clipPath: "inset(0 100% 0 0)",
+        opacity: 0,
+        duration: 1.1,
+        ease: "power3.out",
+        scrollTrigger: { trigger: aboutEl, start: "top 78%", toggleActions: toggleRv },
+      });
 
-    gsap.from(".about-headline span", {
-      y: 100,
-      opacity: 0,
-      rotateX: -60,
-      stagger: 0.08,
-      duration: 0.8,
-      scrollTrigger: { trigger: heroRef.current, start: "bottom 25%", toggleActions: toggleRv },
-    });
+      gsap.from(".about-headline-char", {
+        y: 90,
+        opacity: 0,
+        rotateX: -80,
+        filter: "blur(8px)",
+        transformOrigin: "50% 100%",
+        stagger: 0.022,
+        duration: 0.9,
+        ease: "power4.out",
+        scrollTrigger: { trigger: aboutEl, start: "top 72%", toggleActions: toggleRv },
+      });
 
-    gsap.from(".about-body", {
-      y: 50,
-      opacity: 0,
-      scrollTrigger: { trigger: heroRef.current, start: "bottom 28%", end: "bottom top", scrub: 1 },
-    });
-    gsap.from(".about-stat", {
-      scale: 0,
-      opacity: 0,
-      stagger: 0.15,
-      scrollTrigger: { trigger: heroRef.current, start: "bottom 22%", toggleActions: toggleRv },
-    });
+      gsap.from(".about-rune-divider", {
+        scaleX: 0,
+        opacity: 0,
+        transformOrigin: "left center",
+        duration: 1.1,
+        ease: "power3.inOut",
+        scrollTrigger: { trigger: aboutEl, start: "top 66%", toggleActions: toggleRv },
+      });
 
-    gsap.to(".about-img", {
-      y: -80,
-      scrollTrigger: { trigger: aboutRef.current, start: "top bottom", end: "bottom top", scrub: 1 },
-    });
+      gsap.from(".about-body", {
+        y: 44,
+        opacity: 0,
+        filter: "blur(4px)",
+        stagger: 0.16,
+        duration: 1,
+        ease: "power3.out",
+        scrollTrigger: { trigger: aboutEl, start: "top 62%", toggleActions: toggleRv },
+      });
 
-    gsap.from(".about-badge", {
-      x: -40,
-      opacity: 0,
-      scale: 0.85,
-      duration: 0.9,
-      ease: "back.out(1.4)",
-      scrollTrigger: {
-        trigger: aboutRef.current,
-        start: "top 60%",
-        toggleActions: toggleRv,
-      },
-    });
+      gsap.from(".about-sigil", {
+        scale: 0,
+        opacity: 0,
+        rotate: -30,
+        stagger: 0.13,
+        duration: 0.9,
+        ease: "back.out(1.7)",
+        scrollTrigger: { trigger: aboutEl, start: "top 52%", toggleActions: toggleRv },
+      });
+
+      // counters inside the sigil diamonds (10+, 3 …)
+      aboutEl.querySelectorAll<HTMLElement>(".about-sigil-num[data-count]").forEach((el) => {
+        const target = Number(el.dataset.count);
+        const suffix = el.dataset.suffix ?? "";
+        const state = { v: 0 };
+        gsap.to(state, {
+          v: target,
+          duration: 1.6,
+          ease: "power2.out",
+          snap: { v: 1 },
+          onUpdate: () => {
+            el.textContent = `${state.v}${suffix}`;
+          },
+          scrollTrigger: { trigger: aboutEl, start: "top 52%", toggleActions: toggleRv },
+        });
+      });
+
+      gsap.from(".about-mantra", {
+        opacity: 0,
+        x: -30,
+        clipPath: "inset(0 100% 0 0)",
+        duration: 1.3,
+        ease: "power3.out",
+        scrollTrigger: { trigger: aboutEl, start: "top 45%", toggleActions: toggleRv },
+      });
+
+      // RH mark: the preloader's draw-then-fill reveal, but scrubbed — the
+      // strokes track scroll position, so the user draws the logo themselves.
+      // Durations here are proportions of the scroll range, not seconds.
+      //
+      // The trigger is the logo's own box (not the section) and the range runs
+      // from "logo reaches the middle of the screen" to "logo has crossed it",
+      // so the mark starts at nothing and is drawn entirely on-screen. Nothing
+      // is animated on .about-logo-wrap itself: transforming the trigger would
+      // shift the very start/end points being measured.
+      const aboutLogoPaths = aboutEl.querySelectorAll(".about-logo path");
+      if (aboutLogoPaths.length) {
+        gsap
+          .timeline({
+            scrollTrigger: {
+              trigger: ".about-logo-wrap",
+              start: "top center",
+              end: "bottom center",
+              scrub: 1,
+            },
+          })
+          .fromTo(
+            ".about-logo",
+            { scale: 0.86, opacity: 0 },
+            { scale: 1, opacity: 1, duration: 0.5, ease: "power3.out" },
+            0,
+          )
+          .fromTo(
+            aboutLogoPaths,
+            { drawSVG: "0%", fillOpacity: 0 },
+            { drawSVG: "100%", duration: 1.1, ease: "power2.inOut", stagger: 0.06 },
+            0,
+          )
+          // shards fill only once the outlines have essentially closed
+          .to(aboutLogoPaths, { fillOpacity: 1, duration: 0.5, ease: "power1.out", stagger: 0.04 }, 1.5);
+      }
+
+      // gentle scroll-linked drift so the mark isn't dead-static in the column
+      // (on the svg, not the wrap — see the trigger note above)
+      gsap.to(".about-logo", {
+        y: -40,
+        ease: "none",
+        scrollTrigger: { trigger: aboutEl, start: "top bottom", end: "bottom top", scrub: 1.4 },
+      });
+
+      // floating glyphs: parallax on the wrapper, gentle float on the inner span
+      aboutEl.querySelectorAll<HTMLElement>(".about-glyph").forEach((glyph, i) => {
+        const depth = Number(glyph.dataset.depth || 0.5);
+        gsap.to(glyph, {
+          y: -140 * depth,
+          ease: "none",
+          scrollTrigger: { trigger: aboutEl, start: "top bottom", end: "bottom top", scrub: 1 },
+        });
+        const inner = glyph.querySelector(".about-glyph-inner");
+        if (inner) {
+          gsap.to(inner, {
+            y: 10 + depth * 10,
+            rotation: i % 2 === 0 ? 12 : -12,
+            duration: 2.4 + depth * 2,
+            repeat: -1,
+            yoyo: true,
+            ease: "sine.inOut",
+          });
+        }
+      });
+    }
 
     const skillsTrack = skillsRef.current?.querySelector(".skills-track") as HTMLElement;
     if (skillsTrack && skillsRef.current) {

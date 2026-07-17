@@ -9,13 +9,18 @@ export function useLoadPortfolioScripts(setLoaded: (v: boolean) => void) {
       import("gsap"),
       import("gsap/ScrollTrigger"),
       import("gsap/MotionPathPlugin"),
+      import("gsap/DrawSVGPlugin"),
     ])
-      .then(([threeMod, gsapMod, stMod, mpMod]) => {
+      .then(([threeMod, gsapMod, stMod, mpMod, drawMod]) => {
         window.THREE = threeMod;
         window.gsap = gsapMod.gsap;
         window.ScrollTrigger = stMod.ScrollTrigger;
         window.MotionPathPlugin = mpMod.MotionPathPlugin;
-        window.gsap.registerPlugin(window.ScrollTrigger, window.MotionPathPlugin);
+        window.gsap.registerPlugin(
+          window.ScrollTrigger,
+          window.MotionPathPlugin,
+          drawMod.DrawSVGPlugin
+        );
         setLoaded(true);
       })
       .catch((err) => {

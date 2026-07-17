@@ -413,23 +413,51 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
 
 .hero-minimal {
   position: absolute;
-  top: 12%;
-  left: clamp(2rem, 5vw, 5rem);
+  inset: 0;
   z-index: 3;
   pointer-events: none;
 }
 
-.hero-scroll-hint {
+.hero-word {
   position: absolute;
-  bottom: 2.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  z-index: 3;
+  line-height: 1;
+  white-space: nowrap;
 }
+.hero-word span {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+/* "Code" — near the left edge / "Has" — near the right edge */
+.hero-word--code,
+.hero-word--has {
+  top: 24%;
+  font-size: clamp(3.3rem, 11.3vw, 10.7rem);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(240,237,232,0.8);
+  paint-order: stroke;
+}
+.hero-word--code { left: 8vw; }
+.hero-word--has { right: 8vw; }
+
+/* "IDEN" — left of the body / "TITY" — right of the body, hollow outline letters */
+.hero-word--iden-left,
+.hero-word--iden-right {
+  top: 52%;
+  transform: translateY(100px);
+  font-size: clamp(3rem, 10vw, 9.5rem);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(240,237,232,0.8);
+  paint-order: stroke;
+}
+.hero-word--iden-left { left: 20vw; }
+.hero-word--iden-right { right: 20vw; }
 
 .skills-headline-stage {
   min-width: 165vw;
@@ -559,10 +587,14 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
 }
 
 @media (max-width: 900px) {
-  .hero-minimal { top: 9%; }
-  .hero-scroll-hint {
-    bottom: 1.5rem;
-  }
+  .hero-word--code,
+  .hero-word--has { top: 20%; font-size: clamp(2.1rem, 9.3vw, 4rem); }
+  .hero-word--code { left: 7vw; }
+  .hero-word--has { right: 7vw; }
+  .hero-word--iden-left,
+  .hero-word--iden-right { top: 48%; transform: translateY(70px); -webkit-text-stroke-width: 1px; }
+  .hero-word--iden-left { left: 13vw; }
+  .hero-word--iden-right { right: 13vw; }
 }
 
 .section-padded {
@@ -590,6 +622,210 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
   max-width: var(--max-w);
   margin: 0 auto;
   padding: 0 2rem;
+}
+
+/* ===== About — mystic observatory ===== */
+.about-mystic {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.about-stars { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.about-star {
+  position: absolute;
+  border-radius: 50%;
+  background: #cfcaff;
+  box-shadow: 0 0 6px rgba(155,148,255,0.9);
+  opacity: 0.2;
+  animation: about-twinkle var(--tw-dur, 3.5s) ease-in-out var(--tw-delay, 0s) infinite;
+}
+@keyframes about-twinkle {
+  0%, 100% { opacity: 0.1; transform: scale(0.7); }
+  50% { opacity: 0.8; transform: scale(1); }
+}
+
+.about-glyph {
+  position: absolute;
+  z-index: 1;
+  color: rgba(155,148,255,0.55);
+  text-shadow: 0 0 18px rgba(155,148,255,0.5);
+  letter-spacing: 0.1em;
+  pointer-events: none;
+  will-change: transform;
+}
+.about-glyph-inner { display: block; }
+
+.about-grid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 4rem;
+  align-items: center;
+}
+
+.about-logo-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  aspect-ratio: 1;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+}
+/* The tight viewBox is taller than wide, so height drives the fit and the
+   mark spans the full box instead of sitting small inside it. */
+.about-logo {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  width: 100%;
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 0 26px rgba(155,148,255,0.28));
+  will-change: transform, opacity;
+}
+.about-logo-glow {
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(155,148,255,0.10) 0%, transparent 65%);
+  pointer-events: none;
+  animation: pulse-glow 5s ease-in-out infinite;
+}
+
+.about-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  color: var(--sphere);
+  text-transform: uppercase;
+  margin-bottom: 1.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.about-label-line { width: 36px; height: 1px; background: var(--sphere); }
+.about-label-glyph { opacity: 0.7; animation: pulse-glow 3s ease-in-out infinite; }
+
+.about-headline {
+  margin-bottom: 1.8rem;
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.18;
+}
+.about-headline-word {
+  display: inline-block;
+  margin-right: 0.28em;
+  vertical-align: top;
+}
+.about-headline-word-inner { display: inline-block; }
+.about-headline-char {
+  display: inline-block;
+  will-change: transform, opacity;
+  min-width: 0.22em;
+}
+
+.about-rune-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 2rem;
+  color: rgba(155,148,255,0.6);
+  font-size: 0.7rem;
+}
+.about-rune-divider-line {
+  height: 1px;
+  width: 64px;
+  background: linear-gradient(to right, transparent, rgba(155,148,255,0.55));
+}
+.about-rune-divider-line--fade {
+  width: 140px;
+  background: linear-gradient(to right, rgba(155,148,255,0.55), transparent);
+}
+
+.about-body {
+  color: var(--muted);
+  line-height: 1.85;
+  font-size: 1.05rem;
+  margin-bottom: 1.25rem;
+  max-width: 56ch;
+}
+
+.about-sigils {
+  display: flex;
+  gap: 2.4rem;
+  margin-top: 2.6rem;
+}
+.about-sigil { text-align: center; }
+.about-sigil-diamond {
+  position: relative;
+  width: 104px;
+  height: 104px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.about-sigil-diamond::before {
+  content: '';
+  position: absolute;
+  inset: 13px;
+  border: 1px solid rgba(155,148,255,0.45);
+  transform: rotate(45deg);
+  background: linear-gradient(135deg, rgba(155,148,255,0.09) 0%, rgba(108,99,255,0.02) 100%);
+  box-shadow: 0 0 26px rgba(155,148,255,0.16), inset 0 0 20px rgba(155,148,255,0.07);
+  transition: box-shadow 0.4s, border-color 0.4s;
+}
+.about-sigil-diamond::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px dashed rgba(155,148,255,0.2);
+  transform: rotate(45deg);
+}
+.about-sigil:hover .about-sigil-diamond::before {
+  border-color: rgba(155,148,255,0.85);
+  box-shadow: 0 0 42px rgba(155,148,255,0.35), inset 0 0 24px rgba(155,148,255,0.14);
+}
+.about-sigil-num {
+  position: relative;
+  z-index: 1;
+  font-size: 1.65rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.about-sigil-label {
+  margin-top: 1rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.about-mantra {
+  margin-top: 2.8rem;
+  padding: 0.2rem 0 0.2rem 1.4rem;
+  border-left: 1px solid rgba(155,148,255,0.4);
+  color: rgba(240,237,232,0.6);
+  font-style: italic;
+  font-size: 1rem;
+  line-height: 1.75;
+  max-width: 48ch;
+}
+
+@media (max-width: 1024px) {
+  .about-grid { grid-template-columns: 1fr; gap: 3rem; }
+  .about-logo-wrap { max-width: 420px; }
+  .about-content { text-align: left; }
+}
+
+@media (max-width: 700px) {
+  .about-logo-wrap { max-width: 320px; }
+  .about-sigils { gap: 1.2rem; justify-content: flex-start; }
+  .about-sigil-diamond { width: 88px; height: 88px; }
+  .about-mystic { padding-top: 8rem; padding-bottom: 8rem; }
 }
 
 /* First-load preloader: R [logo] H lockup + center-growing reveal */

@@ -2,6 +2,7 @@
 
 import { type RefObject } from "react";
 import { hero } from "../content/site";
+import { splitGraphemes } from "../lib/splitGraphemes";
 import { DESKTOP_REFERENCE_HEIGHT } from "../lib/viewport";
 import { UnicornHeroBackground } from "./UnicornHeroBackground";
 
@@ -42,20 +43,23 @@ export function HeroSection({ heroRef, heroTextRef }: Props) {
 
       <div className="hero-fade-bottom" aria-hidden="true" />
 
-      <div ref={heroTextRef} className="hero-minimal" />
-
-      <div className="hero-scroll-hint">
-        <span className="font-mono" style={{ fontSize: "0.65rem", color: "var(--muted)", letterSpacing: "0.2em" }}>
-          {hero.scroll}
-        </span>
-        <div
-          style={{
-            width: 1,
-            height: 60,
-            background: "linear-gradient(to bottom, var(--sphere), transparent)",
-            animation: "pulse-glow 2s ease-in-out infinite",
-          }}
-        />
+      <div ref={heroTextRef} className="hero-minimal">
+        <div className="hero-word hero-word--code font-display overflow-clip">
+          <span>{hero.wordLeft}</span>
+        </div>
+        <div className="hero-word hero-word--has font-display overflow-clip">
+          <span>{hero.wordRight}</span>
+        </div>
+        <div className="hero-word hero-word--iden-left font-display overflow-clip">
+          {splitGraphemes(hero.wordIdenLeft).map((ch, i) => (
+            <span key={i}>{ch}</span>
+          ))}
+        </div>
+        <div className="hero-word hero-word--iden-right font-display overflow-clip">
+          {splitGraphemes(hero.wordIdenRight).map((ch, i) => (
+            <span key={i}>{ch}</span>
+          ))}
+        </div>
       </div>
     </section>
   );
