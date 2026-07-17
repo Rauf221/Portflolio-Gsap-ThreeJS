@@ -85,7 +85,7 @@ function splitProjectsPathHeadline(
 
     const charText = document.createElementNS(SVG_NS, "text");
     charText.setAttribute("class", "projects-path-char");
-    charText.setAttribute("fill", "#f0ede8");
+    charText.setAttribute("fill", "#25212C");
 
     const charPath = document.createElementNS(SVG_NS, "textPath");
     charPath.setAttribute("href", pathId);

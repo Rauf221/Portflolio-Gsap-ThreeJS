@@ -67,7 +67,7 @@ export function TechOrbitCanvas({ className, height = 600, fill = false, centerY
       skills.slice(1).forEach((s) => {
         ctx.beginPath();
         ctx.arc(cx, cy, s.orbit * (canvas.width / 800), 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(155,148,255,0.08)";
+        ctx.strokeStyle = "rgba(107,91,203,0.08)";
         ctx.lineWidth = 1;
         ctx.stroke();
       });
@@ -75,15 +75,15 @@ export function TechOrbitCanvas({ className, height = 600, fill = false, centerY
       skills.forEach((s, i) => {
         if (i === 0) {
           const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 40 * s.size);
-          glow.addColorStop(0, "rgba(155,148,255,0.6)");
-          glow.addColorStop(0.5, "rgba(108,99,255,0.3)");
-          glow.addColorStop(1, "rgba(108,99,255,0)");
+          glow.addColorStop(0, "rgba(107,91,203,0.6)");
+          glow.addColorStop(0.5, "rgba(107,91,203,0.3)");
+          glow.addColorStop(1, "rgba(107,91,203,0)");
           ctx.beginPath();
           ctx.arc(cx, cy, 40 * s.size, 0, Math.PI * 2);
           ctx.fillStyle = glow;
           ctx.fill();
 
-          ctx.fillStyle = "#fff";
+          ctx.fillStyle = "#25212C";
           ctx.font = `bold ${12 * s.size}px 'Courier New', monospace`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
@@ -99,14 +99,14 @@ export function TechOrbitCanvas({ className, height = 600, fill = false, centerY
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.lineTo(x, y);
-        ctx.strokeStyle = `rgba(155,148,255,${0.05 + 0.05 * Math.sin(time + i)})`;
+        ctx.strokeStyle = `rgba(107,91,203,${0.05 + 0.05 * Math.sin(time + i)})`;
         ctx.lineWidth = 0.5;
         ctx.stroke();
 
         const pulse = 1 + 0.15 * Math.sin(time * 2 + i);
         const ng = ctx.createRadialGradient(x, y, 0, x, y, 30 * s.size * pulse);
-        ng.addColorStop(0, "rgba(155,148,255,0.4)");
-        ng.addColorStop(1, "rgba(108,99,255,0)");
+        ng.addColorStop(0, "rgba(107,91,203,0.4)");
+        ng.addColorStop(1, "rgba(107,91,203,0)");
         ctx.beginPath();
         ctx.arc(x, y, 30 * s.size * pulse, 0, Math.PI * 2);
         ctx.fillStyle = ng;
@@ -114,10 +114,10 @@ export function TechOrbitCanvas({ className, height = 600, fill = false, centerY
 
         ctx.beginPath();
         ctx.arc(x, y, 5 * s.size * pulse, 0, Math.PI * 2);
-        ctx.fillStyle = "#9b94ff";
+        ctx.fillStyle = "#6B5BCB";
         ctx.fill();
 
-        ctx.fillStyle = `rgba(220,218,255,${0.7 + 0.3 * Math.sin(time + i)})`;
+        ctx.fillStyle = `rgba(37,33,44,${0.7 + 0.3 * Math.sin(time + i)})`;
         ctx.font = `${10 * s.size}px 'Courier New', monospace`;
         ctx.textAlign = "center";
         ctx.fillText(s.name, x, y - 14 * s.size);

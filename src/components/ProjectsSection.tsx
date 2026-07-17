@@ -42,7 +42,7 @@ export function ProjectsSection({ projectsRef }: Props) {
                 fill="none"
                 stroke="none"
               />
-              <text className="projects-path-text projects-path-text-measure" fill="#f0ede8">
+              <text className="projects-path-text projects-path-text-measure" fill="#25212C">
                 <textPath
                   className="projects-path-textpath"
                   href="#projects-headline-path"

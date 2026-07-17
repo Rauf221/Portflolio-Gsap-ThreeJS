@@ -17,7 +17,7 @@ export function CustomCursor({ cursorRef, cursorDotRef }: Props) {
           width: 40,
           height: 40,
           borderRadius: "50%",
-          border: "1px solid rgba(155,148,255,0.6)",
+          border: "1px solid rgba(107,91,203,0.6)",
           pointerEvents: "none",
           zIndex: 99999,
           transition: "width 0.3s, height 0.3s, opacity 0.3s",

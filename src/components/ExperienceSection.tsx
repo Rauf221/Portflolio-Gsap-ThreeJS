@@ -23,7 +23,7 @@ export function ExperienceSection({ experienceRef }: Props) {
           position: "absolute",
           inset: "-20%",
           background:
-            "radial-gradient(ellipse 60% 50% at 20% 60%, rgba(155,148,255,0.05) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 50% at 20% 60%, rgba(107,91,203,0.05) 0%, transparent 70%)",
           zIndex: 0,
           pointerEvents: "none",
         }}
@@ -32,10 +32,10 @@ export function ExperienceSection({ experienceRef }: Props) {
       <style>{`
         .exp-card {
           position: relative;
-          border: 1px solid rgba(155,148,255,0.12);
+          border: 1px solid rgba(107,91,203,0.12);
           border-radius: 24px;
           padding: 2.5rem 2.75rem;
-          background: rgba(255,255,255,0.025);
+          background: rgba(37,33,44,0.025);
           backdrop-filter: blur(16px);
           -webkit-backdrop-filter: blur(16px);
           overflow: hidden;
@@ -54,8 +54,8 @@ export function ExperienceSection({ experienceRef }: Props) {
           border-radius: 0 2px 2px 0;
         }
         .exp-card:hover {
-          border-color: rgba(155,148,255,0.3);
-          background: rgba(255,255,255,0.04);
+          border-color: rgba(107,91,203,0.3);
+          background: rgba(37,33,44,0.04);
           transform: translateY(-4px);
         }
         .exp-card:hover::before {
@@ -69,13 +69,13 @@ export function ExperienceSection({ experienceRef }: Props) {
           font-weight: 800;
           line-height: 1;
           letter-spacing: -0.06em;
-          color: rgba(155,148,255,0.06);
+          color: rgba(107,91,203,0.06);
           font-family: 'Exo 2', sans-serif;
           pointer-events: none;
           transition: color 0.35s;
         }
         .exp-card:hover .exp-card-index {
-          color: rgba(155,148,255,0.13);
+          color: rgba(107,91,203,0.13);
         }
         .exp-period-badge {
           display: inline-flex;
@@ -86,8 +86,8 @@ export function ExperienceSection({ experienceRef }: Props) {
           letter-spacing: 0.2em;
           text-transform: uppercase;
           color: var(--sphere);
-          background: rgba(155,148,255,0.08);
-          border: 1px solid rgba(155,148,255,0.18);
+          background: rgba(107,91,203,0.08);
+          border: 1px solid rgba(107,91,203,0.18);
           border-radius: 100px;
           padding: 0.3rem 0.85rem;
           margin-bottom: 1.25rem;
@@ -116,7 +116,7 @@ export function ExperienceSection({ experienceRef }: Props) {
           font-weight: 500;
         }
         .exp-desc {
-          color: rgba(240,237,232,0.5);
+          color: rgba(37,33,44,0.5);
           font-size: 0.88rem;
           line-height: 1.75;
           max-width: 52ch;
@@ -154,10 +154,10 @@ export function ExperienceSection({ experienceRef }: Props) {
           font-family: 'Exo 2', sans-serif;
           font-size: 0.72rem;
           letter-spacing: 0.14em;
-          color: rgba(240,237,232,0.3);
+          color: rgba(37,33,44,0.3);
           text-transform: uppercase;
           padding-bottom: 2px;
-          border-bottom: 1px solid rgba(155,148,255,0.2);
+          border-bottom: 1px solid rgba(107,91,203,0.2);
           white-space: nowrap;
         }
         .exp-title-block { display: flex; flex-direction: column; gap: 1rem; }

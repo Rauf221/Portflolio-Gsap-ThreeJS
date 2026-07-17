@@ -63,8 +63,8 @@ export function usePortfolioThree(
       return { mesh, geo, mat, originPos, explodeTargets, vtxCount, baseOpacity: opacity };
     };
 
-    const outer = makeSphere(3.8, 5, 0x9b94ff, 0.32);
-    const inner = makeSphere(2.2, 4, 0xffffff, 0.26);
+    const outer = makeSphere(3.8, 5, 0x6B5BCB, 0.32);
+    const inner = makeSphere(2.2, 4, 0x25212C, 0.26);
 
     const makeRing = (r: number, color: number, op: number, rx: number, rz: number) => {
       const g = new THREE.TorusGeometry(r, 0.006, 4, 180);
@@ -77,9 +77,9 @@ export function usePortfolioThree(
       // ────────────────────────────────────────────────────────────────────
       return { mesh, mat: m, baseOpacity: op };
     };
-    const ring1 = makeRing(4.8, 0x9b94ff, 0.28, Math.PI / 2.8, 0);
-    const ring2 = makeRing(4.2, 0x9b94ff, 0.12, -Math.PI / 3.5, Math.PI / 4);
-    const ring3 = makeRing(2.8, 0xffffff, 0.1, Math.PI / 5, -Math.PI / 6);
+    const ring1 = makeRing(4.8, 0x6B5BCB, 0.28, Math.PI / 2.8, 0);
+    const ring2 = makeRing(4.2, 0x6B5BCB, 0.12, -Math.PI / 3.5, Math.PI / 4);
+    const ring3 = makeRing(2.8, 0x25212C, 0.1, Math.PI / 5, -Math.PI / 6);
 
     const pCount = 420;
     const pPos = new Float32Array(pCount * 3);
@@ -99,7 +99,7 @@ export function usePortfolioThree(
     pGeo.setAttribute("position", new THREE.BufferAttribute(pPos, 3));
     const pMat = new THREE.PointsMaterial({
       size: 0.06,
-      color: 0x9b94ff,
+      color: 0x6B5BCB,
       transparent: true,
       opacity: 0.7,
       sizeAttenuation: true,
@@ -272,7 +272,7 @@ export function usePortfolioThree(
       }
       pAttr.needsUpdate = true;
       pMat.opacity = 0.65 - maxExplode * 0.5;
-      pMat.color.setHex(innerExplodeT > 0.1 ? 0xffffff : 0x9b94ff);
+      pMat.color.setHex(innerExplodeT > 0.1 ? 0x6B5BCB : 0x6B5BCB);
       particles.rotation.y = frame * 0.06 + mx * 0.05;
       particles.rotation.x = my * 0.04;
 

@@ -20,8 +20,8 @@ export function NavBar({ navRef, activeSection }: Props) {
         left: 0,
         right: 0,
         zIndex: 10000,
-        background: "linear-gradient(to bottom, rgba(8,8,16,0.8) 0%, transparent 100%)",
-        backdropFilter: "blur(1px)",
+        // background: "var(--bg)",
+        // borderBottom: "1px solid rgba(37,33,44,0.08)",
       }}
     >
       <div
@@ -48,7 +48,7 @@ export function NavBar({ navRef, activeSection }: Props) {
               flexShrink: 0,
             }}
           >
-            <span className="font-mono" style={{ fontSize: "0.7rem", color: "#fff", fontWeight: 700 }}>
+            <span className="font-mono" style={{ fontSize: "0.7rem", color: "#FFF8E7", fontWeight: 700 }}>
               {nav.initials}
             </span>
           </div>

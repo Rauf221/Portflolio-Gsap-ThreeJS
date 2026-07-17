@@ -30,7 +30,7 @@ export function ContactSection({ contactRef }: Props) {
         style={{
           position: "absolute",
           inset: "-20%",
-          background: "radial-gradient(ellipse 80% 60% at 50% 100%, rgba(155,148,255,0.1) 0%, transparent 70%)",
+          background: "radial-gradient(ellipse 80% 60% at 50% 100%, rgba(107,91,203,0.1) 0%, transparent 70%)",
           zIndex: 0,
           pointerEvents: "none",
         }}
@@ -40,7 +40,7 @@ export function ContactSection({ contactRef }: Props) {
           position: "absolute",
           inset: 0,
           backgroundImage:
-            "linear-gradient(rgba(155,148,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(155,148,255,0.03) 1px, transparent 1px)",
+            "linear-gradient(rgba(107,91,203,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(107,91,203,0.03) 1px, transparent 1px)",
           backgroundSize: "60px 60px",
           zIndex: 0,
         }}

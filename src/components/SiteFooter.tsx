@@ -6,7 +6,7 @@ export function SiteFooter() {
   return (
     <footer
       style={{
-        borderTop: "1px solid rgba(155,148,255,0.1)",
+        borderTop: "1px solid rgba(107,91,203,0.1)",
         padding: "2rem 0",
         position: "relative",
         zIndex: 1,

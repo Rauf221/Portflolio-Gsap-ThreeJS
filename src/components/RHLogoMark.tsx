@@ -37,7 +37,7 @@ const PATHS = [
 ];
 
 export const RHLogoMark = forwardRef<SVGSVGElement, Props>(function RHLogoMark(
-  { className, color = "#fff", viewBox = VIEWBOX_FULL, strokeWidth = 6 },
+  { className, color = "#25212C", viewBox = VIEWBOX_FULL, strokeWidth = 6 },
   ref
 ) {
   return (
