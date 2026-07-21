@@ -1,11 +1,11 @@
 export const PROJECTS_META = [
-  { id: 1, key: "burdaqal", color: "#6B5BCB", year: "2024" },
-  { id: 2, key: "develup", color: "#25212C", year: "2023" },
-  { id: 3, key: "wayouth", color: "#6B5BCB", year: "2024" },
-  { id: 4, key: "portfolioLab", color: "#25212C", year: "2025" },
-  { id: 5, key: "bakuFlames", color: "#6B5BCB", year: "2024" },
-  { id: 6, key: "gbaru", color: "#25212C", year: "2024" },
-  { id: 7, key: "fonderra", color: "#6B5BCB", year: "2023" },
+  { id: 1, key: "burdaqal", color: "#6B5BCB", year: "2024", image: "/projects/burdaqal.jpg" },
+  { id: 2, key: "develup", color: "#25212C", year: "2023", image: "/projects/develup.jpg" },
+  { id: 3, key: "wayouth", color: "#6B5BCB", year: "2024", image: "/projects/wayouth.jpg" },
+  { id: 4, key: "portfolioLab", color: "#25212C", year: "2025", image: "/projects/portfolio-lab.jpg" },
+  { id: 5, key: "bakuFlames", color: "#6B5BCB", year: "2024", image: "/projects/baku-flames.jpg" },
+  { id: 6, key: "gbaru", color: "#25212C", year: "2024", image: "/projects/gbaru.jpg" },
+  { id: 7, key: "fonderra", color: "#6B5BCB", year: "2023", image: "/projects/fonderra.jpg" },
 ] as const;
 
 export const EXPERIENCE_META = [

@@ -36,10 +36,15 @@ export function HeroSection({ heroRef, heroTextRef }: Props) {
         display: "flex",
         alignItems: "center",
         overflow: "hidden",
-        zIndex: 1,
+        zIndex: 0,
+        // Solid page background behind the scene: when the parallax lifts the
+        // image, the gap it leaves matches About's background seamlessly.
+        background: "var(--bg)",
       }}
     >
-      <UnicornHeroBackground />
+      <div className="hero-parallax" style={{ position: "absolute", inset: 0, willChange: "transform" }}>
+        <UnicornHeroBackground />
+      </div>
 
       <div className="hero-fade-bottom" aria-hidden="true" />
 

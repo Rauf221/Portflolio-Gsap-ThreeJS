@@ -44,6 +44,82 @@ const PROJECTS_PATH_FOCUS = {
   startY: 0.6,
   endY: 1 / 1.5,
 };
+/**
+ * Project panels swap diagonally, measured off the reference recording:
+ * the incoming panel flies in from the top-right while the outgoing one leans
+ * back and slides away to the bottom-left, each shrinking/growing as it goes.
+ */
+/*
+ * The parked position must sit entirely outside the stage, so a panel that
+ * hasn't had its turn yet is never a sliver peeking into the corner.
+ * A panel is 100vw x 100vh, so at scale 0.5 its visual half-size is 25vw/25vh
+ * and xPercent/yPercent shift its centre by that many vw/vh:
+ *   visual left edge = 50 + xPercent - 25  ->  needs >= 100  ->  xPercent >= 75
+ *   visual bottom edge = 50 + yPercent + 25 ->  needs <= 0   ->  yPercent <= -75
+ * 85/-85 clears both axes with margin to spare.
+ */
+/*
+ * Matched against the reference implementation (digital-culture.valmax.dev),
+ * read straight off its live DOM rather than eyeballed from the recording.
+ *
+ * There, each full-viewport slide carries `translate(25%, ...) skew(10deg, 0)`
+ * while parked and animates to identity when it becomes active; Swiper's
+ * wrapper supplies a further +/-100% of horizontal travel. So the numbers here
+ * fold the two together: 100 + 25 = 125 on the way in, -100 + 25 = -75 on the
+ * way out.
+ *
+ * Notably the reference never scales and never fades — scale and opacity stay
+ * at 1 the whole time. The lean is a flat skewX, not a 3D rotation.
+ */
+const PROJECTS_PANEL_SKEW = 10;
+const PROJECTS_PANEL_IN = {
+  xPercent: 125,
+  yPercent: -100,
+  skewX: PROJECTS_PANEL_SKEW,
+  scale: 1,
+  rotation: 0,
+  opacity: 1,
+};
+const PROJECTS_PANEL_REST = {
+  xPercent: 0,
+  yPercent: 0,
+  skewX: 0,
+  scale: 1,
+  rotation: 0,
+  opacity: 1,
+};
+/*
+ * -75 leaves a quarter of the panel showing at the lower left rather than
+ * clearing the stage, exactly as the reference does; the arriving panel covers
+ * the rest (every .project-panel is inset:0 with an opaque background and
+ * zIndex index+1). All outgoing panels land on this identical transform, so
+ * they stack perfectly and only the most recent one is ever visible.
+ */
+const PROJECTS_PANEL_OUT = {
+  xPercent: -75,
+  yPercent: 50,
+  skewX: PROJECTS_PANEL_SKEW,
+  scale: 1,
+  rotation: 0,
+  opacity: 1,
+};
+/*
+ * While the panel itself never scales, its image does: the reference keeps
+ * off-stage slides' media at scale(0.25) and grows it to 1 as the slide becomes
+ * active. transform-origin is the media's bottom-left corner (CSS), so it
+ * collapses into that corner rather than toward its own middle.
+ */
+const PROJECTS_MEDIA_PARKED_SCALE = 0.25;
+/*
+ * Timeline units each panel rests for once it has landed, before the next swap
+ * starts. A swap is 1 unit, so 1 here means "hold as long as the transition
+ * takes". This is what makes the section pause on every project instead of
+ * sliding continuously from the first to the last.
+ */
+const PROJECTS_PANEL_DWELL = 1;
+/** Scroll distance for one timeline unit — a swap, or one panel's rest. */
+const PROJECTS_UNIT_VH = 0.7;
+// Scroll distance per swap lives in CSS (.projects-stage-scroll, 90vh each).
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 type ProjectsPathChar = {
@@ -537,6 +613,35 @@ export function usePortfolioGsap(
       },
     });
 
+    // Hero stays pinned at the top as a backdrop while About slides up over it
+    // (pinSpacing: false keeps page geometry identical, so no other trigger moves).
+    // Pin ends the moment About's bottom reaches the viewport bottom: at that
+    // instant About still covers the whole viewport (it's taller than 100vh), so
+    // the hero unpins while fully hidden. Ending any later would let the pinned
+    // hero show through the transparent sections that follow About.
+    ST.create({
+      trigger: heroRef.current,
+      start: "top top",
+      endTrigger: aboutRef.current,
+      end: "bottom bottom",
+      pin: true,
+      pinSpacing: false,
+    });
+
+    // Parallax: the hero drifts up at exactly half the speed About covers it —
+    // About travels one viewport height (bottom → top), the hero half of that.
+    gsap.to(".hero-parallax", {
+      y: () => -window.innerHeight * 0.5,
+      ease: "none",
+      scrollTrigger: {
+        trigger: aboutRef.current,
+        start: "top bottom",
+        end: "top top",
+        scrub: true,
+        invalidateOnRefresh: true,
+      },
+    });
+
     gsap.to(heroTextRef.current, {
       y: -200,
       opacity: 0,
@@ -971,16 +1076,73 @@ export function usePortfolioGsap(
       ? Array.from(projectsRef.current.querySelectorAll<HTMLElement>(".project-panel"))
       : [];
 
-    if (projectsRef.current && projectPanels.length) {
-      projectPanels.forEach((panel, index) => {
-        const isLast = index === projectPanels.length - 1;
-        const card = panel.querySelector(".project-panel-inner");
-        const visual = panel.querySelector(".project-panel-visual");
+    const projectsStage = projectsRef.current
+      ? projectsRef.current.querySelector<HTMLElement>(".projects-stage-scroll")
+      : null;
+
+    if (projectsStage && projectPanels.length > 1) {
+      const panelsReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (panelsReducedMotion) {
+        // Plain stack, no travel: let each panel occupy its own screen.
+        gsap.set(projectsStage, { height: "auto" });
+        gsap.set(projectsStage.querySelector(".projects-sticky-list"), {
+          position: "relative",
+          height: "auto",
+        });
+        gsap.set(projectPanels, { position: "relative", inset: "auto", height: "100vh" });
+      } else {
+        // Panels swap diagonally: the incoming one flies in from the top-right
+        // while the outgoing one leans back and slides away to the bottom-left.
+        // Everything after panel 0 starts parked off-stage at the top-right,
+        // with its image collapsed into its bottom-left corner.
+        const mediaOf = (panel: HTMLElement) => panel.querySelector(".project-panel-media");
+        gsap.set(projectPanels.slice(1), PROJECTS_PANEL_IN);
+        gsap.set(projectPanels.slice(1).map(mediaOf), { scale: PROJECTS_MEDIA_PARKED_SCALE });
+
+        // FIX: start/end are computed from offsetTop rather than left to
+        // ScrollTrigger's rect-based resolution. The stage sits inside
+        // .projects-after-path, which the curtain translates on Y (100vh -> 0),
+        // so a rect-derived start is a moving target — it drifted between every
+        // refresh. offsetTop is layout-based and ignores transforms, while
+        // still honouring that element's margin-top:-100vh.
+        const stageTop = () => {
+          let el: HTMLElement | null = projectsStage;
+          let top = 0;
+          while (el) {
+            top += el.offsetTop;
+            el = el.offsetParent as HTMLElement | null;
+          }
+          return top;
+        };
+        const unitDistance = () => window.innerHeight * PROJECTS_UNIT_VH;
+
+        /*
+         * Pure scrub, no snap: the panels follow the wheel the whole way and
+         * are free to rest at any point. Snapping was tried and removed — it
+         * fought the user instead of helping.
+         *
+         * The timeline alternates rest and swap so the section stops on every
+         * project: a leading dwell on panel 0, then each swap (1 unit) followed
+         * by another dwell. During a dwell nothing is animating, so scrolling
+         * through it holds the panel still until the next swap begins.
+         */
+        const swaps = projectPanels.length - 1;
+        const step = 1 + PROJECTS_PANEL_DWELL;
+        const swapAt = (i: number) => PROJECTS_PANEL_DWELL + i * step;
+        const totalUnits = swapAt(swaps - 1) + 1 + PROJECTS_PANEL_DWELL;
+
+        // Unitless custom property: CSS multiplies it by vh, so the stage keeps
+        // the right height across resizes without JS writing px back into the
+        // element ScrollTrigger measures.
+        projectsStage.style.setProperty("--scroll-units", String(totalUnits));
 
         const tl = gsap.timeline({
+          defaults: { ease: "none", duration: 1 },
           scrollTrigger: {
-            trigger: panel,
-            start: "top top",
+            trigger: projectsStage,
+            start: stageTop,
+            end: () => stageTop() + totalUnits * unitDistance(),
             scrub: 1,
             invalidateOnRefresh: true,
             // FIX: lower refresh priority so path ScrollTrigger pins are
@@ -988,32 +1150,34 @@ export function usePortfolioGsap(
             refreshPriority: -1,
           },
         });
+        // Anchor the timeline's full length so the trailing dwell isn't dropped
+        // — a timeline otherwise ends at its last tween, and scrub maps the
+        // scroll range onto that shorter duration.
+        tl.set({}, {}, totalUnits);
 
-        if (card && !isLast) {
+        projectPanels.forEach((panel, index) => {
+          if (index === 0) return;
+          const at = swapAt(index - 1);
+          const prev = projectPanels[index - 1];
+
+          // Incoming: from off-stage top-right back to identity, its image
+          // growing out of the bottom-left corner as it arrives.
+          tl.fromTo(panel, PROJECTS_PANEL_IN, { ...PROJECTS_PANEL_REST }, at);
           tl.fromTo(
-            card,
-            { filter: "brightness(100%) blur(0px)", scale: 1, borderRadius: 0 },
-            {
-              filter: "brightness(50%) blur(10px)",
-              scale: 0.9,
-              borderRadius: 40,
-              ease: "none",
-            },
+            mediaOf(panel),
+            { scale: PROJECTS_MEDIA_PARKED_SCALE },
+            { scale: 1 },
+            at,
           );
-        }
 
-        if (visual) {
-          tl.to(
-            visual,
-            {
-              yPercent: -40,
-              rotation: index % 2 === 0 ? 20 : -20,
-              ease: "power1.in",
-            },
-            isLast ? 0 : "<",
-          );
-        }
-      });
+          // Outgoing: skews away to the lower left, its image folding back into
+          // its bottom-left corner. No fade and no dim — every panel keeps full
+          // opacity and full brightness for its whole trip.
+          tl.to(prev, { ...PROJECTS_PANEL_OUT }, at);
+          tl.to(mediaOf(prev), { scale: PROJECTS_MEDIA_PARKED_SCALE }, at);
+        });
+
+      }
     }
 
     if (experienceRef.current) {

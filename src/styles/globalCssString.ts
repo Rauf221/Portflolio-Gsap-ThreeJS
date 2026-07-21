@@ -192,173 +192,178 @@ body::before {
   margin-top: -100vh;   
   background: var(--bg); 
 }
-}
 .projects-intro-count {
   margin-top: 1.25rem;
   font-size: 0.75rem;
   letter-spacing: 0.1em;
   color: var(--muted);
 }
-.projects-sticky-list { position: relative; width: 100%; background: transparent; }
-.project-panel {
+/* The list is pinned by GSAP for the length of the whole sequence and the
+   panels are stacked absolutely inside it, because the transition moves them
+   diagonally (in from top-right, out to bottom-left) — that needs full control
+   of x/y, which position:sticky's vertical-only travel can't give.
+   overflow: clip (not hidden) crops the off-stage panels without turning this
+   into a scroll container. */
+/* Owns the scroll distance for the whole sequence: 70vh per timeline unit,
+   where a unit is either one swap or one panel's rest. --scroll-units is set
+   by the hook (it knows the dwell); --swaps is the inline pre-JS fallback.
+   Kept as a unitless multiplier so vh does the work and nothing writes px back
+   into the element ScrollTrigger measures. */
+.projects-stage-scroll {
+  position: relative;
+  width: 100%;
+  height: calc(100vh + var(--scroll-units, var(--swaps, 1)) * 70vh);
+}
+.projects-sticky-list {
   position: sticky;
   top: 0;
   width: 100%;
   height: 100vh;
-  min-height: 100vh;
+  background: var(--bg);
+  overflow: clip;
+}
+.project-panel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: stretch;
   padding: 0;
-  background: var(--bg2);
+  background: var(--bg);
+  will-change: transform, opacity;
 }
 .project-panel-inner {
   width: 100%;
   height: 100%;
-  overflow: hidden;
-  border-radius: 0;
-  background: var(--bg2);
-  border-top: 1px solid rgba(37,33,44,0.06);
-  border-bottom: 1px solid rgba(37,33,44,0.06);
-  will-change: transform, filter;
-  transform-origin: center top;
-}
-.project-panel-body {
   display: flex;
-  width: 100%;
-  height: 100%;
-  min-height: 100vh;
+  align-items: stretch;
+  gap: clamp(1rem, 2vw, 2rem);
+  padding: clamp(0.75rem, 1.5vw, 1.5rem);
+  background: var(--bg);
+  will-change: transform;
+  backface-visibility: hidden;
 }
-.project-panel-visual {
-  flex: 0 0 52%;
+/* Bottom-left origin, matching the reference: the image collapses into that
+   corner as its panel leaves and unfolds from it as the next one arrives. */
+.project-panel-media {
+  flex: 0 0 62%;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  min-height: 100%;
-  background: color-mix(in srgb, var(--panel-accent) 14%, var(--bg2));
   overflow: hidden;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--panel-accent) 16%, var(--bg2));
+  transform-origin: 0% 100%;
   will-change: transform;
 }
-.project-panel-screen {
-  width: 72%;
-  aspect-ratio: 16 / 10;
-  border-radius: 10px;
-  border: 1px solid rgba(37,33,44,0.08);
-  background: var(--bg2);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+.project-panel-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
-.project-panel-screen-bar {
-  height: 28px;
-  border-bottom: 1px solid rgba(37,33,44,0.06);
-  display: flex;
-  align-items: center;
-  padding: 0 10px;
-  gap: 5px;
-  background: var(--bg);
-}
-.project-panel-screen-dot { width: 7px; height: 7px; border-radius: 50%; opacity: 0.6; }
-.project-panel-screen-body {
-  flex: 1;
-  padding: 12px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-.project-panel-block {
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--panel-accent) 22%, var(--bg2));
-}
-.project-panel-block-wide { grid-column: 1 / -1; height: 44px; }
-.project-panel-block-sm { height: 20px; }
-.project-panel-block-xs { height: 26px; }
-.project-panel-block-fade { background: color-mix(in srgb, var(--panel-accent) 12%, var(--bg2)); }
-.project-panel-index {
+.project-panel-year {
   position: absolute;
-  bottom: 20px;
-  right: 24px;
-  font-size: clamp(3rem, 8vw, 5.5rem);
-  font-weight: 500;
-  line-height: 1;
-  opacity: 0.06;
-  letter-spacing: -0.04em;
+  bottom: 18px;
+  left: 20px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 4px 11px;
+  border-radius: 20px;
+  color: #fff;
+  background: rgba(0,0,0,0.42);
+  backdrop-filter: blur(6px);
 }
 .project-panel-info {
   flex: 1;
-  width: 100%;
-  height: 100%;
-  min-height: 100%;
-  padding: clamp(2rem, 5vw, 5rem) clamp(1.5rem, 4vw, 3rem);
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: var(--bg);
-}
-.project-panel-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-  font-size: 12px;
-  color: var(--muted);
-}
-.project-panel-meta-line { width: 48px; height: 1px; background: rgba(37,33,44,0.1); }
-.project-panel-year {
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 20px;
-  border: 1px solid rgba(37,33,44,0.08);
+  padding: clamp(1rem, 3vw, 2.5rem) clamp(0.5rem, 1.5vw, 1.5rem);
 }
 .project-panel-title {
-  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-size: clamp(1.9rem, 3.2vw, 3.1rem);
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.05;
-  margin-bottom: 6px;
-}
-.project-panel-subtitle {
-  font-size: 0.85rem;
-  color: var(--panel-accent);
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 .project-panel-desc {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--muted);
-  line-height: 1.7;
-  margin-bottom: 28px;
-  max-width: 420px;
+  line-height: 1.65;
+  margin-bottom: 26px;
+  max-width: 30rem;
 }
-.project-panel-tags {
+.project-panel-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 32px;
+  flex-direction: column;
+  gap: 9px;
 }
-.project-panel-tag {
-  background: color-mix(in srgb, var(--panel-accent) 18%, var(--bg2));
-  border: 1px solid color-mix(in srgb, var(--panel-accent) 40%, var(--bg2));
-  color: var(--panel-accent);
-  font-size: 0.7rem;
-  padding: 0.25rem 0.7rem;
-  border-radius: 100px;
-}
-.project-panel-link {
-  display: inline-flex;
+.project-panel-row {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  width: fit-content;
-  border-bottom: 1px solid rgba(37,33,44,0.12);
-  padding-bottom: 2px;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0 0 clamp(0.9rem, 1.6vw, 1.4rem);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel-accent) 11%, var(--bg));
+  overflow: hidden;
 }
+.project-panel-row-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.35;
+  padding: 1rem 0;
+}
+.project-panel-row-icon {
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: clamp(46px, 3.6vw, 58px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--panel-accent);
+  color: #fff;
+}
+.project-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: clamp(1.75rem, 4vh, 3rem);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.project-panel-footer-label { color: var(--muted); }
+.project-panel-footer-label::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 9px;
+  border-radius: 50%;
+  vertical-align: middle;
+  background: var(--panel-accent);
+}
+.project-panel-footer-count { font-weight: 600; }
+.project-panel-footer-count > span { color: var(--muted); font-weight: 400; }
 @media (max-width: 900px) {
-  .project-panel-body { flex-direction: column !important; min-height: 100vh; height: 100vh; }
-  .project-panel-visual { flex: 1; min-height: 0; width: 100%; }
-  .project-panel-info { flex: 1; min-height: 0; padding: 2rem 1.5rem 2.5rem; }
+  .project-panel-inner { flex-direction: column; gap: 0.75rem; }
+  .project-panel-media { flex: 0 0 40%; min-height: 0; }
+  .project-panel-info { flex: 1; min-height: 0; justify-content: flex-start; padding: 0.5rem 0.75rem 1rem; }
+  .project-panel-desc { margin-bottom: 16px; }
+  .project-panel-rows { gap: 6px; }
+  .project-panel-row-label { padding: 0.7rem 0; font-size: 0.7rem; }
+  .project-panel-row-icon { width: 42px; }
+  .project-panel-footer { margin-top: 1.25rem; }
 }
 
 .btn-primary {
@@ -622,6 +627,7 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
   position: relative;
   overflow: hidden;
   z-index: 1;
+  background: var(--bg);
 }
 
 .about-stars { position: absolute; inset: 0; pointer-events: none; z-index: 0; }

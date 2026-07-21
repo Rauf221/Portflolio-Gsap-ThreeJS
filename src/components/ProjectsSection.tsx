@@ -61,11 +61,19 @@ export function ProjectsSection({ projectsRef }: Props) {
       <div className="projects-after-path">
         <p className="projects-intro-count font-mono">{projectsContent.countLabel(PROJECTS_META.length)}</p>
 
+        {/* The scroll wrapper supplies the distance; the stage inside it is
+            CSS-sticky. Deliberately NOT a GSAP pin — .projects-after-path
+            carries margin-top:-100vh and already sits under the path pin, and
+            adding a second pin-spacer into that context makes ScrollTrigger's
+            start/end measurements unstable. */}
+        <div
+          className="projects-stage-scroll"
+          style={{ "--swaps": PROJECTS_META.length - 1 } as CSSProperties}
+        >
         <div className="projects-sticky-list">
         {PROJECTS_META.map((p, i) => {
           const item = projectsContent.items[p.key];
           const tags = item.tags.split(",").map((s) => s.trim()).filter(Boolean);
-          const reversed = i % 2 !== 0;
 
           return (
             <article
@@ -74,53 +82,44 @@ export function ProjectsSection({ projectsRef }: Props) {
               style={{ zIndex: i + 1, "--panel-accent": p.color } as CSSProperties}
             >
               <div className="project-panel-inner">
-                <div
-                  className="project-panel-body"
-                  style={{ flexDirection: reversed ? "row-reverse" : "row" }}
-                >
-                  <div className="project-panel-visual">
-                    <div className="project-panel-screen">
-                      <div className="project-panel-screen-bar">
-                        {["#993C1D", "#854F0B", "#3B6D11"].map((c) => (
-                          <div key={c} className="project-panel-screen-dot" style={{ background: c }} />
-                        ))}
-                      </div>
-                      <div className="project-panel-screen-body">
-                        <div className="project-panel-block project-panel-block-wide" />
-                        <div className="project-panel-block" />
-                        <div className="project-panel-block" />
-                        <div className="project-panel-block project-panel-block-wide project-panel-block-sm" />
-                        <div className="project-panel-block project-panel-block-xs" />
-                        <div className="project-panel-block project-panel-block-xs project-panel-block-fade" />
-                      </div>
-                    </div>
-                    <span className="project-panel-index font-mono">{String(p.id).padStart(2, "0")}</span>
-                  </div>
+                <div className="project-panel-media">
+                  {/* Plain <img>: the accent-tinted parent shows through, so a project
+                      whose image file isn't in place yet reads as a coloured panel
+                      instead of a broken-image icon. */}
+                  <img
+                    className="project-panel-img"
+                    src={p.image}
+                    alt=""
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                  <span className="project-panel-year font-mono">{p.year}</span>
+                </div>
 
-                  <div className="project-panel-info">
-                    <div className="project-panel-meta">
-                      <span className="font-mono">{String(p.id).padStart(2, "0")}</span>
-                      <div className="project-panel-meta-line" />
-                      <span className="project-panel-year font-mono">{p.year}</span>
-                    </div>
+                <div className="project-panel-info">
+                  <h3 className="project-panel-title font-display">{item.title}</h3>
+                  <p className="project-panel-desc">{item.desc}</p>
 
-                    <h3 className="project-panel-title font-display">{item.title}</h3>
-                    <p className="project-panel-subtitle">{item.subtitle}</p>
-                    <p className="project-panel-desc">{item.desc}</p>
-
-                    <div className="project-panel-tags">
-                      {tags.map((tag) => (
-                        <span key={tag} className="project-panel-tag">
-                          {tag}
+                  <ul className="project-panel-rows">
+                    {tags.map((tag) => (
+                      <li key={tag} className="project-panel-row">
+                        <span className="project-panel-row-label">{tag}</span>
+                        <span className="project-panel-row-icon">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <path d="M12 3v18M3 12h18M6 6l12 12M18 6L6 18" />
+                          </svg>
                         </span>
-                      ))}
-                    </div>
+                      </li>
+                    ))}
+                  </ul>
 
-                    <span className="project-panel-link">
-                      {projectsContent.viewLabel}
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M7 17L17 7M7 7h10v10" />
-                      </svg>
+                  <div className="project-panel-footer font-mono">
+                    <span className="project-panel-footer-label">{projectsContent.label}</span>
+                    <span className="project-panel-footer-count">
+                      {String(p.id).padStart(2, "0")}
+                      <span>/{String(PROJECTS_META.length).padStart(2, "0")}</span>
                     </span>
                   </div>
                 </div>
@@ -128,6 +127,7 @@ export function ProjectsSection({ projectsRef }: Props) {
             </article>
           );
         })}
+        </div>
         </div>
       </div>
     </section>
