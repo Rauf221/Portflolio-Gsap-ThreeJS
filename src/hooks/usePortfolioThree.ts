@@ -1,5 +1,5 @@
 import { type RefObject, useEffect } from "react";
-import { sphereState } from "../lib/sphereState";
+import { sphereShouldRender, sphereState } from "../lib/sphereState";
 import { DESKTOP_REFERENCE_HEIGHT } from "../lib/viewport";
 
 export function usePortfolioThree(
@@ -215,18 +215,51 @@ export function usePortfolioThree(
     let frame = 0;
     let outerExplodeRender = 0;
     let innerExplodeRender = 0;
+    let wasActive = false;
+    const canvas = renderer.domElement;
     const animate = () => {
       const id = requestAnimationFrame(animate);
       (animate as any)._id = id;
 
-      // Idle the heavy loop while the intro plays (canvas is hidden behind the
-      // preloader and globalOpacity is 0 anyway) — frees the main thread for GSAP.
-      if (sphereState.paused) return;
+      /*
+       * The sphere only exists during the Skills pin. Outside it the whole loop
+       * short-circuits, which skips both per-vertex morphSphere() passes and the
+       * particle loop — the bulk of the frame cost — for most of the page.
+       *
+       * The edge latches matter. A bare early return would also skip the
+       * style.opacity write at the bottom, so leaving the range while opaque
+       * would freeze a fully drawn sphere onto a position:fixed canvas that then
+       * hangs over every section below.
+       */
+      const active = sphereShouldRender();
+
+      if (!active) {
+        if (wasActive) {
+          wasActive = false;
+          canvas.style.opacity = "0";
+          canvas.style.visibility = "hidden";
+          renderer.clear();
+        }
+        return;
+      }
+
+      if (!wasActive) {
+        wasActive = true;
+        canvas.style.visibility = "visible";
+        // Snap rather than lerp. group.position.x eases at 0.08/frame — ~40
+        // frames to cross six world units — so re-entering (especially upward
+        // from Projects, where GSAP has already set groupX to centre and both
+        // explodes to 1) would otherwise show the sphere visibly crawling into
+        // place. Whatever GSAP says the state is, be there on frame one.
+        group.position.x = sphereState.groupX;
+        outerExplodeRender = sphereState.outerExplode;
+        innerExplodeRender = sphereState.innerExplode;
+        camera.position.x = group.position.x * 0.15;
+      }
 
       frame += 0.004;
 
       group.position.x += (sphereState.groupX - group.position.x) * 0.08;
-      group.rotation.y += (sphereState.rotateY - group.rotation.y) * 0.08;
 
       outerExplodeRender += (sphereState.outerExplode - outerExplodeRender) * 0.1;
       innerExplodeRender += (sphereState.innerExplode - innerExplodeRender) * 0.1;

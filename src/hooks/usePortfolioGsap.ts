@@ -1,6 +1,19 @@
 import { type RefObject, useEffect } from "react";
 import { scrollToTop } from "../lib/scroll";
-import { resetSphereState, sphereState, SPHERE_ABOUT_X, SPHERE_CENTER_X, SPHERE_HERO_X } from "../lib/sphereState";
+import {
+  resetSphereState,
+  sphereState,
+  SPHERE_ACT_BREAK_BIAS,
+  SPHERE_CENTER_X,
+  SPHERE_CENTER_MOVE_SPAN,
+  SPHERE_EXPLODE_EARLY,
+  SPHERE_FADE_OUT_START,
+  SPHERE_INNER_EXPLODE_END,
+  SPHERE_OUTER_EXPLODE_START,
+  SPHERE_SKILLS_FADE_IN_END,
+  SPHERE_SKILLS_LEFT_X,
+  SPHERE_SKILLS_START_X,
+} from "../lib/sphereState";
 
 const SKILLS_HEADLINE_CHAR_FROM = [
   { x: 550, y: -440, ease: "power4.out" },
@@ -27,6 +40,37 @@ const SKILLS_CAROUSEL_INTRO = 0.14;
 /** Carousel fades in once headline scroll reaches this fraction (before exit completes). */
 const SKILLS_CAROUSEL_HEADLINE_START = 0.38;
 const SKILLS_HEADLINE_BUFFER_VH = 0.05;
+/**
+ * Scroll pixels spent per pixel of the headline's horizontal travel.
+ *
+ * At 1 the mapping is 1:1 — the track moves exactly as far as you scroll, which
+ * is what made the headline phase cost a full `exitTrackX` (~3.3 screen widths)
+ * of scrolling. Lowering it compresses the same journey into less scroll: the
+ * characters still start a full viewport off-screen and cover the same distance,
+ * they just travel faster per wheel tick. This is the dial for "too much empty
+ * scroll" — shortening the CSS padding-left instead would start the headline
+ * mid-screen and kill the fly-in.
+ */
+const SKILLS_HEADLINE_SCROLL_RATIO = 0.65;
+/**
+ * How much of a head start the headline gets, in viewport heights, before the
+ * pin engages. The track used to begin at "top top" — nothing moved until the
+ * section had covered the whole screen, which is what made the approach read as
+ * dead space. At 0.75 the characters start drifting in while About is still
+ * finishing, and the pin only has to cover the remainder of the travel (so this
+ * shortens the pin by the same amount rather than adding scroll).
+ */
+const SKILLS_HEADLINE_LEAD_VH = 0.75;
+/**
+ * How far above its centred resting place the headline's baseline starts, in
+ * viewport heights. The stage centres the headline (align-items: center), so at
+ * 0.4 the first character enters near the top of the section and the whole line
+ * then descends into centre as you scroll. Raise it to enter higher, lower it to
+ * enter closer to centre.
+ */
+const SKILLS_HEADLINE_RISE_VH = 0.4;
+/** Fraction of the headline's scroll over which that descent completes. */
+const SKILLS_HEADLINE_RISE_SPAN = 0.2;
 
 const PROJECTS_PATH_POV_SCALE = { from: 2.22, to: 2.42 };
 const PROJECTS_CHAR_WRITE_LEAD = 0.045;
@@ -654,60 +698,9 @@ export function usePortfolioGsap(
       },
     });
 
-    const sphereSlide = gsap.timeline({
-      scrollTrigger: {
-        trigger: heroRef.current,
-        start: "top top",
-        endTrigger: aboutRef.current,
-        end: "top 40%",
-        scrub: 2.8,
-        invalidateOnRefresh: true,
-      },
-      defaults: { ease: "none" },
-    });
-    sphereSlide
-      .fromTo(
-        sphereState,
-        { groupX: SPHERE_HERO_X, rotateY: 0, outerExplode: 0, innerExplode: 0 },
-        { groupX: SPHERE_ABOUT_X, rotateY: 0.06, duration: 1, ease: "power2.inOut" },
-        0,
-      );
-
-    if (skillsRef.current) {
-      gsap.timeline({
-        scrollTrigger: {
-          trigger: skillsRef.current,
-          start: "top bottom",
-          end: "top top",
-          scrub: 1.4,
-          invalidateOnRefresh: true,
-        },
-        defaults: { ease: "none" },
-      }).to(sphereState, {
-        groupX: SPHERE_HERO_X,
-        rotateY: 0,
-        outerExplode: 0,
-        innerExplode: 0,
-        ease: "power2.inOut",
-        duration: 1,
-      });
-
-      gsap.fromTo(
-        sphereState,
-        { globalOpacity: 0 },
-        {
-          globalOpacity: 1,
-          ease: "none",
-          scrollTrigger: {
-            trigger: skillsRef.current,
-            start: "top 85%",
-            end: "top 40%",
-            scrub: 1,
-            invalidateOnRefresh: true,
-          },
-        },
-      );
-    }
+    // The sphere has no presence before the Skills pin — no slide, no fade-in.
+    // Its entire lifecycle is driven from inside that pin by
+    // `applySphereChoreography` below.
 
     // ===== About — mystic observatory =====
     const aboutEl = aboutRef.current;
@@ -720,62 +713,35 @@ export function usePortfolioGsap(
         scrollTrigger: { trigger: aboutEl, start: "top 78%", toggleActions: toggleRv },
       });
 
+      // Pure transform + opacity, no blur and no rotateX. Animated filters
+      // force a full repaint of every character on every frame, which is what
+      // made this reveal the most expensive moment in the section; the words
+      // are already masked by .overflow-clip, so the slide alone reads fine.
       gsap.from(".about-headline-char", {
         y: 90,
         opacity: 0,
-        rotateX: -80,
-        filter: "blur(8px)",
-        transformOrigin: "50% 100%",
         stagger: 0.022,
         duration: 0.9,
         ease: "power4.out",
         scrollTrigger: { trigger: aboutEl, start: "top 72%", toggleActions: toggleRv },
       });
 
-      gsap.from(".about-rune-divider", {
-        scaleX: 0,
-        opacity: 0,
-        transformOrigin: "left center",
-        duration: 1.1,
-        ease: "power3.inOut",
-        scrollTrigger: { trigger: aboutEl, start: "top 66%", toggleActions: toggleRv },
-      });
-
       gsap.from(".about-body", {
         y: 44,
         opacity: 0,
-        filter: "blur(4px)",
         stagger: 0.16,
         duration: 1,
         ease: "power3.out",
         scrollTrigger: { trigger: aboutEl, start: "top 62%", toggleActions: toggleRv },
       });
 
-      gsap.from(".about-sigil", {
-        scale: 0,
+      gsap.from(".about-meta-row", {
+        y: 24,
         opacity: 0,
-        rotate: -30,
-        stagger: 0.13,
-        duration: 0.9,
-        ease: "back.out(1.7)",
+        stagger: 0.09,
+        duration: 0.8,
+        ease: "power3.out",
         scrollTrigger: { trigger: aboutEl, start: "top 52%", toggleActions: toggleRv },
-      });
-
-      // counters inside the sigil diamonds (10+, 3 …)
-      aboutEl.querySelectorAll<HTMLElement>(".about-sigil-num[data-count]").forEach((el) => {
-        const target = Number(el.dataset.count);
-        const suffix = el.dataset.suffix ?? "";
-        const state = { v: 0 };
-        gsap.to(state, {
-          v: target,
-          duration: 1.6,
-          ease: "power2.out",
-          snap: { v: 1 },
-          onUpdate: () => {
-            el.textContent = `${state.v}${suffix}`;
-          },
-          scrollTrigger: { trigger: aboutEl, start: "top 52%", toggleActions: toggleRv },
-        });
       });
 
       gsap.from(".about-mantra", {
@@ -831,26 +797,6 @@ export function usePortfolioGsap(
         scrollTrigger: { trigger: aboutEl, start: "top bottom", end: "bottom top", scrub: 1.4 },
       });
 
-      // floating glyphs: parallax on the wrapper, gentle float on the inner span
-      aboutEl.querySelectorAll<HTMLElement>(".about-glyph").forEach((glyph, i) => {
-        const depth = Number(glyph.dataset.depth || 0.5);
-        gsap.to(glyph, {
-          y: -140 * depth,
-          ease: "none",
-          scrollTrigger: { trigger: aboutEl, start: "top bottom", end: "bottom top", scrub: 1 },
-        });
-        const inner = glyph.querySelector(".about-glyph-inner");
-        if (inner) {
-          gsap.to(inner, {
-            y: 10 + depth * 10,
-            rotation: i % 2 === 0 ? 12 : -12,
-            duration: 2.4 + depth * 2,
-            repeat: -1,
-            yoyo: true,
-            ease: "sine.inOut",
-          });
-        }
-      });
     }
 
     const skillsTrack = skillsRef.current?.querySelector(".skills-track") as HTMLElement;
@@ -882,14 +828,29 @@ export function usePortfolioGsap(
 
       const getSkillsPinMetrics = () => {
         const { exitTrackX } = measureHeadlineScroll();
-        const headlinePx = Math.max(exitTrackX + window.innerHeight * 0.35, window.innerHeight);
+        // exitTrackX is the horizontal distance the track covers; headlinePx is
+        // the scroll spent covering it. Keeping them decoupled is what lets the
+        // characters keep their full off-screen run-up on a shorter pin.
+        const headlinePx = Math.max(
+          exitTrackX * SKILLS_HEADLINE_SCROLL_RATIO + window.innerHeight * 0.35,
+          window.innerHeight,
+        );
+        // The track starts moving before the pin, so part of headlinePx is spent
+        // during the approach. Only the remainder happens on the pin, and it is
+        // that remainder every pin-relative number below has to be built from.
+        const headlineLeadPx = window.innerHeight * SKILLS_HEADLINE_LEAD_VH;
+        const headlineOnPinPx = Math.max(
+          headlinePx - headlineLeadPx,
+          window.innerHeight * 0.2,
+        );
         const bufferPx = window.innerHeight * SKILLS_HEADLINE_BUFFER_VH;
         const carouselMetrics = getSkillsCarouselMetrics(iconItems.length);
-        const carouselStartPx = headlinePx * SKILLS_CAROUSEL_HEADLINE_START;
-        const totalPinPx = headlinePx + bufferPx + carouselMetrics.carouselPx;
+        const carouselStartPx = headlineOnPinPx * SKILLS_CAROUSEL_HEADLINE_START;
+        const totalPinPx = headlineOnPinPx + bufferPx + carouselMetrics.carouselPx;
         return {
           exitTrackX,
           headlinePx,
+          headlineOnPinPx,
           bufferPx,
           carouselStartPx,
           totalPinPx,
@@ -901,6 +862,76 @@ export function usePortfolioGsap(
       const headlineScroll = measureHeadlineScroll();
       let pinMetrics = getSkillsPinMetrics();
       const carouselProgress = { value: 0 };
+
+      /*
+       * The sphere's whole life, as a pure function of the pin's progress:
+       *
+       *   right ──(rides the headline)──> left ──(headline exits)──> centre, burst
+       *
+       * Deliberately not a set of scrubbed tweens. The two `groupX` channels —
+       * the ride left and the sweep back to centre — would otherwise be separate
+       * tweens both writing the same property with no defined winner. Composed
+       * algebraically there is exactly one writer. It also puts the sphere on the
+       * headline's own clock (raw `self.progress`) rather than trailing it by a
+       * scrub; smoothing is still supplied downstream by the render loop's lerps.
+       *
+       * Being stateless is what makes reverse scrolling correct for free: the
+       * same scroll position always yields the same values, in either direction.
+       */
+      const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+      const easeInOut = gsap.parseEase("power2.inOut");
+      const applySphereChoreography = (p: number) => {
+        /*
+         * The act break, blended between two moments that are both measured
+         * live (never hardcoded — `carouselStartRatio` and `headlinePx` are
+         * recomputed from headline width and card geometry on every refresh,
+         * so literals would drift on resize):
+         *
+         *   swiperIn    — the swiper stage has finished fading in
+         *   headlineOut — the headline has fully left the screen
+         *
+         * SPHERE_ACT_BREAK_BIAS picks the point between them.
+         */
+        const { carouselStartRatio } = pinMetrics;
+        const swiperIn =
+          carouselStartRatio + SKILLS_CAROUSEL_INTRO * (1 - carouselStartRatio);
+        // headlineOnPinPx, not headlinePx: part of the headline's travel happens
+        // during the approach, before the pin exists to have progress at all.
+        const headlineOut = pinMetrics.headlineOnPinPx / pinMetrics.totalPinPx;
+        const swiperOnScreen =
+          (swiperIn + (headlineOut - swiperIn) * SPHERE_ACT_BREAK_BIAS) *
+          SPHERE_EXPLODE_EARLY;
+
+        const fadeIn = clamp01(p / SPHERE_SKILLS_FADE_IN_END);
+        const fadeOut = clamp01(
+          (p - SPHERE_FADE_OUT_START) / (1 - SPHERE_FADE_OUT_START),
+        );
+        sphereState.globalOpacity = fadeIn * (1 - fadeOut);
+
+        // Act 1: purple sheds over the ride and is gone as the swiper lands.
+        sphereState.outerExplode = clamp01(
+          (p - SPHERE_OUTER_EXPLODE_START) /
+            (swiperOnScreen - SPHERE_OUTER_EXPLODE_START),
+        );
+
+        // Act 2: the dark core only starts breaking up once the swiper is in.
+        sphereState.innerExplode = clamp01(
+          (p - swiperOnScreen) / (SPHERE_INNER_EXPLODE_END - swiperOnScreen),
+        );
+
+        // Linear across the ride so it tracks the headline (which also uses
+        // ease "none"), then eased on the way back to centre. The two windows
+        // meet at `swiperOnScreen` rather than overlapping, so travelT is
+        // already pinned at 1 before centerT leaves 0 — no contention, and
+        // centerT === 1 lands exactly on SPHERE_CENTER_X.
+        const travelT = clamp01(p / swiperOnScreen);
+        const traveled =
+          SPHERE_SKILLS_START_X + (SPHERE_SKILLS_LEFT_X - SPHERE_SKILLS_START_X) * travelT;
+        const centerT = easeInOut(
+          clamp01((p - swiperOnScreen) / SPHERE_CENTER_MOVE_SPAN),
+        );
+        sphereState.groupX = traveled + (SPHERE_CENTER_X - traveled) * centerT;
+      };
 
       ST.create({
         trigger: skillsRef.current,
@@ -915,7 +946,21 @@ export function usePortfolioGsap(
           Object.assign(headlineScroll, measureHeadlineScroll());
           pinMetrics = getSkillsPinMetrics();
         },
+        onToggle: (self: { isActive: boolean; progress: number; direction: number }) => {
+          sphereState.inRange = self.isActive;
+          // Force the endpoint on leave. `fastScrollEnd` means a hard flick past
+          // the pin's edge can skip the onUpdate at progress 1, which would
+          // strand globalOpacity mid-fade — invisible now, but the render loop
+          // snaps to these values on re-entry and would trust the stale ones.
+          applySphereChoreography(
+            self.isActive ? self.progress : self.direction > 0 ? 1 : 0,
+          );
+        },
         onUpdate: (self: { progress: number }) => {
+          // Ahead of the carousel guard below: a missing carousel node must not
+          // strand the sphere mid-explosion.
+          applySphereChoreography(self.progress);
+
           if (!carouselStage || !iconTrack || !iconItems.length) return;
           const { carouselStartRatio } = pinMetrics;
 
@@ -951,17 +996,49 @@ export function usePortfolioGsap(
         },
       });
 
+      // Coherent state before the first scroll event, so the canvas can never
+      // become visible for a frame holding values nobody has computed yet.
+      applySphereChoreography(0);
+
       const headlineTrackTween = gsap.to(skillsTrack, {
         x: () => -measureHeadlineScroll().exitTrackX,
         ease: "none",
         scrollTrigger: {
           trigger: skillsRef.current,
-          start: "top top",
+          // Deliberately earlier than the pin's "top top": the characters begin
+          // drifting in while About is still on screen, so the section never
+          // sits fully covering the viewport with nothing happening.
+          start: `top ${SKILLS_HEADLINE_LEAD_VH * 100}%`,
           end: () => `+=${getSkillsPinMetrics().headlinePx}`,
           scrub: 1.2,
           invalidateOnRefresh: true,
         },
       });
+
+      // Vertical counterpart to the horizontal track: the line enters high —
+      // level with the section label — and sinks to its centred position as the
+      // page scrolls. Separate from headlineTrackTween because it settles over
+      // only part of the travel; sharing that tween would tie the descent to the
+      // full horizontal exit. Safe alongside measureHeadlineScroll(), which only
+      // ever touches x and reads .right.
+      if (headline) {
+        gsap.fromTo(
+          headline,
+          { y: () => -window.innerHeight * SKILLS_HEADLINE_RISE_VH },
+          {
+            y: 0,
+            ease: "none",
+            scrollTrigger: {
+              trigger: skillsRef.current,
+              start: `top ${SKILLS_HEADLINE_LEAD_VH * 100}%`,
+              end: () =>
+                `+=${getSkillsPinMetrics().headlinePx * SKILLS_HEADLINE_RISE_SPAN}`,
+              scrub: 1.2,
+              invalidateOnRefresh: true,
+            },
+          },
+        );
+      }
 
       if (headline && headlineChars.length) {
         Array.from(headlineChars).forEach((char: Element, i: number) => {
@@ -988,39 +1065,6 @@ export function usePortfolioGsap(
         });
       }
 
-      gsap.fromTo(
-        sphereState,
-        { groupX: SPHERE_HERO_X, rotateY: 0 },
-        {
-          groupX: SPHERE_ABOUT_X,
-          rotateY: 0.06,
-          ease: "none",
-          scrollTrigger: {
-            trigger: skillsRef.current,
-            start: "top top",
-            end: () => `+=${pinMetrics.totalPinPx}`,
-            scrub: 1.2,
-            invalidateOnRefresh: true,
-          },
-        },
-      );
-
-      gsap.fromTo(
-        sphereState,
-        { outerExplode: 0 },
-        {
-          outerExplode: 1,
-          ease: "none",
-          scrollTrigger: {
-            trigger: skillsRef.current,
-            start: "top top",
-            end: () => `+=${pinMetrics.totalPinPx}`,
-            scrub: 1.2,
-            invalidateOnRefresh: true,
-          },
-        },
-      );
-
       if (iconTrack && iconItems.length) {
         const initMetrics = getSkillsCarouselMetrics(iconItems.length);
         layoutSkillsStack(iconItems, nameRows, initMetrics.streamStart - 0.5);
@@ -1030,46 +1074,6 @@ export function usePortfolioGsap(
     if (projectsRef.current) {
       initProjectsPathHeadline(projectsRef.current, gsap);
 
-      gsap.timeline({
-        scrollTrigger: {
-          trigger: projectsRef.current,
-          start: "top bottom",
-          end: "top top",
-          scrub: 1.4,
-          invalidateOnRefresh: true,
-        },
-        defaults: { ease: "none" },
-      }).to(sphereState, {
-        groupX: SPHERE_CENTER_X,
-        rotateY: 0,
-        ease: "power2.inOut",
-        duration: 1,
-      });
-
-      const pathScrollWrap = projectsRef.current.querySelector(
-        ".projects-path-scroll",
-      ) as HTMLElement | null;
-
-      if (pathScrollWrap) {
-        const getProjectsPathScrollPx = () =>
-          window.innerHeight * (PROJECTS_WRITE_SCROLL_VH + PROJECTS_EXIT_SCROLL_VH);
-
-        gsap.fromTo(
-          sphereState,
-          { innerExplode: 0 },
-          {
-            innerExplode: 1,
-            ease: "none",
-            scrollTrigger: {
-              trigger: pathScrollWrap,
-              start: "top top",
-              end: () => `+=${getProjectsPathScrollPx()}`,
-              scrub: 1,
-              invalidateOnRefresh: true,
-            },
-          },
-        );
-      }
     }
 
     const projectPanels = projectsRef.current
@@ -1178,26 +1182,6 @@ export function usePortfolioGsap(
         });
 
       }
-    }
-
-    if (experienceRef.current) {
-      gsap.timeline({
-        scrollTrigger: {
-          trigger: experienceRef.current,
-          start: "top bottom",
-          end: "top 40%",
-          scrub: 1.8,
-          invalidateOnRefresh: true,
-        },
-        defaults: { ease: "none" },
-      }).to(sphereState, {
-        outerExplode: 0,
-        innerExplode: 0,
-        groupX: SPHERE_CENTER_X,
-        rotateY: 0,
-        ease: "power2.inOut",
-        duration: 1,
-      });
     }
 
     gsap.from(".exp-line-fill", {

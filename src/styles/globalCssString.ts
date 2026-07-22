@@ -457,6 +457,13 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
 .hero-word--iden-left { left: 20vw; }
 .hero-word--iden-right { right: 20vw; }
 
+/*
+ * padding-left parks the headline a full viewport off to the right so the
+ * characters fly in from genuinely off-screen. Do NOT shorten it to reduce
+ * scroll length — that starts the headline mid-screen and the entrance loses
+ * its point. Compress the scroll cost instead, via
+ * SKILLS_HEADLINE_SCROLL_RATIO in usePortfolioGsap.
+ */
 .skills-headline-stage {
   min-width: 165vw;
   height: 100%;
@@ -595,21 +602,17 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
   .hero-word--iden-right { right: 13vw; }
 }
 
+/*
+ * Asymmetric on purpose. Skills contributes no top padding of its own, so this
+ * bottom value alone sets the gap between one section's last line and whatever
+ * the next section first puts on screen. At a symmetric 12rem that read as dead
+ * scroll. Used by About and Experience only.
+ */
 .section-padded {
-  padding-top: 12rem;
-  padding-bottom: 12rem;
+  padding-top: 9rem;
+  padding-bottom: 6rem;
   padding-left: var(--pad-x);
   padding-right: var(--pad-x);
-}
-
-.h-section-label {
-  position: absolute;
-  top: 4rem;
-  left: var(--pad-x);
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
 }
 
 .footer-inner {
@@ -629,31 +632,6 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
   z-index: 1;
   background: var(--bg);
 }
-
-.about-stars { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-.about-star {
-  position: absolute;
-  border-radius: 50%;
-  background: #6B5BCB;
-  box-shadow: 0 0 6px rgba(107,91,203,0.9);
-  opacity: 0.2;
-  animation: about-twinkle var(--tw-dur, 3.5s) ease-in-out var(--tw-delay, 0s) infinite;
-}
-@keyframes about-twinkle {
-  0%, 100% { opacity: 0.1; transform: scale(0.7); }
-  50% { opacity: 0.8; transform: scale(1); }
-}
-
-.about-glyph {
-  position: absolute;
-  z-index: 1;
-  color: rgba(107,91,203,0.55);
-  text-shadow: 0 0 18px rgba(107,91,203,0.5);
-  letter-spacing: 0.1em;
-  pointer-events: none;
-  will-change: transform;
-}
-.about-glyph-inner { display: block; }
 
 .about-grid {
   position: relative;
@@ -675,6 +653,12 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
 }
 /* The tight viewBox is taller than wide, so height drives the fit and the
    mark spans the full box instead of sitting small inside it. */
+/* No drop-shadow here, deliberately. This element is scrubbed: DrawSVG rewrites
+   every path's stroke-dashoffset on each scroll frame, and any filter on the
+   element has to re-rasterise and re-blur the whole ~560px box every time that
+   happens — a 26px gaussian per frame for the entire length of the section.
+   That was the frame-rate drop on entering About. The glow is supplied by the
+   static .about-logo-glow layer behind it instead, which only animates opacity. */
 .about-logo {
   position: relative;
   z-index: 1;
@@ -682,14 +666,15 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
   width: 100%;
   display: block;
   overflow: visible;
-  filter: drop-shadow(0 0 26px rgba(107,91,203,0.28));
   will-change: transform, opacity;
 }
+/* Picks up the halo the drop-shadow used to provide, at a fraction of the cost:
+   one static gradient, painted once, animating opacity only. */
 .about-logo-glow {
   position: absolute;
-  inset: 18%;
+  inset: 8%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(107,91,203,0.10) 0%, transparent 65%);
+  background: radial-gradient(circle, rgba(107,91,203,0.18) 0%, rgba(107,91,203,0.06) 45%, transparent 70%);
   pointer-events: none;
   animation: pulse-glow 5s ease-in-out infinite;
 }
@@ -705,7 +690,6 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
   gap: 0.75rem;
 }
 .about-label-line { width: 36px; height: 1px; background: var(--sphere); }
-.about-label-glyph { opacity: 0.7; animation: pulse-glow 3s ease-in-out infinite; }
 
 .about-headline {
   margin-bottom: 1.8rem;
@@ -720,28 +704,12 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
   vertical-align: top;
 }
 .about-headline-word-inner { display: inline-block; }
+/* No will-change here: the reveal fires once, and promoting every character to
+   its own compositor layer for the whole page lifetime costs more than the
+   single repaint it would save. */
 .about-headline-char {
   display: inline-block;
-  will-change: transform, opacity;
   min-width: 0.22em;
-}
-
-.about-rune-divider {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  margin-bottom: 2rem;
-  color: rgba(107,91,203,0.6);
-  font-size: 0.7rem;
-}
-.about-rune-divider-line {
-  height: 1px;
-  width: 64px;
-  background: linear-gradient(to right, transparent, rgba(107,91,203,0.55));
-}
-.about-rune-divider-line--fade {
-  width: 140px;
-  background: linear-gradient(to right, rgba(107,91,203,0.55), transparent);
 }
 
 .about-body {
@@ -752,55 +720,34 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
   max-width: 56ch;
 }
 
-.about-sigils {
+/* Editorial key/value rows. The hairline rules carry the structure, so there
+   are no boxes, shadows or pseudo-element frames left to composite. */
+.about-meta {
+  /* dl/dd carry UA default margins that would break the flex row alignment */
+  margin: 2.8rem 0 0;
+  border-top: 1px solid rgba(107,91,203,0.22);
+  max-width: 40ch;
+}
+.about-meta-row {
   display: flex;
-  gap: 2.4rem;
-  margin-top: 2.6rem;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid rgba(107,91,203,0.22);
 }
-.about-sigil { text-align: center; }
-.about-sigil-diamond {
-  position: relative;
-  width: 104px;
-  height: 104px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.about-sigil-diamond::before {
-  content: '';
-  position: absolute;
-  inset: 13px;
-  border: 1px solid rgba(107,91,203,0.45);
-  transform: rotate(45deg);
-  background: linear-gradient(135deg, rgba(107,91,203,0.09) 0%, rgba(107,91,203,0.02) 100%);
-  box-shadow: 0 0 26px rgba(107,91,203,0.16), inset 0 0 20px rgba(107,91,203,0.07);
-  transition: box-shadow 0.4s, border-color 0.4s;
-}
-.about-sigil-diamond::after {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border: 1px dashed rgba(107,91,203,0.2);
-  transform: rotate(45deg);
-}
-.about-sigil:hover .about-sigil-diamond::before {
-  border-color: rgba(107,91,203,0.85);
-  box-shadow: 0 0 42px rgba(107,91,203,0.35), inset 0 0 24px rgba(107,91,203,0.14);
-}
-.about-sigil-num {
-  position: relative;
-  z-index: 1;
-  font-size: 1.65rem;
-  font-weight: 800;
-  line-height: 1;
-}
-.about-sigil-label {
-  margin-top: 1rem;
+.about-meta-key {
   font-size: 0.68rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--muted);
+}
+.about-meta-value {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.01em;
 }
 
 .about-mantra {
@@ -822,9 +769,8 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
 
 @media (max-width: 700px) {
   .about-logo-wrap { max-width: 320px; }
-  .about-sigils { gap: 1.2rem; justify-content: flex-start; }
-  .about-sigil-diamond { width: 88px; height: 88px; }
-  .about-mystic { padding-top: 8rem; padding-bottom: 8rem; }
+  .about-meta { max-width: none; }
+  .about-mystic { padding-top: 6rem; padding-bottom: 4rem; }
 }
 
 /* First-load preloader: R [logo] H lockup + center-growing reveal */

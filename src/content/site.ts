@@ -42,20 +42,20 @@ export const about = {
     "I ship production apps, real-estate platforms, CMS/editor experiences, real-time systems, and creative WebGL/Three.js showcases.",
   mantra:
     "Somewhere between logic and imagination — that's where the interesting work happens.",
-  stats: {
-    projects: { num: "10+", label: "Projects" },
-    stack: { num: "Full", label: "Stack" },
-    langs: { num: "3", label: "Languages" },
-  },
+  /* Rendered as a plain key/value list, not counters — same three facts as the
+     old diamond sigils, just without the ornament around them. */
+  meta: [
+    { key: "Projects", value: "10+" },
+    { key: "Stack", value: "Full-stack" },
+    { key: "Languages", value: "3" },
+  ],
 } as const;
 
 export const skills = {
-  label: "Skills",
   headingLine1: "What I",
   headingAccent: "do best",
   headingLine2: ".",
   proficiency: "Proficiency",
-  scrollHint: "Scroll to explore",
   categories: {
     frontend: "Frontend",
     language: "Language",

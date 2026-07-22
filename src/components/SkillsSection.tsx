@@ -23,13 +23,6 @@ export function SkillsSection({ skillsRef }: Props) {
 
   return (
     <section id="skills" ref={skillsRef} style={{ position: "relative", height: "100vh", overflow: "hidden", zIndex: 1 }}>
-      <div className="h-section-label">
-        <div style={{ width: 32, height: 1, background: "var(--sphere)" }} />
-        <span className="font-mono" style={{ fontSize: "0.75rem", letterSpacing: "0.2em", color: "var(--sphere)", textTransform: "uppercase" }}>
-          {skills.label}
-        </span>
-      </div>
-
       <div
         className="skills-track"
         style={{
@@ -89,24 +82,6 @@ export function SkillsSection({ skillsRef }: Props) {
         </div>
       </div>
 
-      <div
-        style={{
-          position: "absolute",
-          bottom: "2rem",
-          right: "var(--pad-x)",
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          color: "var(--muted)",
-        }}
-      >
-        <span className="font-mono" style={{ fontSize: "0.65rem", letterSpacing: "0.15em" }}>
-          {skills.scrollHint}
-        </span>
-        <svg width="24" height="12" viewBox="0 0 24 12" fill="none">
-          <path d="M0 6h20M15 1l5 5-5 5" stroke="currentColor" strokeWidth="1.5" />
-        </svg>
-      </div>
     </section>
   );
 }
