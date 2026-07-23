@@ -6,6 +6,7 @@ import {
   SPHERE_ACT_BREAK_BIAS,
   SPHERE_CENTER_X,
   SPHERE_CENTER_MOVE_SPAN,
+  SPHERE_EXP_SCALE,
   SPHERE_EXPLODE_EARLY,
   SPHERE_FADE_OUT_START,
   SPHERE_INNER_EXPLODE_END,
@@ -230,7 +231,6 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
   const textPath = root.querySelector(".projects-path-textpath") as SVGTextPathElement | null;
   const measureText = root.querySelector(".projects-path-text-measure") as SVGTextElement | null;
   const charsGroup = root.querySelector(".projects-path-chars") as SVGGElement | null;
-  const pathLabel = root.querySelector(".projects-path-label") as HTMLElement | null;
   const afterPath = root.querySelector(".projects-after-path") as HTMLElement | null;
 
   if (!scrollWrap || !stage || !camera || !path || !textPath || !charsGroup) return;
@@ -311,7 +311,6 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
       force3D: true,
     });
 
-    if (pathLabel) gsap.set(pathLabel, { x: 0, y: 0 });
     updatePathChars(writeT);
   };
 
@@ -330,7 +329,6 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
       force3D: true,
     });
 
-    if (pathLabel) gsap.set(pathLabel, { x: exitX, y: 0 });
     updatePathChars(1);
   };
 
@@ -434,6 +432,135 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
   requestAnimationFrame(() => window.ScrollTrigger?.refresh());
 }
 
+/* ── Experience tunnel ──────────────────────────────────────────────────────
+ * A CSS-3D perspective flythrough (the wodniack.dev "coding my way" technique,
+ * re-skinned to this site's palette): each experience card sits at a different
+ * translateZ depth and the whole line advances toward the camera on scroll, so
+ * jobs fly out of the vanishing point one after another. The existing Three.js
+ * sphere is parked at that vanishing point (screen-centre, ~450px from top =
+ * the fixed canvas's own centre) and shrunk via sphereState.groupScale.
+ *
+ * Depths in px. startZ(0) is the nearest card's start (arrives first); each
+ * later card starts one DEPTH further back. travelTotal is sized so the last
+ * card has fully passed the camera by progress 1. */
+const EXP_DEPTH = 1180;
+const EXP_LEADIN = 1500;
+const EXP_NEAR = 780;
+/* Fixed per-card lateral scatter (in the vanishing-point plane, so it spreads
+ * as a card nears the camera) — keeps cards from stacking dead-centre. */
+const EXP_CARD_OFFSETS = [
+  { x: -230, y: -70 },
+  { x: 250, y: 95 },
+  { x: -190, y: 130 },
+  { x: 220, y: -120 },
+  { x: -270, y: 45 },
+  { x: 200, y: -160 },
+  { x: -150, y: -140 },
+] as const;
+
+function initExperienceTunnel(root: HTMLElement, gsap: typeof window.gsap) {
+  const stage = root.querySelector(".exp-stage") as HTMLElement | null;
+  const objects = Array.from(root.querySelectorAll<HTMLElement>(".exp-object"));
+  const floor = root.querySelector(".exp-floortext") as HTMLElement | null;
+  if (!stage || !objects.length) return;
+
+  // Reduced motion or narrow viewports fall back to a plain readable stack —
+  // no pin, no 3D, and the sphere is left to the Skills section alone.
+  const flat =
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+    window.matchMedia("(max-width: 900px)").matches;
+  if (flat) {
+    root.classList.add("exp--flat");
+    gsap.set(objects, { clearProps: "all" });
+    if (floor) gsap.set(floor, { clearProps: "all" });
+    return;
+  }
+
+  const N = objects.length;
+  const startZ = (i: number) => -EXP_LEADIN - (i + 1) * EXP_DEPTH;
+  const travelTotal = EXP_LEADIN + N * EXP_DEPTH + EXP_NEAR + EXP_DEPTH;
+
+  const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+  // smoothstep between two z depths
+  const band = (a: number, b: number, z: number) => {
+    const t = clamp01((z - a) / (b - a));
+    return t * t * (3 - 2 * t);
+  };
+
+  const applyTunnel = (p: number) => {
+    objects.forEach((el, i) => {
+      const z = startZ(i) + p * travelTotal;
+      const off = EXP_CARD_OFFSETS[i % EXP_CARD_OFFSETS.length];
+      const fadeIn = band(-3400, -2500, z); // emerge from the horizon
+      const fadeOut = 1 - band(300, EXP_NEAR, z); // dissolve as it passes
+      const opacity = fadeIn * fadeOut;
+      gsap.set(el, {
+        xPercent: -50,
+        yPercent: -50,
+        x: off.x,
+        y: off.y,
+        z,
+        opacity,
+        visibility: opacity < 0.008 ? "hidden" : "visible",
+        force3D: true,
+      });
+    });
+
+    if (floor) {
+      gsap.set(floor, {
+        xPercent: -50,
+        rotateX: 74,
+        z: -260 + p * 520,
+        transformOrigin: "50% 0%",
+        opacity: 0.05 + 0.11 * clamp01(p / 0.12),
+        force3D: true,
+      });
+    }
+  };
+
+  // The sphere's whole life inside this section: a calm, unexploded orb that
+  // fades in at the start and out at the end. Stateless in p, so reverse scroll
+  // is correct for free (same as the Skills choreography).
+  const applySphere = (p: number) => {
+    sphereState.outerExplode = 0;
+    sphereState.innerExplode = 0;
+    sphereState.groupX = SPHERE_CENTER_X;
+    sphereState.groupScale = SPHERE_EXP_SCALE;
+    const fadeIn = clamp01(p / 0.06);
+    const fadeOut = clamp01((p - 0.9) / 0.1);
+    sphereState.globalOpacity = fadeIn * (1 - fadeOut) * 0.92;
+  };
+
+  applyTunnel(0);
+
+  window.ScrollTrigger.create({
+    trigger: stage,
+    start: "top top",
+    end: () => `+=${window.innerHeight * (N * 0.72 + 0.9)}`,
+    pin: true,
+    pinSpacing: true,
+    anticipatePin: 1,
+    invalidateOnRefresh: true,
+    fastScrollEnd: true,
+    onToggle: (self: { isActive: boolean; progress: number; direction: number }) => {
+      sphereState.inRange = self.isActive;
+      if (self.isActive) {
+        applySphere(self.progress);
+      } else {
+        // Hand the sphere back to the Skills section untouched: normal size,
+        // hidden. (Skills never writes groupScale, so it must be reset here.)
+        sphereState.groupScale = 1;
+        sphereState.globalOpacity = 0;
+        applyTunnel(self.direction > 0 ? 1 : 0);
+      }
+    },
+    onUpdate: (self: { progress: number }) => {
+      applyTunnel(self.progress);
+      applySphere(self.progress);
+    },
+  });
+}
+
 function getSkillsCarouselMetrics(itemCount: number) {
   const vh = window.innerHeight;
   const vw = window.innerWidth;
@@ -530,14 +657,12 @@ function layoutSkillsStack(
 
 export type PortfolioGsapRefs = {
   progressRef: RefObject<HTMLDivElement | null>;
-  navRef: RefObject<HTMLElement | null>;
   heroRef: RefObject<HTMLElement | null>;
   heroTextRef: RefObject<HTMLDivElement | null>;
   aboutRef: RefObject<HTMLElement | null>;
   skillsRef: RefObject<HTMLElement | null>;
   projectsRef: RefObject<HTMLElement | null>;
   experienceRef: RefObject<HTMLElement | null>;
-  contactRef: RefObject<HTMLElement | null>;
 };
 
 export function usePortfolioGsap(
@@ -547,14 +672,12 @@ export function usePortfolioGsap(
 ) {
   const {
     progressRef,
-    navRef,
     heroRef,
     heroTextRef,
     aboutRef,
     skillsRef,
     projectsRef,
     experienceRef,
-    contactRef,
   } = refs;
 
   useEffect(() => {
@@ -574,25 +697,6 @@ export function usePortfolioGsap(
         // — so nothing forces a ScrollTrigger.refresh() (full-page reflow) while
         // the preloader entrance is playing. All scroll-driven setup is Phase B.
         heroCtx = gsap.context(() => {
-    gsap.from(navRef.current, { y: -60, opacity: 0, duration: 1.2, ease: "power4.out", delay: 0.4 });
-
-    gsap.from(".nav-link", {
-      y: -20,
-      opacity: 0,
-      stagger: 0.08,
-      duration: 0.8,
-      ease: "power3.out",
-      delay: 0.7,
-    });
-
-    gsap.from(".nav-cta", {
-      x: 30,
-      opacity: 0,
-      duration: 0.9,
-      ease: "power3.out",
-      delay: 1.1,
-    });
-
     const heroWords = heroTextRef.current?.querySelectorAll(".hero-word span");
     if (heroWords) {
       gsap.from(heroWords, {
@@ -640,11 +744,6 @@ export function usePortfolioGsap(
         if (cancelled) return;
         sectionsCtx = gsap.context(() => {
     const toggleRv = "play none none reverse";
-    const afterPrevSection = (prevEl: HTMLElement | null | undefined) => ({
-      trigger: prevEl as HTMLElement | undefined,
-      start: "bottom top" as const,
-      toggleActions: toggleRv,
-    });
 
     gsap.to(progressRef.current, {
       scaleX: 1,
@@ -705,14 +804,6 @@ export function usePortfolioGsap(
     // ===== About — mystic observatory =====
     const aboutEl = aboutRef.current;
     if (aboutEl) {
-      gsap.from(".about-label", {
-        clipPath: "inset(0 100% 0 0)",
-        opacity: 0,
-        duration: 1.1,
-        ease: "power3.out",
-        scrollTrigger: { trigger: aboutEl, start: "top 78%", toggleActions: toggleRv },
-      });
-
       // Pure transform + opacity, no blur and no rotateX. Animated filters
       // force a full repaint of every character on every frame, which is what
       // made this reveal the most expensive moment in the section; the words
@@ -1184,82 +1275,65 @@ export function usePortfolioGsap(
       }
     }
 
-    gsap.from(".exp-line-fill", {
-      scaleY: 0,
-      transformOrigin: "top center",
-      scrollTrigger: { trigger: experienceRef.current, start: "top bottom", end: "bottom 50%", scrub: 1 },
-    });
+    // Experience — 3D perspective tunnel with the sphere at its vanishing point.
+    if (experienceRef.current) {
+      initExperienceTunnel(experienceRef.current, gsap);
+    }
 
-    experienceRef.current?.querySelectorAll(".exp-item").forEach((item, i) => {
-      gsap.from(item, {
-        x: i % 2 === 0 ? -80 : 80,
-        opacity: 0,
-        duration: 0.8,
-        ease: "power2.out",
-        scrollTrigger: { trigger: item, start: "top 88%", toggleActions: toggleRv },
-      });
-    });
-
-    gsap.from(".exp-dot", {
-      scale: 0,
+    // Footer — contact items and grid marks appear, then the purple slogan band
+    // wipes in and the info strip rises (the raviklaassens.com /contact treatment).
+    gsap.from(".rk-contact .rk-item", {
+      y: 24,
       opacity: 0,
-      stagger: 0.2,
+      stagger: 0.1,
+      duration: 0.8,
+      ease: "power3.out",
+      scrollTrigger: { trigger: "footer", start: "top 78%", toggleActions: toggleRv },
+    });
+
+    gsap.from(".rk-mark", {
+      opacity: 0,
+      scale: 0,
+      stagger: 0.04,
       duration: 0.5,
       ease: "back.out(2)",
-      scrollTrigger: {
-        trigger: experienceRef.current,
-        start: "top 70%",
-        toggleActions: toggleRv,
-      },
+      scrollTrigger: { trigger: "footer", start: "top 78%", toggleActions: toggleRv },
     });
 
-    gsap.from(".contact-headline span", {
-      y: 120,
+    gsap.from(".rk-x", {
       opacity: 0,
-      rotateX: -80,
-      stagger: 0.1,
-      scrollTrigger: { ...afterPrevSection(experienceRef.current) },
-    });
-
-    gsap.from(".contact-field", {
-      y: 40,
-      opacity: 0,
-      clipPath: "inset(0 0 100% 0)",
-      stagger: 0.1,
-      duration: 0.7,
-      ease: "power3.out",
-      scrollTrigger: { ...afterPrevSection(experienceRef.current) },
-    });
-
-    gsap.from(".contact-social", {
       scale: 0,
-      opacity: 0,
-      stagger: 0.1,
-      scrollTrigger: afterPrevSection(experienceRef.current),
+      rotate: -90,
+      duration: 0.6,
+      ease: "back.out(1.6)",
+      scrollTrigger: { trigger: ".rk-band", start: "top 96%", toggleActions: toggleRv },
     });
 
-    gsap.from(".contact-info-row", {
-      x: 30,
+    gsap.from(".rk-band", {
+      clipPath: "inset(0 100% 0 0)",
+      duration: 1.1,
+      ease: "power4.inOut",
+      scrollTrigger: { trigger: ".rk-band", start: "top 92%", toggleActions: toggleRv },
+    });
+
+    gsap.from(".rk-slogan", {
+      yPercent: 40,
       opacity: 0,
-      stagger: 0.12,
+      duration: 1,
+      ease: "power3.out",
+      scrollTrigger: { trigger: ".rk-band", start: "top 92%", toggleActions: toggleRv },
+    });
+
+    gsap.from(".rk-info-col", {
+      y: 18,
+      opacity: 0,
+      stagger: 0.08,
       duration: 0.6,
       ease: "power2.out",
-      scrollTrigger: { ...afterPrevSection(experienceRef.current) },
+      scrollTrigger: { trigger: ".rk-info", start: "top 99%", toggleActions: toggleRv },
     });
 
-    gsap.from("footer", {
-      opacity: 0,
-      y: 30,
-      duration: 0.9,
-      ease: "power2.out",
-      scrollTrigger: {
-        trigger: "footer",
-        start: "top 95%",
-        toggleActions: toggleRv,
-      },
-    });
-
-    [aboutRef.current, experienceRef.current, contactRef.current].forEach((sec) => {
+    [aboutRef.current, experienceRef.current].forEach((sec) => {
       if (!sec) return;
       gsap.to(sec.querySelector(".section-bg") as HTMLElement, {
         y: 80,
@@ -1273,7 +1347,6 @@ export function usePortfolioGsap(
       { id: "skills", el: skillsRef.current },
       { id: "projects", el: projectsRef.current },
       { id: "experience", el: experienceRef.current },
-      { id: "contact", el: contactRef.current },
     ].forEach(({ id, el }) => {
       ST.create({
         trigger: el,

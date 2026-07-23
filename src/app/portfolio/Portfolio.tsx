@@ -3,11 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
   AboutSection,
-  ContactSection,
   CustomCursor,
   ExperienceSection,
   HeroSection,
-  NavBar,
   Preloader,
   ProjectsSection,
   ScrollProgress,
@@ -38,12 +36,10 @@ export default function Portfolio() {
   const skillsRef = useRef<HTMLElement>(null);
   const projectsRef = useRef<HTMLElement>(null);
   const experienceRef = useRef<HTMLElement>(null);
-  const contactRef = useRef<HTMLElement>(null);
-  const navRef = useRef<HTMLElement>(null);
 
   const [loaded, setLoaded] = useState(false);
   const [introDone, setIntroDone] = useState(false);
-  const [activeSection, setActiveSection] = useState("hero");
+  const [, setActiveSection] = useState("hero");
 
   useEffect(() => {
     scrollToTop(true);
@@ -66,14 +62,12 @@ export default function Portfolio() {
   usePortfolioCursor(cursorRef, cursorDotRef, loaded);
   usePortfolioGsap(loaded, {
     progressRef,
-    navRef,
     heroRef,
     heroTextRef,
     aboutRef,
     skillsRef,
     projectsRef,
     experienceRef,
-    contactRef,
   }, setActiveSection);
 
   return (
@@ -83,13 +77,11 @@ export default function Portfolio() {
       <CustomCursor cursorRef={cursorRef} cursorDotRef={cursorDotRef} />
       <ScrollProgress progressRef={progressRef} />
       <ThreeCanvas canvasRef={canvasRef} />
-      <NavBar navRef={navRef} activeSection={activeSection} />
       <HeroSection heroRef={heroRef} heroTextRef={heroTextRef} />
       <AboutSection aboutRef={aboutRef} />
       <SkillsSection skillsRef={skillsRef} />
       <ProjectsSection projectsRef={projectsRef} />
       <ExperienceSection experienceRef={experienceRef} />
-      <ContactSection contactRef={contactRef} />
       <SiteFooter />
     </>
   );

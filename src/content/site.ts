@@ -14,7 +14,6 @@ export const nav = {
     skills: "Skills",
     projects: "Projects",
     experience: "Experience",
-    contact: "Contact",
   },
 } as const;
 
@@ -34,7 +33,6 @@ export const hero = {
 } as const;
 
 export const about = {
-  label: "About",
   headline: "I|build|large-scale|web|experiences.",
   body1:
     "I'm Rauf Huseynzade — a Full Stack developer focused on Next.js App Router, TypeScript, Tailwind, animation pipelines, dashboards, and multilingual platforms.",
@@ -139,7 +137,17 @@ export const projects = {
 } as const;
 
 export const experience = {
-  label: "Experience",
+  /* Tunnel treatment ("Coding my way since ____"). The 3D perspective flythrough
+     that upgrades this section reads these. `year` is the one thing to change —
+     set it to the year you actually started coding. */
+  tunnel: {
+    headline: "Where I've shipped.",
+    line1: "Coding",
+    line2: "my way",
+    line3: "since",
+    year: "2019",
+    hint: "Scroll",
+  },
   items: {
     burdaqal: {
       role: "Lead Frontend / Full Stack Developer",
@@ -168,36 +176,29 @@ export const experience = {
   },
 } as const;
 
-export const contact = {
-  label: "Get in touch",
-  headline: "Let's|build|something|legendary.",
-  blurb:
-    "Open to freelance, full-time roles, and strong product collaborations. Message me — let's ship crisp frontend and bold motion.",
-  namePlaceholder: "Your name",
-  emailPlaceholder: "your@email.com",
-  messagePlaceholder: "Tell me about your project…",
-  send: "Send message",
-  info: {
-    email: "Email",
-    location: "Location",
-    availability: "Availability",
-  },
-  infoValues: {
-    email: "hello@youremail.com",
-    location: "Baku, Azerbaijan",
-    availability: "Open to new opportunities",
-  },
-  socials: {
-    github: "GitHub",
-    twitter: "Twitter / X",
-    linkedin: "LinkedIn",
-    dribbble: "Dribbble",
-  },
-} as const;
-
 export const footer = {
   line1: "© 2026 Rauf Huseynzade — GSAP · Three.js · Next.js",
   line2: "Portfolio",
+  /* Dramatic closing footer (raviklaassens.com treatment, re-skinned): a tall
+     dark panel with a contact row up top and a giant full-width monogram that
+     clip-reveals along the bottom edge. The footer is now the only place the
+     site exposes contact details — there is no dedicated contact section. */
+  email: "Rauf280604@gmail.com",
+  cta: "Start collaboration",
+  ctaHref: "mailto:Rauf280604@gmail.com?subject=Collaboration",
+  availability: "Available for work",
+  backToTop: "Back to top",
+  /* The giant slogan printed on the purple band. Change this one line to
+     re-brand the footer. */
+  slogan: "Code Has Identity",
+  location: "Baku, Azerbaijan",
+  /* Bottom info strip: four columns separated by dividers, each two lines. */
+  infoColumns: [
+    { line1: "Building for startups,", line2: "agencies & brands", href: undefined },
+    { line1: "Available for", line2: "new projects", href: undefined },
+    { line1: "GitHub", line2: "@Rauf221", href: "https://github.com/Rauf221" },
+    { line1: "LinkedIn", line2: "@rauf-huseynzade", href: "https://www.linkedin.com/in/rauf-huseynzade" },
+  ],
 } as const;
 
 export const aboutPage = {

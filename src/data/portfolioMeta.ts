@@ -58,5 +58,3 @@ export const SKILLS_META = [
   { key: "cLang", level: 82, categoryKey: "language", modelPath: `${MODEL_BASE}/c-logo.glb` },
   { key: "cpp", level: 83, categoryKey: "language", modelPath: `${MODEL_BASE}/cpp-logo.glb` },
 ] as const;
-
-export const CONTACT_SOCIAL_KEYS = ["github", "twitter", "linkedin", "dribbble"] as const;

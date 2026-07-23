@@ -252,6 +252,7 @@ export function usePortfolioThree(
         // explodes to 1) would otherwise show the sphere visibly crawling into
         // place. Whatever GSAP says the state is, be there on frame one.
         group.position.x = sphereState.groupX;
+        group.scale.setScalar(sphereState.groupScale);
         outerExplodeRender = sphereState.outerExplode;
         innerExplodeRender = sphereState.innerExplode;
         camera.position.x = group.position.x * 0.15;
@@ -260,6 +261,10 @@ export function usePortfolioThree(
       frame += 0.004;
 
       group.position.x += (sphereState.groupX - group.position.x) * 0.08;
+      // Skills never writes groupScale (stays 1); the Experience tunnel shrinks
+      // it so the sphere reads as a compact orb sitting at the vanishing point.
+      const nextScale = group.scale.x + (sphereState.groupScale - group.scale.x) * 0.1;
+      group.scale.setScalar(nextScale);
 
       outerExplodeRender += (sphereState.outerExplode - outerExplodeRender) * 0.1;
       innerExplodeRender += (sphereState.innerExplode - innerExplodeRender) * 0.1;

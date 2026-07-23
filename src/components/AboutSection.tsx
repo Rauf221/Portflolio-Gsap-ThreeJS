@@ -26,11 +26,6 @@ export function AboutSection({ aboutRef }: Props) {
 
         {/* right — content */}
         <div className="about-content">
-          <div className="about-label font-mono">
-            <span className="about-label-line" />
-            {about.label}
-          </div>
-
           <h2 className="about-headline">
             {headlineWords.map((word, wi) => (
               <span key={wi} className="about-headline-word overflow-clip">

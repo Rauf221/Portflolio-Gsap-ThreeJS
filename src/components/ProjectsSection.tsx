@@ -20,11 +20,6 @@ export function ProjectsSection({ projectsRef }: Props) {
     <section id="projects" ref={projectsRef} className="projects-section">
       <div className="projects-path-scroll">
         <div className="projects-path-stage">
-          <div className="projects-path-label">
-            <div className="projects-intro-line" />
-            <span className="font-mono">{projectsContent.label}</span>
-          </div>
-
           <h2 className="projects-path-fallback font-display">{projectsContent.pathHeadline}</h2>
 
           <div className="projects-path-camera">

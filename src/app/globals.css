@@ -1,11 +1,11 @@
-/* Exo 2 is loaded via a single <link> in app/layout.tsx alongside the other
+/* Hanken Grotesk is loaded via a single <link> in app/layout.tsx alongside the other
    families — keeping it out of CSS @import avoids a render-blocking request. */
 @import "tailwindcss";
 
 :root {
   --background: #FFF8E7;
   --foreground: #25212C;
-  --font-sans-project: "Exo 2", sans-serif;
+  --font-sans-project: "Hanken Grotesk", sans-serif;
 }
 
 @theme inline {

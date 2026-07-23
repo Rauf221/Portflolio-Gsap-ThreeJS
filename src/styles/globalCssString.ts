@@ -1,6 +1,6 @@
 /** Inline global styles for the portfolio page (fonts, tokens, utilities). */
 export const PORTFOLIO_GLOBAL_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -21,7 +21,7 @@ html { scroll-behavior: auto; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Exo 2', sans-serif;
+  font-family: 'Hanken Grotesk', sans-serif;
   overflow-x: hidden;
   cursor: none;
 }
@@ -38,8 +38,8 @@ body::before {
 ::-webkit-scrollbar { width: 4px; background: var(--bg2); }
 ::-webkit-scrollbar-thumb { background: var(--sphere); border-radius: 2px; }
 
-.font-display { font-family: 'Exo 2', sans-serif; }
-.font-mono { font-family: 'Exo 2', sans-serif; }
+.font-display { font-family: 'Hanken Grotesk', sans-serif; }
+.font-mono { font-family: 'Hanken Grotesk', sans-serif; }
 .overflow-clip { overflow: hidden; }
 .perspective { perspective: 1200px; }
 
@@ -76,7 +76,7 @@ body::before {
   position: relative;
   color: var(--muted);
   font-size: 0.8rem;
-  font-family: 'Exo 2', sans-serif;
+  font-family: 'Hanken Grotesk', sans-serif;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   transition: color 0.3s;
@@ -113,24 +113,6 @@ body::before {
   background: transparent;
   z-index: 5; 
 }
-.projects-path-label {
-  position: absolute;
-  top: 6rem;
-  left: var(--pad-x);
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  pointer-events: none;
-  will-change: transform;
-}
-.projects-intro-line { width: 32px; height: 1px; background: var(--sphere); }
-.projects-path-label span {
-  font-size: 0.75rem;
-  letter-spacing: 0.2em;
-  color: var(--sphere);
-  text-transform: uppercase;
-}
 .projects-path-camera {
   position: absolute;
   left: 0;
@@ -146,7 +128,7 @@ body::before {
   pointer-events: none;
 }
 .projects-path-text {
-  font-family: 'Exo 2', sans-serif;
+  font-family: 'Hanken Grotesk', sans-serif;
   font-size: 118px;
   font-weight: 400;
   letter-spacing: -0.025em;
@@ -159,7 +141,7 @@ body::before {
   pointer-events: none;
 }
 .projects-path-chars .projects-path-char {
-  font-family: 'Exo 2', sans-serif;
+  font-family: 'Hanken Grotesk', sans-serif;
   font-size: 118px;
   font-weight: 400;
   letter-spacing: -0.025em;
@@ -369,7 +351,7 @@ body::before {
 .btn-primary {
   display: inline-flex; align-items: center; gap: 0.5rem;
   background: linear-gradient(135deg, var(--indigo), #25212C);
-  color: #FFF8E7; font-family: 'Exo 2', sans-serif; font-weight: 700;
+  color: #FFF8E7; font-family: 'Hanken Grotesk', sans-serif; font-weight: 700;
   font-size: 0.9rem; letter-spacing: 0.05em;
   padding: 0.85rem 2rem; border-radius: 100px; border: none;
   cursor: none; transition: all 0.3s; text-decoration: none;
@@ -380,7 +362,7 @@ body::before {
 .btn-ghost {
   display: inline-flex; align-items: center; gap: 0.5rem;
   background: transparent;
-  color: var(--text); font-family: 'Exo 2', sans-serif; font-weight: 600;
+  color: var(--text); font-family: 'Hanken Grotesk', sans-serif; font-weight: 600;
   font-size: 0.9rem; letter-spacing: 0.05em;
   padding: 0.85rem 2rem; border-radius: 100px;
   border: 1px solid rgba(37,33,44,0.2);
@@ -393,17 +375,6 @@ body::before {
   background: var(--sphere);
   box-shadow: 0 0 0 4px rgba(107,91,203,0.2), 0 0 20px rgba(107,91,203,0.5);
 }
-
-.contact-input {
-  background: rgba(37,33,44,0.04);
-  border: 1px solid rgba(37,33,44,0.1);
-  color: var(--text); font-family: 'Exo 2', sans-serif; font-size: 1rem;
-  padding: 1rem 1.25rem; border-radius: 12px; width: 100%;
-  outline: none; transition: border-color 0.3s, box-shadow 0.3s;
-}
-.contact-input:focus { border-color: var(--sphere); box-shadow: 0 0 0 3px rgba(107,91,203,0.15); }
-.contact-input::placeholder { color: var(--muted); }
-textarea.contact-input { resize: vertical; min-height: 140px; }
 
 .hero-fade-bottom {
   display: none;
@@ -678,18 +649,6 @@ textarea.contact-input { resize: vertical; min-height: 140px; }
   pointer-events: none;
   animation: pulse-glow 5s ease-in-out infinite;
 }
-
-.about-label {
-  font-size: 0.75rem;
-  letter-spacing: 0.22em;
-  color: var(--sphere);
-  text-transform: uppercase;
-  margin-bottom: 1.6rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.about-label-line { width: 36px; height: 1px; background: var(--sphere); }
 
 .about-headline {
   margin-bottom: 1.8rem;
