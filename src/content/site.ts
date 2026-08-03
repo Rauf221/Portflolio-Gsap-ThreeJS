@@ -32,18 +32,104 @@ export const hero = {
   ctaTalk: "Let's talk",
 } as const;
 
+/* Copy for the hero overlay layer (HeroOverlay.tsx): the grouped navigation,
+   the clock, the centre statement, and the corner labels. Items carry EITHER a
+   `section` (an in-page id, scrolled to via scrollToSection) OR an `href` (an
+   external / mailto link) — never both. */
+export const heroNav = {
+  groups: [
+    {
+      id: "repertoire",
+      glyph: "flag",
+      title: "Repertoire",
+      items: [
+        { label: "Works", section: "projects" },
+        { label: "Insights", section: "skills" },
+      ],
+    },
+    {
+      id: "narrative",
+      glyph: "circle",
+      title: "Narrative",
+      items: [
+        { label: "About", section: "about" },
+        { label: "Experience", section: "experience" },
+      ],
+    },
+    {
+      id: "liaison",
+      glyph: "square",
+      title: "Liaison",
+      items: [
+        { label: "For Brands", href: "mailto:Rauf280604@gmail.com?subject=Project" },
+        { label: "For Agencies", href: "mailto:Rauf280604@gmail.com?subject=Collaboration" },
+      ],
+    },
+  ],
+  /* Local time of wherever the site's owner is (footer.location). Swap
+     timeZone/zoneLabel together to show a different city. */
+  clock: { timeZone: "Asia/Baku", zoneLabel: "AZT", localeLabel: "EN" },
+  discover: "Discover",
+  cta: { label: "Get in touch", href: "mailto:Rauf280604@gmail.com?subject=Collaboration" },
+  /* One <p> per line — they are staggered individually on entrance. */
+  statement: ["Rauf Huseynzade.", "Design & Code for those", "who refuse to settle."],
+  era: "2026—Future",
+} as const;
+
+/* Copy for the floating dock (FloatingDock.tsx) — the small centred bar that
+   takes over once the hero overlay's navigation has scrolled away. */
+export const dock = {
+  home: { label: "Back to top", section: "hero" },
+  directory: {
+    label: "Directory",
+    closeLabel: "Close directory",
+    /* The panel that stacks above the bar: a 3-column grid of square tiles,
+       spanning the bar's full width. Rows render top-to-bottom exactly as
+       written, so the SHORT row belongs first — a row with fewer than three
+       tiles stays left-aligned, which is the staggered look the panel is after.
+       Each tile is either in-page (`section`) or a link (`href`); an `href`
+       tile may also carry an `icon` to render a mark instead of its label. */
+    rows: [
+      [
+        { label: "For Agencies", href: "mailto:Rauf280604@gmail.com?subject=Collaboration" },
+        { label: "For Brands", href: "mailto:Rauf280604@gmail.com?subject=Project" },
+      ],
+      [
+        { label: "Works", section: "projects" },
+        { label: "Insights", section: "skills" },
+        { label: "About", section: "about" },
+      ],
+      [
+        { label: "Experience", section: "experience" },
+        { label: "GitHub", href: "https://github.com/Rauf221", icon: "github" },
+        { label: "LinkedIn", href: "https://www.linkedin.com/in/rauf-huseynzade", icon: "linkedin" },
+      ],
+    ],
+  },
+  sound: {
+    label: "Sound",
+    /* Ambient loop played while Sound is on. Empty = no audio asset yet: the
+       button still toggles and the meter still animates, it is just silent.
+       Drop a file in public/ (e.g. "/audio/ambient.mp3") to make it audible. */
+    src: "",
+    volume: 0.35,
+  },
+} as const;
+
 export const about = {
-  headline: "I|build|large-scale|web|experiences.",
+  /* `|` splits the headline into words. AboutSection gives every word from
+     index 3 on the indigo gradient, so the last two words are the accent —
+     keep the phrasing five words long or that split lands mid-thought. */
+  headline: "I|build|systems|that|endure.",
   body1:
-    "I'm Rauf Huseynzade — a Full Stack developer focused on Next.js App Router, TypeScript, Tailwind, animation pipelines, dashboards, and multilingual platforms.",
+    "I'm Rauf Huseynzade — a full-stack developer working where structure meets atmosphere: Next.js App Router, TypeScript, Tailwind, motion pipelines, dashboards, and multilingual platforms.",
   body2:
-    "I ship production apps, real-estate platforms, CMS/editor experiences, real-time systems, and creative WebGL/Three.js showcases.",
-  mantra:
-    "Somewhere between logic and imagination — that's where the interesting work happens.",
+    "Production apps, real-estate platforms, CMS and editor surfaces, real-time systems, and WebGL scenes built to feel like places rather than pages.",
+  mantra: "Every interface remembers the hand that built it.",
   /* Rendered as a plain key/value list, not counters — same three facts as the
      old diamond sigils, just without the ornament around them. */
   meta: [
-    { key: "Projects", value: "10+" },
+    { key: "Shipped", value: "10+" },
     { key: "Stack", value: "Full-stack" },
     { key: "Languages", value: "3" },
   ],

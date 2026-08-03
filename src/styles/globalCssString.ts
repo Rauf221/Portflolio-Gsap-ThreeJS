@@ -16,6 +16,14 @@ export const PORTFOLIO_GLOBAL_CSS = `
   --glass: rgba(37,33,44,0.04);
   --max-w: 1440px;
   --pad-x: max(2rem, calc((100vw - var(--max-w)) / 2 + 2rem));
+
+  /* Hero-only palette. The hero is the single dark section on an otherwise
+     cream page, so these are deliberately separate tokens rather than an
+     override of --bg/--text: nothing outside the hero should pick them up. */
+  --hero-bg: #060606;
+  --hero-ink: #F5F0E4;
+  --hero-ink-dim: rgba(245,240,228,0.55);
+  --hero-line: rgba(245,240,228,0.28);
 }
 html { scroll-behavior: auto; }
 body {
@@ -71,29 +79,6 @@ body::before {
 .grad-hot { background: linear-gradient(135deg, #6B5BCB, #25212C); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
 @keyframes pulse-glow { 0%,100%{opacity:0.4} 50%{opacity:0.9} }
-
-.nav-link {
-  position: relative;
-  color: var(--muted);
-  font-size: 0.8rem;
-  font-family: 'Hanken Grotesk', sans-serif;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  transition: color 0.3s;
-  cursor: none;
-  text-decoration: none;
-}
-.nav-link::after {
-  content: '';
-  position: absolute;
-  bottom: -4px; left: 0; right: 0;
-  height: 1px;
-  background: var(--sphere);
-  transform: scaleX(0);
-  transition: transform 0.3s;
-}
-.nav-link:hover, .nav-link.active { color: var(--text); }
-.nav-link:hover::after, .nav-link.active::after { transform: scaleX(1); }
 
 .skill-bar-fill { transform-origin: left center; }
 
@@ -376,57 +361,471 @@ body::before {
   box-shadow: 0 0 0 4px rgba(107,91,203,0.2), 0 0 20px rgba(107,91,203,0.5);
 }
 
+/* ===== Hero ===== */
+
 .hero-fade-bottom {
   display: none;
 }
 
-.hero-minimal {
+/*
+ * Darkens the Unicorn scene under the overlay layer. Two gradients: a vignette
+ * that keeps the centre of the image readable while crushing the edges, and a
+ * top band so the navigation always sits on near-black regardless of what the
+ * scene is doing up there.
+ */
+.hero-scrim {
   position: absolute;
   inset: 0;
-  z-index: 3;
+  z-index: 2;
   pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(6,6,6,0.75) 0%, rgba(6,6,6,0) 22%),
+    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(6,6,6,0) 0%, rgba(6,6,6,0.45) 55%, rgba(6,6,6,0.88) 100%);
+}
+/*
+ * The hero's film grain. It cannot come from the global body::before layer:
+ * that uses mix-blend-mode: overlay, which is a no-op over a near-black
+ * backdrop, so the hero would render perfectly clean. Same noise source,
+ * soft-light instead, which does show on dark.
+ */
+.hero-scrim::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.5;
+  mix-blend-mode: soft-light;
 }
 
-.hero-word {
+/* ===== Hero overlay (nav, clock, statement, CTA) ===== */
+
+/*
+ * The hero's entire content layer. The container is pointer-events:none so it
+ * never eats clicks over the Unicorn scene; only the anchors inside it opt
+ * back in. z-index 4 puts it above the scrim (2).
+ */
+.hero-ui {
   position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  color: var(--hero-ink);
+}
+.hero-ui a {
+  pointer-events: auto;
+  text-decoration: none;
+  color: inherit;
+  /* body sets cursor:none for the custom cursor; anchors must not re-introduce
+     a native pointer or two cursors show at once. */
+  cursor: none;
+}
+
+.hero-ui-mark {
+  position: absolute;
+  top: 0.6rem;
+  left: 1.6rem;
+  width: clamp(90px, 8vw, 150px);
+  display: block;
+  color: var(--hero-ink);
+}
+.hero-ui-mark svg { width: 100%; height: auto; display: block; }
+
+.hero-nav {
+  position: absolute;
+  top: 1.5rem;
+  left: 18vw;
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(2rem, 9vw, 10rem);
+}
+.hero-nav-group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 500;
   line-height: 1;
+  color: var(--hero-ink);
+  margin-bottom: 0.75rem;
+}
+.hero-nav-glyph {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  background: var(--hero-ink);
+}
+.hero-nav-glyph--circle { border-radius: 50%; }
+.hero-nav-glyph--flag { clip-path: polygon(0 0, 100% 0, 0 100%); }
+
+.hero-nav-list { list-style: none; display: flex; flex-direction: column; gap: 0.55rem; }
+/*
+ * Every sub-item carries a resting underline (that is the reference look);
+ * hover and the active section only raise its contrast, they do not draw it.
+ */
+.hero-nav-link {
+  position: relative;
+  display: inline-block;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  color: var(--hero-ink-dim);
+  transition: color 0.3s;
+}
+.hero-nav-link::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -3px;
+  height: 1px;
+  background: var(--hero-line);
+  transition: background 0.3s;
+}
+.hero-nav-link:hover,
+.hero-nav-link.is-active { color: var(--hero-ink); }
+.hero-nav-link:hover::after,
+.hero-nav-link.is-active::after { background: var(--hero-ink); }
+
+.hero-clock {
+  position: absolute;
+  top: 1.1rem;
+  left: 66%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+}
+.hero-clock-time {
+  padding: 0.15rem 0.35rem;
+  border: 1px solid var(--hero-line);
+  border-radius: 2px;
+  font-size: 0.72rem;
+  line-height: 1.1;
+  /* Fixed-width digits, otherwise the box twitches once a second. */
+  font-variant-numeric: tabular-nums;
+}
+.hero-clock-meta {
+  font-size: 0.68rem;
+  line-height: 1.25;
+  color: var(--hero-ink-dim);
+  letter-spacing: 0.04em;
+}
+
+.hero-discover {
+  position: absolute;
+  top: 1.2rem;
+  right: 2.8rem;
+  font-size: 0.86rem;
+}
+.hero-rule {
+  position: absolute;
+  top: 0;
+  right: 2rem;
+  width: 1px;
+  height: 105px;
+  background: var(--hero-line);
+}
+
+.hero-cta {
+  position: absolute;
+  top: 76%;
+  left: 1.25rem;
+  padding: 1.15rem 1.6rem;
+  border: 1px solid var(--hero-line);
+  border-radius: 4px;
+  background: rgba(6,6,6,0.72);
+  font-size: 0.95rem;
+  transition: background 0.3s, border-color 0.3s;
+}
+.hero-cta:hover { background: rgba(6,6,6,0.92); border-color: var(--hero-ink); }
+.hero-cta-label > span { display: inline-block; transition: transform 0.3s; }
+.hero-cta:hover .hero-cta-label > span { transform: translateX(4px); }
+/* Four corner dots, inset from the border. */
+.hero-cta-dot {
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: var(--hero-ink-dim);
+}
+.hero-cta-dot--tl { top: 6px; left: 6px; }
+.hero-cta-dot--tr { top: 6px; right: 6px; }
+.hero-cta-dot--bl { bottom: 6px; left: 6px; }
+.hero-cta-dot--br { bottom: 6px; right: 6px; }
+
+/*
+ * The centre block: three statement lines, a gap, then the era line, all
+ * framed by four corner marks. Sized by its own content, so the only position
+ * to tune is this top offset — measured against the 900px hero it occupies
+ * roughly 630-844, with the marks 30px outside that.
+ */
+.hero-statement {
+  position: absolute;
+  top: 70%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: clamp(1.1rem, 2.1vw, 2.25rem);
+  line-height: 1.28;
+  font-weight: 400;
+}
+.hero-statement-line { white-space: nowrap; }
+/* Four squares marking an invisible frame around the statement. */
+.hero-bracket {
+  position: absolute;
+  width: 7px; height: 7px;
+  background: var(--hero-ink);
+}
+.hero-bracket--tl { top: -30px; left: -27%; }
+.hero-bracket--tr { top: -30px; right: -27%; }
+.hero-bracket--bl { bottom: -30px; left: -27%; }
+.hero-bracket--br { bottom: -30px; right: -27%; }
+
+.hero-era {
+  margin-top: 2.6rem;
   white-space: nowrap;
 }
-.hero-word span {
-  display: inline-block;
-  will-change: transform, opacity;
+
+.hero-signal {
+  position: absolute;
+  bottom: 3%;
+  right: 1.4rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  opacity: 0.4;
+}
+.hero-signal i { width: 2px; background: var(--hero-ink); }
+.hero-signal i:nth-child(1) { height: 3px; }
+.hero-signal i:nth-child(2) { height: 8px; }
+.hero-signal i:nth-child(3) { height: 12px; }
+.hero-signal i:nth-child(4) { height: 5px; }
+
+/* ===== Floating dock =====
+ *
+ * The persistent navigation bar, centred along the bottom edge. It takes over
+ * from the hero overlay's own nav: hidden while the hero is on screen, revealed
+ * by a ScrollTrigger in usePortfolioGsap once that overlay has faded out (hero
+ * 48%→62%). Kept hidden here — opacity 0 + visibility hidden, the pair GSAP's
+ * autoAlpha drives — so it never flashes over the hero before that runs.
+ *
+ * Two elements on purpose: the LAYER owns fixed positioning and the horizontal
+ * centring (flex), the BAR owns the look. GSAP animates the layer's transform,
+ * so it can never fight a translateX(-50%) centring hack.
+ */
+.dock-layer {
+  position: fixed;
+  bottom: 1.35rem;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+}
+/* Sizes itself to the bar, and anchors the directory panel — which spans the
+   bar's full width, so it hangs off this and not off the Directory tile. */
+.dock {
+  position: relative;
+  pointer-events: auto;
+  /* Local tokens: the whole bar rescales from these five values. */
+  --dock-h: 48px;
+  --dock-gap: 4px;
+  /* The site's own indigo, not a dock-local colour — retinting the whole bar
+     is a matter of changing --indigo. The hover step is a lighter mix of it. */
+  --dock-bg: var(--indigo);
+  --dock-bg-hi: color-mix(in srgb, var(--indigo) 84%, #FFF8E7);
+  --dock-ink: var(--bg2);
+}
+.dock-bar {
+  display: flex;
+  align-items: stretch;
+  gap: var(--dock-gap);
+}
+.dock a, .dock button {
+  /* body sets cursor:none for the custom cursor; controls must not
+     re-introduce a native pointer or two cursors show at once. */
+  cursor: none;
+  color: var(--dock-ink);
+  text-decoration: none;
+  font-family: inherit;
 }
 
-/* "Code" — near the left edge / "Has" — near the right edge */
-.hero-word--code,
-.hero-word--has {
-  top: 24%;
-  font-size: clamp(3.3rem, 11.3vw, 10.7rem);
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: transparent;
-  -webkit-text-stroke: 1.5px rgba(255,248,231,0.85);
-  paint-order: stroke;
+.dock-tile {
+  position: relative;
+  height: var(--dock-h);
+  border: none;
+  border-radius: 3px;
+  background: var(--dock-bg);
+  transition: background 0.3s;
 }
-.hero-word--code { left: 8vw; }
-.hero-word--has { right: 8vw; }
+.dock-tile:hover { background: var(--dock-bg-hi); }
 
-/* "IDEN" — left of the body / "TITY" — right of the body, hollow outline letters */
-.hero-word--iden-left,
-.hero-word--iden-right {
-  top: 52%;
-  transform: translateY(100px);
-  font-size: clamp(3rem, 10vw, 9.5rem);
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: transparent;
-  -webkit-text-stroke: 1.5px rgba(255,248,231,0.85);
-  paint-order: stroke;
+.dock-tile--mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  padding: 0 14px;
 }
-.hero-word--iden-left { left: 20vw; }
-.hero-word--iden-right { right: 20vw; }
+.dock-tile--mark svg { width: 100%; height: auto; display: block; }
+
+/* Label left, glyph right, on one baseline — the tiles share a min-width so
+   they line up as equal blocks the way the reference bar does. */
+.dock-tile--action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2.5rem;
+  min-width: 158px;
+  padding: 0 18px 0 14px;
+}
+.dock-tile-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+/* Four inset corner marks, matching the hero CTA's treatment. */
+.dock-dot {
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: rgba(242,237,227,0.75);
+}
+.dock-dot--tl { top: 6px; left: 6px; }
+.dock-dot--tr { top: 6px; right: 6px; }
+.dock-dot--bl { bottom: 6px; left: 6px; }
+.dock-dot--br { bottom: 6px; right: 6px; }
+
+/* Directory: two stacked rules. They pull apart on hover, and scissor into a ✕
+   while the panel is open. The 4px gap puts the rules' centres 6px apart, so
+   3px of travel each is exactly what closes them onto one line. */
+.dock-glyph { display: flex; flex: none; }
+.dock-glyph--menu {
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 26px;
+}
+.dock-glyph--menu i {
+  height: 2px;
+  background: var(--dock-ink);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dock-tile--action:hover .dock-glyph--menu i:first-child { transform: translateY(-1px); }
+.dock-tile--action:hover .dock-glyph--menu i:last-child { transform: translateY(1px); }
+.dock-tile--action.is-open .dock-glyph--menu i:first-child { transform: translateY(3px) rotate(45deg); }
+.dock-tile--action.is-open .dock-glyph--menu i:last-child { transform: translateY(-3px) rotate(-45deg); }
+
+/* Sound: a four-bar meter. Static heights while off, animated while on. */
+.dock-glyph--meter {
+  align-items: flex-end;
+  gap: 3px;
+  height: 12px;
+}
+.dock-glyph--meter i {
+  width: 2px;
+  background: var(--dock-ink);
+  transform-origin: bottom center;
+}
+.dock-glyph--meter i:nth-child(1) { height: 3px; }
+.dock-glyph--meter i:nth-child(2) { height: 9px; }
+.dock-glyph--meter i:nth-child(3) { height: 12px; }
+.dock-glyph--meter i:nth-child(4) { height: 3px; }
+.dock-tile--action.is-on .dock-glyph--meter i {
+  animation: dock-meter 0.9s ease-in-out infinite alternate;
+}
+.dock-tile--action.is-on .dock-glyph--meter i:nth-child(2) { animation-delay: 0.15s; }
+.dock-tile--action.is-on .dock-glyph--meter i:nth-child(3) { animation-delay: 0.3s; }
+.dock-tile--action.is-on .dock-glyph--meter i:nth-child(4) { animation-delay: 0.45s; }
+@keyframes dock-meter { from { transform: scaleY(0.35); } to { transform: scaleY(1); } }
+
+/* ----- Directory panel -----
+ *
+ * Square tiles on the same 4px rhythm as the bar, stacked directly above it.
+ * The panel is exactly as wide as the bar (left/right 0 on .dock), so three
+ * 1fr columns land on the same grid the bar's own tiles sit on. Rows are
+ * separate elements rather than one grid, which is what lets a short row stay
+ * left-aligned instead of being reflowed by grid auto-placement.
+ */
+.dock-menu {
+  position: absolute;
+  bottom: calc(100% + var(--dock-gap));
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--dock-gap);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transform-origin: bottom center;
+  transition: opacity 0.3s, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.35s;
+}
+.dock-menu.is-open { opacity: 1; visibility: visible; transform: translateY(0); }
+
+.dock-menu-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--dock-gap);
+}
+
+.dock-menu-tile {
+  position: relative;
+  /* Square, so the tile's height follows the bar's width — nothing to keep in
+     sync by hand when the labels or the breakpoints change. */
+  aspect-ratio: 1;
+  display: flex;
+  padding: 13px;
+  border-radius: 3px;
+  background: var(--dock-bg);
+  font-size: 0.94rem;
+  font-weight: 500;
+  line-height: 1.2;
+  transition: background 0.3s;
+}
+.dock-menu-tile:hover { background: var(--dock-bg-hi); }
+.dock-menu-tile-label { align-self: flex-start; }
+.dock-menu-tile--icon { align-items: center; justify-content: center; }
+.dock-menu-tile--icon svg { width: 24px; height: 24px; display: block; }
+
+/* Dim + blur behind the open panel so it reads over any section. Drop this
+   rule set (and the element in FloatingDock) for a plain, unobscured page. */
+.dock-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(6,6,6,0.4);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.35s, visibility 0.35s;
+}
+.dock-scrim.is-open { opacity: 1; visibility: visible; pointer-events: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-tile--action.is-on .dock-glyph--meter i { animation: none; }
+}
+
+@media (max-width: 700px) {
+  .dock { --dock-h: 42px; }
+  .dock-layer { bottom: 1rem; }
+  /* The bar spans the viewport so the square tiles above it stay big enough to
+     hold a label — at the desktop hug-content width they would be ~72px. */
+  .dock-layer, .dock { left: 0; right: 0; }
+  .dock { width: calc(100vw - 2rem); }
+  .dock-bar > .dock-tile--action { flex: 1; }
+  .dock-tile--mark { width: 46px; padding: 0 11px; }
+  .dock-tile--action { min-width: 0; gap: 0.6rem; padding: 0 12px 0 11px; }
+  .dock-tile-label { font-size: 0.78rem; }
+  .dock-glyph--menu { width: 20px; }
+  .dock-menu-tile { padding: 10px; font-size: 0.8rem; }
+  .dock-menu-tile--icon svg { width: 20px; height: 20px; }
+  .dock-dot { width: 2px; height: 2px; }
+}
 
 /*
  * padding-left parks the headline a full viewport off to the right so the
@@ -563,14 +962,44 @@ body::before {
 }
 
 @media (max-width: 900px) {
-  .hero-word--code,
-  .hero-word--has { top: 20%; font-size: clamp(2.1rem, 9.3vw, 4rem); }
-  .hero-word--code { left: 7vw; }
-  .hero-word--has { right: 7vw; }
-  .hero-word--iden-left,
-  .hero-word--iden-right { top: 48%; transform: translateY(70px); -webkit-text-stroke-width: 1px; }
-  .hero-word--iden-left { left: 13vw; }
-  .hero-word--iden-right { right: 13vw; }
+  /* Three nav columns cannot fit at this width, so the sub-items drop and the
+     group titles collapse into one wrapped row under the mark. The sections
+     stay reachable by scrolling; nothing here is the only route to a page. */
+  .hero-ui-mark { width: 70px; left: 1rem; }
+  .hero-nav {
+    top: 5.2rem;
+    left: 1rem;
+    right: 1rem;
+    flex-wrap: wrap;
+    gap: 1.1rem;
+  }
+  .hero-nav-list { display: none; }
+  .hero-nav-group-title { font-size: 0.8rem; margin-bottom: 0; gap: 0.4rem; }
+  .hero-nav-glyph { width: 7px; height: 7px; }
+
+  .hero-clock { top: 1rem; left: auto; right: 1rem; align-items: flex-end; }
+  .hero-discover { display: none; }
+  .hero-rule { display: none; }
+  .hero-signal { display: none; }
+
+  .hero-statement { top: 52%; font-size: clamp(0.95rem, 4.4vw, 1.4rem); }
+  .hero-bracket { width: 5px; height: 5px; }
+  .hero-bracket--tl, .hero-bracket--tr { top: -18px; }
+  .hero-bracket--bl, .hero-bracket--br { bottom: -18px; }
+  .hero-bracket--tl, .hero-bracket--bl { left: -8%; }
+  .hero-bracket--tr, .hero-bracket--br { right: -8%; }
+  .hero-era { margin-top: 1.6rem; }
+
+  /* Full-width bar at the bottom instead of a floating card. */
+  .hero-cta {
+    top: auto;
+    bottom: 1rem;
+    left: 1rem;
+    right: 1rem;
+    padding: 0.9rem 1rem;
+    text-align: center;
+    font-size: 0.85rem;
+  }
 }
 
 /*

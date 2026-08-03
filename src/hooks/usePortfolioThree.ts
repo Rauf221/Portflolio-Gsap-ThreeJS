@@ -144,9 +144,21 @@ export function usePortfolioThree(
     let baseDpr = window.devicePixelRatio;
     let baseInnerW = window.innerWidth;
     let settleTimer: ReturnType<typeof setTimeout> | null = null;
+    // The canvas is top-anchored and only `frozenHeight` CSS px tall, so on any
+    // viewport taller than that its bottom edge lands mid-page and the sphere's
+    // wireframe stops dead along a hard horizontal line, with bare page
+    // background below it. This scales the frozen box up by just enough to
+    // reach the bottom of the viewport. Uniform (not scaleY) so the sphere
+    // stays round, and measured in PHYSICAL px — innerHeight * dpr is constant
+    // across page-zoom levels, so this factor never fights the zoom
+    // compensation multiplied in beside it.
+    const coverScale = () =>
+      Math.max(1, (window.innerHeight * window.devicePixelRatio) / (frozenHeight * baseDpr));
     const applyTransform = (zoomScale: number) => {
       if (canvasRef.current) {
-        canvasRef.current.style.transform = `translateX(-50%) scale(${zoomScale})`;
+        // transform-origin is the top edge, so the growth all goes downward,
+        // into the gap — the sphere's vertical framing does not shift.
+        canvasRef.current.style.transform = `translateX(-50%) scale(${zoomScale * coverScale()})`;
         canvasRef.current.style.transformOrigin = "center top";
       }
     };

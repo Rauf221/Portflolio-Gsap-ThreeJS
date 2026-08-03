@@ -5,6 +5,7 @@ import {
   AboutSection,
   CustomCursor,
   ExperienceSection,
+  FloatingDock,
   HeroSection,
   Preloader,
   ProjectsSection,
@@ -31,7 +32,8 @@ export default function Portfolio() {
   const cursorRef = useRef<HTMLDivElement>(null);
   const cursorDotRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLElement>(null);
-  const heroTextRef = useRef<HTMLDivElement>(null);
+  const heroUiRef = useRef<HTMLDivElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
   const aboutRef = useRef<HTMLElement>(null);
   const skillsRef = useRef<HTMLElement>(null);
   const projectsRef = useRef<HTMLElement>(null);
@@ -39,7 +41,9 @@ export default function Portfolio() {
 
   const [loaded, setLoaded] = useState(false);
   const [introDone, setIntroDone] = useState(false);
-  const [, setActiveSection] = useState("hero");
+  // Written by the per-section ScrollTriggers in usePortfolioGsap; read by the
+  // hero overlay nav to highlight the link for whatever section is on screen.
+  const [activeSection, setActiveSection] = useState("hero");
 
   useEffect(() => {
     scrollToTop(true);
@@ -63,7 +67,8 @@ export default function Portfolio() {
   usePortfolioGsap(loaded, {
     progressRef,
     heroRef,
-    heroTextRef,
+    heroUiRef,
+    dockRef,
     aboutRef,
     skillsRef,
     projectsRef,
@@ -76,8 +81,9 @@ export default function Portfolio() {
       <Preloader loaded={loaded} onDone={() => setIntroDone(true)} />
       <CustomCursor cursorRef={cursorRef} cursorDotRef={cursorDotRef} />
       <ScrollProgress progressRef={progressRef} />
+      <FloatingDock dockRef={dockRef} />
       <ThreeCanvas canvasRef={canvasRef} />
-      <HeroSection heroRef={heroRef} heroTextRef={heroTextRef} />
+      <HeroSection heroRef={heroRef} heroUiRef={heroUiRef} activeSection={activeSection} />
       <AboutSection aboutRef={aboutRef} />
       <SkillsSection skillsRef={skillsRef} />
       <ProjectsSection projectsRef={projectsRef} />

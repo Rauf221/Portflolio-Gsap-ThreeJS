@@ -658,7 +658,8 @@ function layoutSkillsStack(
 export type PortfolioGsapRefs = {
   progressRef: RefObject<HTMLDivElement | null>;
   heroRef: RefObject<HTMLElement | null>;
-  heroTextRef: RefObject<HTMLDivElement | null>;
+  heroUiRef: RefObject<HTMLDivElement | null>;
+  dockRef: RefObject<HTMLDivElement | null>;
   aboutRef: RefObject<HTMLElement | null>;
   skillsRef: RefObject<HTMLElement | null>;
   projectsRef: RefObject<HTMLElement | null>;
@@ -673,7 +674,8 @@ export function usePortfolioGsap(
   const {
     progressRef,
     heroRef,
-    heroTextRef,
+    heroUiRef,
+    dockRef,
     aboutRef,
     skillsRef,
     projectsRef,
@@ -697,18 +699,32 @@ export function usePortfolioGsap(
         // — so nothing forces a ScrollTrigger.refresh() (full-page reflow) while
         // the preloader entrance is playing. All scroll-driven setup is Phase B.
         heroCtx = gsap.context(() => {
-    const heroWords = heroTextRef.current?.querySelectorAll(".hero-word span");
-    if (heroWords) {
-      gsap.from(heroWords, {
-        y: 120,
-        opacity: 0,
-        rotateX: -90,
-        stagger: 0.06,
-        duration: 1.2,
-        ease: "power4.out",
-        delay: 0.3,
-      });
+    // The overlay layer (nav, clock, statement, CTA) is the whole hero now.
+    // It reads top-down: chrome drops in from above, then the statement rises,
+    // then the remaining marks fade up.
+    const heroUi = heroUiRef.current;
+    if (heroUi) {
+      gsap
+        .timeline({ delay: 0.3 })
+        .from(heroUi.querySelectorAll(".hero-ui-mark, .hero-nav-group, .hero-clock, .hero-discover"), {
+          y: -18,
+          opacity: 0,
+          duration: 0.8,
+          stagger: 0.07,
+          ease: "power3.out",
+        })
+        .from(
+          heroUi.querySelectorAll(".hero-statement-line"),
+          { y: 26, opacity: 0, duration: 0.9, stagger: 0.08, ease: "power3.out" },
+          "-=0.4",
+        )
+        .from(
+          heroUi.querySelectorAll(".hero-era, .hero-cta, .hero-rule, .hero-signal"),
+          { opacity: 0, duration: 0.7, stagger: 0.06, ease: "power2.out" },
+          "-=0.5",
+        );
     }
+
     resetSphereState();
         }); // end Phase A (heroCtx)
       });
@@ -785,17 +801,40 @@ export function usePortfolioGsap(
       },
     });
 
-    gsap.to(heroTextRef.current, {
-      y: -200,
+    // The overlay clears by 45% of the hero so the navigation is gone well
+    // before About arrives, instead of lingering half-opaque over it.
+    gsap.to(heroUiRef.current, {
       opacity: 0,
-      scale: 0.85,
+      y: -60,
+      ease: "none",
       scrollTrigger: {
         trigger: heroRef.current,
         start: "top top",
-        end: "80% top",
-        scrub: 1.5,
+        end: "45% top",
+        scrub: 1,
       },
     });
+
+    // The floating dock is the overlay nav's replacement, so it takes over
+    // exactly where that nav leaves off: the fade above finishes at 45% of the
+    // hero, the dock rises into the bottom of the viewport over 48%→62%.
+    // autoAlpha (not opacity) so the bar is visibility:hidden while invisible
+    // and cannot swallow clicks over the hero.
+    gsap.fromTo(
+      dockRef.current,
+      { autoAlpha: 0, y: 28 },
+      {
+        autoAlpha: 1,
+        y: 0,
+        ease: "none",
+        scrollTrigger: {
+          trigger: heroRef.current,
+          start: "48% top",
+          end: "62% top",
+          scrub: 1,
+        },
+      },
+    );
 
     // The sphere has no presence before the Skills pin — no slide, no fade-in.
     // Its entire lifecycle is driven from inside that pin by
@@ -1332,6 +1371,22 @@ export function usePortfolioGsap(
       ease: "power2.out",
       scrollTrigger: { trigger: ".rk-info", start: "top 99%", toggleActions: toggleRv },
     });
+
+    // The dock is pinned to the bottom of the viewport, which is exactly where
+    // the footer's own info strip lands — they would sit on top of each other.
+    // So the dock steps aside once the footer owns the screen, and comes back
+    // on the way up. Written to the inner .dock, NOT the .dock-layer the
+    // entrance tween above animates, so the two never fight over autoAlpha/y.
+    const dockBar = dockRef.current?.querySelector(".dock");
+    if (dockBar) {
+      gsap.to(dockBar, {
+        autoAlpha: 0,
+        y: 26,
+        duration: 0.45,
+        ease: "power2.in",
+        scrollTrigger: { trigger: "footer", start: "top 30%", toggleActions: toggleRv },
+      });
+    }
 
     [aboutRef.current, experienceRef.current].forEach((sec) => {
       if (!sec) return;

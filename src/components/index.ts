@@ -1,7 +1,10 @@
 export { AboutSection } from "./AboutSection";
+export { BrandMark } from "./BrandMark";
 export { TechOrbitCanvas } from "./TechOrbitCanvas";
 export { CustomCursor } from "./CustomCursor";
 export { ExperienceSection } from "./ExperienceSection";
+export { FloatingDock } from "./FloatingDock";
+export { HeroOverlay } from "./HeroOverlay";
 export { HeroSection } from "./HeroSection";
 export { Preloader } from "./Preloader";
 export { ProjectsSection } from "./ProjectsSection";
