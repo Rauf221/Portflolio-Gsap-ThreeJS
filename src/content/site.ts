@@ -170,7 +170,14 @@ export const skills = {
 export const projects = {
   label: "Selected projects",
   countLabel: (count: number) => `${count} projects`,
-  pathHeadline: "Every project below reflects a different technical challenge I've solved.",
+  /* Written character by character along the curve in ProjectsSection. Its
+     LENGTH is load-bearing: the camera travels `textSpan / pathLength` of the
+     curve, so a much shorter line leaves the back of the path unvisited — and
+     once textSpan passes pathLength the tail runs off the end of the curve and
+     is cut. This one is 85 characters; --path-font-size (globalCssString) is
+     the counterweight, since textSpan scales with it. */
+  pathHeadline:
+    "Each one still carries the shape of the problem it was built to dissolve at its core.",
   headingLine1: "Work",
   headingAccent: "that speaks",
   headingLine2: ".",
@@ -189,18 +196,6 @@ export const projects = {
       desc: "A developer-focused platform with Firebase integration and modern UI motion.",
       tags: "Next.js, Firebase, Framer Motion, EmailJS, TypeScript",
     },
-    wayouth: {
-      title: "World Azerbaijanis Youth Organization",
-      subtitle: "worldazeyouth.az",
-      desc: "Corporate site from scratch with custom UI architecture and admin capabilities.",
-      tags: "Next.js, Admin, Motion, Brand design",
-    },
-    portfolioLab: {
-      title: "Portfolio / WebGL experiments",
-      subtitle: "Creative developer",
-      desc: "Interactive scenes with GSAP, Three.js, R3F, and OGL — scroll-driven UX.",
-      tags: "Three.js, GSAP, R3F, OGL, Motion",
-    },
     bakuFlames: {
       title: "Baku Flames · Jury system",
       subtitle: "Event / media platform",
@@ -212,12 +207,6 @@ export const projects = {
       subtitle: "Real-time frontend platform",
       desc: "Socket.IO, TipTap editor stack, multilingual flows, and modern UI architecture.",
       tags: "Socket.IO, TipTap, TanStack Query, Swiper, Framer Motion",
-    },
-    fonderra: {
-      title: "Fonderra Ibrahim",
-      subtitle: "Dashboard / admin panel",
-      desc: "CKEditor Premium with TanStack Table and Recharts for data-heavy operations.",
-      tags: "CKEditor 5, TanStack Table, Recharts, RHF, Zod",
     },
   },
 } as const;

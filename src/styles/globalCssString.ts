@@ -111,10 +111,32 @@ body::before {
   width: 3200px;
   height: 900px;
   pointer-events: none;
+  /*
+   * Headline size in the SVG's own user units, not screen px — the camera
+   * scales the whole thing. It lives here as one variable because TWO rules
+   * must read the same number: .projects-path-text is what gets measured
+   * (character offsets along the path are taken from it) and
+   * .projects-path-char is what actually gets drawn. Let them drift apart and
+   * the glyphs are positioned for one size but rendered at another, so the
+   * letters space out wrongly.
+   *
+   * It is load-bearing beyond looks, too: this width divided by the path length
+   * is textPathRatio (usePortfolioGsap), which decides how much of the curve the
+   * camera travels. Raise it and that ratio climbs; past 1.0 the sentence no
+   * longer fits on the path and its tail is cut.
+   *
+   * So it is the counterweight to the headline's LENGTH (projects.pathHeadline,
+   * content/site.ts): textSpan is roughly fontSize x charCount, and the two
+   * must trade off to hold textSpan steady. 120px carried the old 73-character
+   * line; the line is now 85, and 120 x 73 / 85 = 103 keeps the same arc length,
+   * so every camera value stays tuned. Shorten the sentence and this can rise
+   * again by the same ratio.
+   */
+  --path-font-size: 110px;
 }
 .projects-path-text {
   font-family: 'Hanken Grotesk', sans-serif;
-  font-size: 118px;
+  font-size: var(--path-font-size);
   font-weight: 400;
   letter-spacing: -0.025em;
 }
@@ -127,7 +149,8 @@ body::before {
 }
 .projects-path-chars .projects-path-char {
   font-family: 'Hanken Grotesk', sans-serif;
-  font-size: 118px;
+  /* Must equal .projects-path-text — see the note on --path-font-size. */
+  font-size: var(--path-font-size);
   font-weight: 400;
   letter-spacing: -0.025em;
   opacity: 0;
@@ -222,7 +245,7 @@ body::before {
   transform-origin: 0% 100%;
   will-change: transform;
 }
-.project-panel-img {
+.project-panel-video {
   width: 100%;
   height: 100%;
   object-fit: cover;

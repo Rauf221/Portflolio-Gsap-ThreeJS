@@ -73,21 +73,56 @@ const SKILLS_HEADLINE_RISE_VH = 0.4;
 /** Fraction of the headline's scroll over which that descent completes. */
 const SKILLS_HEADLINE_RISE_SPAN = 0.2;
 
-const PROJECTS_PATH_POV_SCALE = { from: 2.22, to: 2.42 };
+/**
+ * Camera zoom across the write phase — how close the camera sits to the curve.
+ * This is the knob for glyph size on screen: the whole SVG is scaled by it, so
+ * lowering it shrinks the letters without touching the text/path relationship
+ * (font-size would change how much of the sentence fits on the curve, and with
+ * it how far the camera travels).
+ *
+ * Raising it is free of retuning: PROJECTS_PATH_FOCUS is in stage fractions and
+ * stagePointOnPath maps the curve out of viewBox units, so the letter being
+ * written stays parked on the same focal point at any zoom. What does change is
+ * pace — at a closer zoom the same stretch of curve covers more screen, so the
+ * camera pans faster and fewer words are legible at once. Push it much past ~2.6
+ * and the waves start throwing the line off the top and bottom of the stage.
+ */
+const PROJECTS_PATH_POV_SCALE = { from: 2.24, to: 2.45 };
 const PROJECTS_CHAR_WRITE_LEAD = 0.045;
 const PROJECTS_CHAR_WRITE_WINDOW = 0.028;
-const PROJECTS_WRITE_SCROLL_VH = 2.1;
+/**
+ * Scroll distance the write phase is stretched over, in viewport heights. This
+ * is what sets how *fast* the section reads: progress is scrolled-px / this, so
+ * raising it makes a given flick of the wheel advance the writing less. Deliberately
+ * long — the section is meant to resist fast scrolling and be read, not skimmed.
+ */
+const PROJECTS_WRITE_SCROLL_VH = 5.2;
 /**
  * Exit scroll — path camera slides left while section curtain rises simultaneously.
  * 0.7vh gives enough room for the curtain animation to feel smooth.
  */
 const PROJECTS_EXIT_SCROLL_VH = 0.7;
-/** Path focal point: starts left, drifts toward center as text writes. */
+/**
+ * Path focal point, as a fraction of the stage. The camera parks the character
+ * currently being written at this point, so it is also where letters resolve
+ * into view.
+ *
+ * Locked to dead centre. start and end being equal is the whole point: any gap
+ * between them is a drift of the focal point ACROSS the stage that rides on top
+ * of the camera's travel along the curve, and that drift is what reads as the
+ * camera losing the path — the writing tip slides out of the middle and the
+ * curve leans off-frame. Equal values mean the camera tracks the curve and only
+ * the curve, so the point being written never leaves the centre of frame.
+ *
+ * These are literal, since stagePointOnPath maps the curve out of viewBox units:
+ * 0.5 really is the middle of the stage. Give start/end different values only if
+ * you deliberately want that sliding-off-centre feel back.
+ */
 const PROJECTS_PATH_FOCUS = {
-  startX: 0.24,
+  startX: 0.5,
   endX: 0.5,
-  startY: 0.6,
-  endY: 1 / 1.5,
+  startY: 0.5,
+  endY: 0.5,
 };
 /**
  * Project panels swap diagonally, measured off the reference recording:
@@ -157,11 +192,17 @@ const PROJECTS_PANEL_OUT = {
 const PROJECTS_MEDIA_PARKED_SCALE = 0.25;
 /*
  * Timeline units each panel rests for once it has landed, before the next swap
- * starts. A swap is 1 unit, so 1 here means "hold as long as the transition
+ * starts. A swap is 1 unit, so 1 here would mean "hold as long as the transition
  * takes". This is what makes the section pause on every project instead of
  * sliding continuously from the first to the last.
+ *
+ * It is dead scroll by design — nothing animates during a dwell — so it is the
+ * knob that decides how long a landed card sits there ignoring the wheel. At 1
+ * that was 0.7vh of unresponsive scrolling per card (DWELL x PROJECTS_UNIT_VH),
+ * long enough to read as the page having stopped responding. 0.5 still gives
+ * each project a beat to be looked at without that stall.
  */
-const PROJECTS_PANEL_DWELL = 1;
+const PROJECTS_PANEL_DWELL = 0.5;
 /** Scroll distance for one timeline unit — a swap, or one panel's rest. */
 const PROJECTS_UNIT_VH = 0.7;
 // Scroll distance per swap lives in CSS (.projects-stage-scroll, 90vh each).
@@ -267,11 +308,52 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
   // scrub handler doesn't force a layout read every frame.
   let cachedVw = stage.clientWidth;
   let cachedVh = stage.clientHeight;
+  /*
+   * viewBox → CSS-pixel mapping inside the SVG.
+   *
+   * The SVG's CSS box (.projects-path-svg, globalCssString) does not match its
+   * viewBox (ProjectsSection) in either size or aspect ratio, so
+   * preserveAspectRatio fits the viewBox with a uniform scale plus a centring
+   * offset. getPointAtLength answers in viewBox user units, but the camera
+   * translates CSS pixels — feed it raw user units and the focal point lands
+   * where that offset happens to cancel and nowhere else: the character being
+   * written slides sideways off the focus as the camera travels, and bobs up
+   * and down with every wave in the curve.
+   *
+   * Reading the matrix instead of hardcoding it is what lets the viewBox, the
+   * CSS width/height and the curve all be retuned without the tracking silently
+   * drifting out again.
+   *
+   * getCTM() on the path is exactly this matrix (it stops at the nearest <svg>
+   * viewport, so the camera's own CSS transform is not folded in). It is a
+   * layout read, so cache it next to the stage size.
+   */
+  let viewScaleX = 1;
+  let viewScaleY = 1;
+  let viewOffsetX = 0;
+  let viewOffsetY = 0;
   const refreshMetrics = () => {
     cachedVw = stage.clientWidth;
     cachedVh = stage.clientHeight;
+    const ctm = path.getCTM();
+    if (ctm) {
+      viewScaleX = ctm.a;
+      viewScaleY = ctm.d;
+      viewOffsetX = ctm.e;
+      viewOffsetY = ctm.f;
+    }
   };
+  refreshMetrics();
   const getMetrics = () => ({ vw: cachedVw, vh: cachedVh });
+
+  /** A point on the curve, in the camera's own CSS-pixel space. */
+  const stagePointOnPath = (progress: number) => {
+    const pt = pointOnPath(path, progress);
+    return {
+      x: viewOffsetX + viewScaleX * pt.x,
+      y: viewOffsetY + viewScaleY * pt.y,
+    };
+  };
 
   const getPathFocus = (t: number) => {
     const { vw, vh } = getMetrics();
@@ -299,7 +381,7 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
 
   const applyWriteScene = (writeT: number) => {
     const cameraProgress = writeT * textPathRatio;
-    const pt = pointOnPath(path, cameraProgress);
+    const pt = stagePointOnPath(cameraProgress);
     const scale = gsap.utils.interpolate(PROJECTS_PATH_POV_SCALE.from, PROJECTS_PATH_POV_SCALE.to, writeT);
     const focus = getPathFocus(writeT);
 
@@ -316,7 +398,7 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
 
   const applyExitScene = (exitT: number) => {
     const { vw } = getMetrics();
-    const pt = pointOnPath(path, textPathRatio);
+    const pt = stagePointOnPath(textPathRatio);
     const scale = gsap.utils.interpolate(PROJECTS_PATH_POV_SCALE.from, PROJECTS_PATH_POV_SCALE.to, 1);
     const exitX = -exitT * vw * 1.35;
     const focus = getPathFocus(1);
@@ -419,7 +501,10 @@ function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.gsap) {
     end: () => `+=${getTotalPathScrollPx()}`,
     pin: stage,
     pinSpacing: true,
-    scrub: 1,
+    // Heavier than the site's usual scrub: 1. The long write distance already
+    // makes each wheel tick advance little; this adds the catch-up lag on top,
+    // so a hard flick glides to a stop instead of snapping ahead.
+    scrub: 1.7,
     invalidateOnRefresh: true,
     anticipatePin: 1,
     onRefresh: refreshMetrics,
@@ -1266,6 +1351,48 @@ export function usePortfolioGsap(
         const swapAt = (i: number) => PROJECTS_PANEL_DWELL + i * step;
         const totalUnits = swapAt(swaps - 1) + 1 + PROJECTS_PANEL_DWELL;
 
+        /*
+         * Panel clips play only while their panel is on screen. The markup
+         * deliberately omits autoPlay (see ProjectsSection): every panel is in
+         * the DOM the whole time, stacked, so autoPlay would leave all of them
+         * decoding 1080p at once behind the Three.js scene and the scrubbed
+         * triggers.
+         *
+         * Two are allowed to run: the active panel and the one before it, which
+         * is still visible in the lower-left corner mid-swap (PROJECTS_PANEL_OUT
+         * parks it at -75% rather than fully off-stage). Pausing that one early
+         * would freeze a frame in plain sight.
+         *
+         * play() rejects when the browser blocks autoplay or the swap moves on
+         * before the clip is ready — both are recoverable on the next update, so
+         * the rejection is swallowed rather than logged every frame.
+         */
+        const videoOf = (panel: HTMLElement) =>
+          panel.querySelector("video") as HTMLVideoElement | null;
+
+        const syncPanelVideos = (time: number) => {
+          let active = 0;
+          for (let i = 1; i < projectPanels.length; i += 1) {
+            if (time >= swapAt(i - 1)) active = i;
+          }
+          projectPanels.forEach((panel, i) => {
+            const video = videoOf(panel);
+            if (!video) return;
+            if (i === active || i === active - 1) {
+              if (video.paused) void video.play().catch(() => {});
+            } else if (!video.paused) {
+              video.pause();
+            }
+          });
+        };
+
+        const pauseAllPanelVideos = () => {
+          projectPanels.forEach((panel) => {
+            const video = videoOf(panel);
+            if (video && !video.paused) video.pause();
+          });
+        };
+
         // Unitless custom property: CSS multiplies it by vh, so the stage keeps
         // the right height across resizes without JS writing px back into the
         // element ScrollTrigger measures.
@@ -1282,6 +1409,11 @@ export function usePortfolioGsap(
             // FIX: lower refresh priority so path ScrollTrigger pins are
             // fully resolved before panel positions are calculated.
             refreshPriority: -1,
+            onUpdate: (self: { progress: number }) =>
+              syncPanelVideos(self.progress * totalUnits),
+            // Above or below the section nothing is visible, so nothing decodes.
+            onLeave: pauseAllPanelVideos,
+            onLeaveBack: pauseAllPanelVideos,
           },
         });
         // Anchor the timeline's full length so the trailing dwell isn't dropped

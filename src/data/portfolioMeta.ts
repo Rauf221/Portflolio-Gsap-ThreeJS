@@ -1,11 +1,17 @@
+/*
+ * The four panels of the projects section, in the order they swap. Length is
+ * load-bearing: ProjectsSection derives the panel count, the "N projects"
+ * label and the section's scroll height from it, so adding or removing an entry
+ * resizes the whole sequence on its own — no other number to update.
+ *
+ * `key` indexes projects.items in content/site.ts AND names the clip in
+ * public/projects. Keep the three in step when adding a project.
+ */
 export const PROJECTS_META = [
-  { id: 1, key: "burdaqal", color: "#6B5BCB", year: "2024", image: "/projects/burdaqal.jpg" },
-  { id: 2, key: "develup", color: "#25212C", year: "2023", image: "/projects/develup.jpg" },
-  { id: 3, key: "wayouth", color: "#6B5BCB", year: "2024", image: "/projects/wayouth.jpg" },
-  { id: 4, key: "portfolioLab", color: "#25212C", year: "2025", image: "/projects/portfolio-lab.jpg" },
-  { id: 5, key: "bakuFlames", color: "#6B5BCB", year: "2024", image: "/projects/baku-flames.jpg" },
-  { id: 6, key: "gbaru", color: "#25212C", year: "2024", image: "/projects/gbaru.jpg" },
-  { id: 7, key: "fonderra", color: "#6B5BCB", year: "2023", image: "/projects/fonderra.jpg" },
+  { id: 1, key: "burdaqal", color: "#6B5BCB", year: "2024", video: "/projects/burdaqal.mp4" },
+  { id: 2, key: "develup", color: "#25212C", year: "2023", video: "/projects/develup.mp4" },
+  { id: 3, key: "bakuFlames", color: "#6B5BCB", year: "2024", video: "/projects/baku-flames.mp4" },
+  { id: 4, key: "gbaru", color: "#25212C", year: "2024", video: "/projects/gbaru.mp4" },
 ] as const;
 
 export const EXPERIENCE_META = [

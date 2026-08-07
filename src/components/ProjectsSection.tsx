@@ -4,13 +4,26 @@ import { type CSSProperties, type RefObject } from "react";
 import { projects as projectsContent } from "../content/site";
 import { PROJECTS_META } from "../data";
 
+/*
+ * The curve the headline is written along: four waves, then a flat run-out.
+ * Total arc length ~4015 units — worth re-measuring if you reshape it, since the
+ * camera travels `textSpan / pathLength` of the curve (textPathRatio in
+ * usePortfolioGsap), so the length is what times how much of the sentence is on
+ * screen at once. The other half of that ratio is the headline's font-size, set
+ * on .projects-path-text in globalCssString.ts — change either and check both.
+ *
+ * Each segment's first control point sits at the START anchor's y and the second
+ * at the END anchor's y. That is what keeps the tangent horizontal on both sides
+ * of every junction, so consecutive waves meet without a visible kink — preserve
+ * it when reshaping.
+ */
 const PATH_D =
-  "M 200 200 " +
-  "C 500 200, 600 520, 900 520 " +
-  "C 1200 520, 1300 160, 1600 160 " +
-  "C 1900 160, 2000 540, 2300 540 " +
-  "C 2600 540, 2700 180, 3000 180 " +
-  "C 3200 180, 3350 200, 3400 200";
+  "M 99 200 " +
+  "C 560 200, 451 800, 890 800 " +
+  "C 1342 800, 1436 169, 1846 169 " +
+  "C 2086 169, 2082 476, 2405 476 " +
+  "C 2705 476, 2716 183, 3016 183 " +
+  "C 3216 183, 3350 183, 3600 183";
 type Props = {
   projectsRef: RefObject<HTMLElement | null>;
 };
@@ -25,8 +38,8 @@ export function ProjectsSection({ projectsRef }: Props) {
           <div className="projects-path-camera">
             <svg
               className="projects-path-svg"
-              viewBox="0 0 3200 1000"
-              width={3200}
+              viewBox="0 0 3600 1000"
+              width={3400}
               height={900}
               aria-hidden="true"
             >
@@ -78,17 +91,30 @@ export function ProjectsSection({ projectsRef }: Props) {
             >
               <div className="project-panel-inner">
                 <div className="project-panel-media">
-                  {/* Plain <img>: the accent-tinted parent shows through, so a project
-                      whose image file isn't in place yet reads as a coloured panel
-                      instead of a broken-image icon. */}
-                  <img
-                    className="project-panel-img"
-                    src={p.image}
-                    alt=""
-                    loading="lazy"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
+                  {/*
+                    Deliberately NOT autoPlay: usePortfolioGsap drives playback off
+                    the swap timeline so only the panel on screen (and the one
+                    sliding away beside it) is ever decoding. Four 1080p clips
+                    looping at once would compete with the Three.js scene and the
+                    scrubbed ScrollTriggers for frame budget.
+
+                    muted + playsInline are what make that programmatic play()
+                    allowed at all — without them mobile Safari and Chrome refuse
+                    it outside a user gesture. preload="metadata" keeps the 43MB
+                    off the initial load; the clip streams in when its turn comes.
+
+                    No poster: the accent-tinted parent shows through, so a panel
+                    whose clip is missing or still buffering reads as a coloured
+                    card rather than a broken element.
+                  */}
+                  <video
+                    className="project-panel-video"
+                    src={p.video}
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    aria-hidden="true"
                   />
                   <span className="project-panel-year font-mono">{p.year}</span>
                 </div>
