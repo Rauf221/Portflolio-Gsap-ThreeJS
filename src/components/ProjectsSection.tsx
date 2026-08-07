@@ -107,25 +107,75 @@ export function ProjectsSection({ projectsRef }: Props) {
                     whose clip is missing or still buffering reads as a coloured
                     card rather than a broken element.
                   */}
-                  <video
-                    className="project-panel-video"
-                    src={p.video}
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
-                    aria-hidden="true"
-                  />
+                  {/*
+                    The frame exists so two scales can be owned separately. GSAP
+                    counter-scales THIS against the media box's arrival scale, so
+                    the footage holds its true size while the window opens over it
+                    (see the media unfold in usePortfolioGsap). The video keeps its
+                    own transform free for the CSS hover — one element cannot serve
+                    both, since GSAP writes inline transform and would win.
+                  */}
+                  <div className="project-panel-media-frame">
+                    <video
+                      className="project-panel-video"
+                      src={p.video}
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                      aria-hidden="true"
+                    />
+                  </div>
                   <span className="project-panel-year font-mono">{p.year}</span>
                 </div>
 
+                {/*
+                  Two reveal hooks drive everything on this side, both read by
+                  usePortfolioGsap and animated on the swap timeline itself (so
+                  they scrub with the wheel and reverse cleanly on the way back
+                  up, rather than firing once and desyncing):
+
+                    .pp-word — a title word inside .pp-word-mask, which crops it
+                               so the word can slide up out of nothing.
+                    .pp-rise — everything else, lifted and faded in on a stagger.
+
+                  Order in the DOM is the order they arrive, so keep them in
+                  reading order.
+                */}
                 <div className="project-panel-info">
-                  <h3 className="project-panel-title font-display">{item.title}</h3>
-                  <p className="project-panel-desc">{item.desc}</p>
+                  <div className="project-panel-index font-mono pp-rise">
+                    <span className="project-panel-index-num">{String(p.id).padStart(2, "0")}</span>
+                    <span className="project-panel-index-total">
+                      /{String(PROJECTS_META.length).padStart(2, "0")}
+                    </span>
+                    <span className="project-panel-index-label">{projectsContent.label}</span>
+                  </div>
+
+                  <h3 className="project-panel-title font-display">
+                    {/* Split on words, not characters: the titles run to five words
+                        and a per-character stagger at this size reads as noise. */}
+                    {item.title.split(" ").map((word, wordIndex) => (
+                      <span key={`${word}-${wordIndex}`} className="pp-word-mask">
+                        <span className="pp-word">{word}</span>
+                      </span>
+                    ))}
+                  </h3>
+
+                  <p className="project-panel-subtitle pp-rise">{item.subtitle}</p>
+
+                  <span className="project-panel-rule pp-rise" aria-hidden="true" />
+
+                  <p className="project-panel-desc pp-rise">{item.desc}</p>
 
                   <ul className="project-panel-rows">
                     {tags.map((tag) => (
-                      <li key={tag} className="project-panel-row">
+                      <li key={tag} className="project-panel-row pp-rise">
+                        {/* Two layers, two owners: -sweep is GSAP's (a one-off
+                            wipe as the row arrives), -fill is CSS's (hover).
+                            Sharing one element would mean GSAP's inline transform
+                            overriding the hover transition. */}
+                        <span className="project-panel-row-sweep" aria-hidden="true" />
+                        <span className="project-panel-row-fill" aria-hidden="true" />
                         <span className="project-panel-row-label">{tag}</span>
                         <span className="project-panel-row-icon">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -135,14 +185,6 @@ export function ProjectsSection({ projectsRef }: Props) {
                       </li>
                     ))}
                   </ul>
-
-                  <div className="project-panel-footer font-mono">
-                    <span className="project-panel-footer-label">{projectsContent.label}</span>
-                    <span className="project-panel-footer-count">
-                      {String(p.id).padStart(2, "0")}
-                      <span>/{String(PROJECTS_META.length).padStart(2, "0")}</span>
-                    </span>
-                  </div>
                 </div>
               </div>
             </article>

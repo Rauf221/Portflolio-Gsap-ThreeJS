@@ -205,6 +205,27 @@ const PROJECTS_MEDIA_PARKED_SCALE = 0.25;
 const PROJECTS_PANEL_DWELL = 0.5;
 /** Scroll distance for one timeline unit — a swap, or one panel's rest. */
 const PROJECTS_UNIT_VH = 0.7;
+/*
+ * The info column's reveal, in timeline units — a swap is 1, so these are
+ * fractions of a single transition.
+ *
+ * LEAD is the overlap: at 0.3 the text starts moving 30% into the panel's
+ * arrival, while the card is still travelling. Push it to 1 and the reveal only
+ * begins once the card has landed, which reads as two separate events.
+ * DURATION + the full stagger must stay under (1 - LEAD) + the dwell, or the
+ * last row is still fading in when the next swap takes the panel away.
+ */
+const PROJECTS_INFO_LEAD = 0.3;
+const PROJECTS_INFO_DURATION = 0.5;
+const PROJECTS_INFO_STAGGER = 0.055;
+/** Half of one arrival wipe across a tag row — in, then out. */
+const PROJECTS_SWEEP_DURATION = 0.22;
+/**
+ * Pixels the info column trails behind its own panel during a swap, on top of
+ * the panel's travel. Depth cue only — keep it well under the panel's own
+ * distance or the card visibly comes apart mid-flight.
+ */
+const PROJECTS_INFO_PARALLAX = 90;
 // Scroll distance per swap lives in CSS (.projects-stage-scroll, 90vh each).
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -1316,8 +1337,13 @@ export function usePortfolioGsap(
         // Everything after panel 0 starts parked off-stage at the top-right,
         // with its image collapsed into its bottom-left corner.
         const mediaOf = (panel: HTMLElement) => panel.querySelector(".project-panel-media");
+        const frameOf = (panel: HTMLElement) => panel.querySelector(".project-panel-media-frame");
+        const infoOf = (panel: HTMLElement) => panel.querySelector(".project-panel-info");
         gsap.set(projectPanels.slice(1), PROJECTS_PANEL_IN);
         gsap.set(projectPanels.slice(1).map(mediaOf), { scale: PROJECTS_MEDIA_PARKED_SCALE });
+        // Reciprocal of the line above — the window starts collapsed, the footage
+        // inside it starts at true size. See the unfold in the swap loop.
+        gsap.set(projectPanels.slice(1).map(frameOf), { scale: 1 / PROJECTS_MEDIA_PARKED_SCALE });
 
         // FIX: start/end are computed from offsetTop rather than left to
         // ScrollTrigger's rect-based resolution. The stage sits inside
@@ -1393,6 +1419,30 @@ export function usePortfolioGsap(
           });
         };
 
+        /*
+         * One panel playing, the rest stopped — for the two stretches that sit
+         * OUTSIDE the swap range but still have a panel on screen.
+         *
+         * The sticky list is 100vh tall inside a much taller scroller, so it is
+         * visible for a full viewport height before the first swap can start and
+         * for another full viewport height after the last one has finished. The
+         * swap trigger knows nothing about those two tails: its range covers only
+         * the travel between panels. Pausing on its onLeave is what stopped the
+         * final clip dead while its card was still on screen, sliding away.
+         */
+        const soloPanelVideo = (target: number) => {
+          projectPanels.forEach((panel, i) => {
+            const video = videoOf(panel);
+            if (!video) return;
+            if (i === target) {
+              if (video.paused) void video.play().catch(() => {});
+            } else if (!video.paused) {
+              video.pause();
+            }
+          });
+        };
+        const lastPanelIndex = projectPanels.length - 1;
+
         // Unitless custom property: CSS multiplies it by vh, so the stage keeps
         // the right height across resizes without JS writing px back into the
         // element ScrollTrigger measures.
@@ -1411,9 +1461,12 @@ export function usePortfolioGsap(
             refreshPriority: -1,
             onUpdate: (self: { progress: number }) =>
               syncPanelVideos(self.progress * totalUnits),
-            // Above or below the section nothing is visible, so nothing decodes.
-            onLeave: pauseAllPanelVideos,
-            onLeaveBack: pauseAllPanelVideos,
+            // Past either end of the swap range a panel is still stuck to the
+            // viewport, so hand it over rather than stopping: the last one below,
+            // the first one above. The visibility trigger further down is what
+            // finally stops them.
+            onLeave: () => soloPanelVideo(lastPanelIndex),
+            onLeaveBack: () => soloPanelVideo(0),
           },
         });
         // Anchor the timeline's full length so the trailing dwell isn't dropped
@@ -1436,13 +1489,203 @@ export function usePortfolioGsap(
             at,
           );
 
+          /*
+           * The unfold. The media box above is a window with overflow: hidden,
+           * and this counter-scales the footage inside it by exactly the
+           * reciprocal — 1/0.25 = 4 — about the same bottom-left origin. The two
+           * cancel, so the video renders at its true final size the whole way
+           * while the window opens over it.
+           *
+           * That is the entire difference between a clip being REVEALED and a
+           * clip being ZOOMED. Scaling the box alone shrinks the picture to a
+           * thumbnail and inflates it, which reads as cheap; this holds the
+           * picture still and moves only the frame, so the panel feels like it is
+           * uncovering footage that was already playing. Keep the two scales
+           * reciprocal if PROJECTS_MEDIA_PARKED_SCALE ever changes.
+           */
+          tl.fromTo(
+            frameOf(panel),
+            { scale: 1 / PROJECTS_MEDIA_PARKED_SCALE },
+            { scale: 1 },
+            at,
+          );
+
+          /*
+           * Internal parallax: the info column trails the card it is riding on,
+           * then catches up. The panel travels xPercent 125 -> 0; this adds a
+           * smaller, slower offset on top, so the two sides of the card do not
+           * move as one rigid sheet. It is a small number on purpose — big enough
+           * to register as depth, small enough that it never reads as the layout
+           * being broken mid-transition.
+           */
+          tl.fromTo(
+            infoOf(panel),
+            { x: PROJECTS_INFO_PARALLAX },
+            { x: 0, duration: 1.15, ease: "power2.out" },
+            at,
+          );
+
+          /*
+           * The info column writes itself as the panel lands, held back by
+           * PROJECTS_INFO_LEAD so the words start moving while the card is still
+           * arriving rather than after it has stopped — the two overlap instead
+           * of queueing.
+           *
+           * fromTo (not from) is what makes this survive scrubbing: it pins both
+           * ends of the tween, so scrolling back up rewinds the reveal exactly
+           * instead of leaving the text stuck at whatever GSAP last recorded.
+           * immediateRender is on by default for fromTo, which also gives every
+           * panel below the first its hidden start state for free — no separate
+           * gsap.set pass to keep in sync.
+           */
+          /*
+           * The words arrive carrying the card's own lean — skewX starts at
+           * PROJECTS_PANEL_SKEW, the exact angle the panel is skewed by while it
+           * travels, and unwinds to 0 as the panel does. So the type reads as
+           * something physically attached to the card, settling out of the same
+           * motion, rather than a separate text animation that happens to fire
+           * nearby. If the panel skew is ever retuned, this follows it for free.
+           */
+          tl.fromTo(
+            panel.querySelectorAll(".pp-word"),
+            { yPercent: 120, skewX: PROJECTS_PANEL_SKEW },
+            {
+              yPercent: 0,
+              skewX: 0,
+              duration: PROJECTS_INFO_DURATION,
+              ease: "power3.out",
+              stagger: PROJECTS_INFO_STAGGER * 1.6,
+            },
+            at + PROJECTS_INFO_LEAD,
+          );
+          tl.fromTo(
+            panel.querySelectorAll(".pp-rise"),
+            { y: 26, opacity: 0 },
+            {
+              y: 0,
+              opacity: 1,
+              duration: PROJECTS_INFO_DURATION,
+              ease: "power3.out",
+              stagger: PROJECTS_INFO_STAGGER,
+            },
+            at + PROJECTS_INFO_LEAD + 0.06,
+          );
+          // The rule draws rather than fades, so it overrides the .pp-rise
+          // opacity tween it also matches — same position, so they render as one.
+          tl.fromTo(
+            panel.querySelector(".project-panel-rule"),
+            { scaleX: 0 },
+            { scaleX: 1, duration: PROJECTS_INFO_DURATION * 1.4, ease: "power3.out" },
+            at + PROJECTS_INFO_LEAD + 0.12,
+          );
+
+          /*
+           * The index counts up to its own number instead of just appearing.
+           * Because the whole timeline is scrubbed, the digits are driven by the
+           * wheel — roll the scroll back and the counter runs backwards. snap
+           * quantises the proxy so only whole numbers are ever written out.
+           *
+           * The tween targets a plain object rather than the element: there is no
+           * text-content interpolation here, just a number GSAP owns and an
+           * onUpdate that stamps it into the DOM.
+           */
+          const indexEl = panel.querySelector(".project-panel-index-num");
+          if (indexEl) {
+            const counter = { value: 0 };
+            const target = index + 1;
+            tl.fromTo(
+              counter,
+              { value: 0 },
+              {
+                value: target,
+                duration: PROJECTS_INFO_DURATION * 1.6,
+                ease: "power2.out",
+                snap: { value: 1 },
+                onUpdate: () => {
+                  indexEl.textContent = String(Math.round(counter.value)).padStart(2, "0");
+                },
+              },
+              at + PROJECTS_INFO_LEAD,
+            );
+          }
+
+          /*
+           * Each tag row is wiped through by a bright band as it lands: in from
+           * the left, then out to the right. Flipping transformOrigin between the
+           * two halves is what turns a grow-and-shrink into a band that travels —
+           * at the moment of the flip the band is at full width, so moving the
+           * origin is invisible, and the collapse then reads as the tail leaving
+           * the other side.
+           */
+          const sweeps = panel.querySelectorAll(".project-panel-row-sweep");
+          tl.fromTo(
+            sweeps,
+            { scaleX: 0, transformOrigin: "0% 50%" },
+            {
+              scaleX: 1,
+              duration: PROJECTS_SWEEP_DURATION,
+              ease: "power2.out",
+              stagger: PROJECTS_INFO_STAGGER,
+            },
+            at + PROJECTS_INFO_LEAD + 0.1,
+          );
+          tl.to(
+            sweeps,
+            {
+              scaleX: 0,
+              transformOrigin: "100% 50%",
+              duration: PROJECTS_SWEEP_DURATION,
+              ease: "power2.in",
+              stagger: PROJECTS_INFO_STAGGER,
+            },
+            at + PROJECTS_INFO_LEAD + 0.1 + PROJECTS_SWEEP_DURATION,
+          );
+
           // Outgoing: skews away to the lower left, its image folding back into
           // its bottom-left corner. No fade and no dim — every panel keeps full
           // opacity and full brightness for its whole trip.
           tl.to(prev, { ...PROJECTS_PANEL_OUT }, at);
           tl.to(mediaOf(prev), { scale: PROJECTS_MEDIA_PARKED_SCALE }, at);
+          // Reciprocal on the way out too, so the footage stays true-size as the
+          // window closes over it — the unfold played backwards, not a zoom out.
+          tl.to(frameOf(prev), { scale: 1 / PROJECTS_MEDIA_PARKED_SCALE }, at);
+          // The info column leaves ahead of its own card, which is what stops the
+          // outgoing panel from reading as a flat sheet sliding off.
+          tl.to(infoOf(prev), { x: -PROJECTS_INFO_PARALLAX * 0.8, ease: "power2.in" }, at);
         });
 
+        /*
+         * Visibility, not choreography. This one spans the stage's whole height
+         * and does nothing but decide when a clip is genuinely off screen, which
+         * is the only honest point to stop decoding.
+         *
+         * Its bounds are computed from stageTop/offsetHeight rather than left to
+         * rect resolution, for the reason spelled out on the swap trigger above:
+         * the stage lives inside .projects-after-path, whose curtain translates
+         * it on Y, so a rect-derived bound is a moving target between refreshes.
+         *
+         *   start = stage top reaching the bottom of the viewport (first panel
+         *           becomes visible, a full viewport before the first swap)
+         *   end   = stage bottom reaching the top of the viewport, which is
+         *           exactly when the sticky list has finished scrolling away and
+         *           the last panel is genuinely gone
+         *
+         * The gap between the swap trigger's end and this one is the tail the
+         * last panel plays through.
+         */
+        window.ScrollTrigger.create({
+          trigger: projectsStage,
+          start: () => stageTop() - window.innerHeight,
+          end: () => stageTop() + projectsStage.offsetHeight,
+          invalidateOnRefresh: true,
+          refreshPriority: -1,
+          // Entering from above: the first panel is on screen but no swap has
+          // begun. Entering from below: the last one is back, still sliding.
+          onEnter: () => soloPanelVideo(0),
+          onEnterBack: () => soloPanelVideo(lastPanelIndex),
+          onLeave: pauseAllPanelVideos,
+          onLeaveBack: pauseAllPanelVideos,
+        });
       }
     }
 

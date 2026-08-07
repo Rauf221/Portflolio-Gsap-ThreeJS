@@ -202,11 +202,15 @@ export const projects = {
       desc: "Role-based UI, Redux Toolkit, custom HTTP server architecture, and media integration.",
       tags: "Redux Toolkit, Axios, Next.js, Sass, React Player",
     },
-    gbaru: {
-      title: "Gbaru New Front",
-      subtitle: "Real-time frontend platform",
-      desc: "Socket.IO, TipTap editor stack, multilingual flows, and modern UI architecture.",
-      tags: "Socket.IO, TipTap, TanStack Query, Swiper, Framer Motion",
+    /* PLACEHOLDER COPY — subtitle, desc and tags below are a draft, not a record
+       of what was actually built. Replace them with the real brief and stack
+       before this ships; `tags` in particular renders as the panel's row list,
+       so each comma-separated item becomes a visible claim about the project. */
+    casiobaku: {
+      title: "Casiobaku.az",
+      subtitle: "E-commerce · retail",
+      desc: "Product catalogue and storefront with a motion-led browsing experience.",
+      tags: "Next.js, TypeScript, Motion",
     },
   },
 } as const;

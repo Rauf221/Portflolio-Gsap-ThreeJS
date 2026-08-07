@@ -11,7 +11,7 @@ export const PROJECTS_META = [
   { id: 1, key: "burdaqal", color: "#6B5BCB", year: "2024", video: "/projects/burdaqal.mp4" },
   { id: 2, key: "develup", color: "#25212C", year: "2023", video: "/projects/develup.mp4" },
   { id: 3, key: "bakuFlames", color: "#6B5BCB", year: "2024", video: "/projects/baku-flames.mp4" },
-  { id: 4, key: "gbaru", color: "#25212C", year: "2024", video: "/projects/gbaru.mp4" },
+  { id: 4, key: "casiobaku", color: "#25212C", year: "2024", video: "/projects/casiobaku.mp4" },
 ] as const;
 
 export const EXPERIENCE_META = [

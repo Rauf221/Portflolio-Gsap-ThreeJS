@@ -245,6 +245,14 @@ body::before {
   transform-origin: 0% 100%;
   will-change: transform;
 }
+/* Same origin as its parent's arrival scale, so GSAP's counter-scale cancels it
+   exactly and the footage sits still while the window opens. */
+.project-panel-media-frame {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0% 100%;
+  will-change: transform;
+}
 .project-panel-video {
   width: 100%;
   height: 100%;
@@ -271,12 +279,86 @@ body::before {
   justify-content: center;
   padding: clamp(1rem, 3vw, 2.5rem) clamp(0.5rem, 1.5vw, 1.5rem);
 }
+
+/* Index row — the panel's own number, then the section label pushed right by
+   an accent rule that fills whatever space is left. */
+.project-panel-index {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: clamp(0.9rem, 2vh, 1.6rem);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.project-panel-index-num {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--panel-accent);
+}
+.project-panel-index-total {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-left: -0.35rem;
+}
+.project-panel-index-label {
+  position: relative;
+  padding-left: 2.6rem;
+  color: var(--muted);
+}
+.project-panel-index-label::before {
+  content: "";
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  width: 1.5rem;
+  height: 1px;
+  background: var(--panel-accent);
+  opacity: 0.55;
+}
+
 .project-panel-title {
   font-size: clamp(1.9rem, 3.2vw, 3.1rem);
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.05;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
+  /* Word masks are inline-block, so the whitespace between them in the JSX is
+     what separates the words — no margin needed, and none wanted: a margin
+     would show as a gap inside the crop while a word is still travelling. */
+}
+/* Crops its word so .pp-word can start below the baseline and slide up into
+   place. overflow: hidden needs a block-ish box, and padding-bottom keeps
+   descenders (g, y, p) from being shaved off by the crop. */
+.pp-word-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-bottom: 0.12em;
+}
+.pp-word {
+  display: inline-block;
+  will-change: transform;
+}
+
+.project-panel-subtitle {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--panel-accent);
+  margin-bottom: clamp(0.8rem, 1.8vh, 1.3rem);
+}
+/* Drawn open by GSAP (scaleX 0 -> 1) rather than faded, so the eye follows it
+   left-to-right into the description. */
+.project-panel-rule {
+  display: block;
+  width: min(100%, 26rem);
+  height: 1px;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, var(--panel-accent), transparent);
+  margin-bottom: clamp(0.9rem, 2vh, 1.5rem);
 }
 .project-panel-desc {
   font-size: 0.92rem;
@@ -293,7 +375,11 @@ body::before {
   flex-direction: column;
   gap: 9px;
 }
+/* position: relative so .project-panel-row-fill can be absolutely placed under
+   the text; isolation keeps that fill from painting over the rounded corner. */
 .project-panel-row {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -302,7 +388,35 @@ body::before {
   border-radius: 12px;
   background: color-mix(in srgb, var(--panel-accent) 11%, var(--bg));
   overflow: hidden;
+  cursor: none;
 }
+/* The hover wipe. A scaleX from the left is used rather than animating
+   background-color because transform is the only property here that stays off
+   the main thread — these rows sit inside a scrubbed, pinned section where a
+   paint-triggering hover would show up as scroll jank. */
+.project-panel-row-fill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--panel-accent) 26%, var(--bg));
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* GSAP's arrival wipe — a brighter band that crosses the row once and leaves.
+   Sits above the hover fill so the two never cancel each other out visually. */
+.project-panel-row-sweep {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--panel-accent) 52%, var(--bg));
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  will-change: transform;
+}
+.project-panel-row:hover .project-panel-row-fill { transform: scaleX(1); }
 .project-panel-row-label {
   font-size: 0.76rem;
   font-weight: 700;
@@ -310,7 +424,11 @@ body::before {
   text-transform: uppercase;
   line-height: 1.35;
   padding: 1rem 0;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* Nudged right so the label rides the wipe instead of sitting still on top of
+   it — the two together read as one movement. */
+.project-panel-row:hover .project-panel-row-label { transform: translateX(6px); }
 .project-panel-row-icon {
   flex: 0 0 auto;
   align-self: stretch;
@@ -321,39 +439,54 @@ body::before {
   border-radius: 12px;
   background: var(--panel-accent);
   color: #fff;
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.project-panel-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: clamp(1.75rem, 4vh, 3rem);
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+.project-panel-row:hover .project-panel-row-icon { width: clamp(58px, 4.6vw, 72px); }
+/* The glyph is an eight-pointed asterisk, so a 45deg turn lands it exactly on
+   its own alternate points: it reads as the mark spinning into a new position
+   rather than tilting off-axis. */
+.project-panel-row-icon svg {
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.project-panel-footer-label { color: var(--muted); }
-.project-panel-footer-label::before {
-  content: "";
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-right: 9px;
-  border-radius: 50%;
-  vertical-align: middle;
-  background: var(--panel-accent);
-}
-.project-panel-footer-count { font-weight: 600; }
-.project-panel-footer-count > span { color: var(--muted); font-weight: 400; }
+.project-panel-row:hover .project-panel-row-icon svg { transform: rotate(45deg) scale(1.15); }
+/* The clip lifts slightly under the pointer, using the INDEPENDENT scale
+   property rather than a transform. GSAP owns transform on .project-panel-media-frame
+   just above, and the independent transform properties compose with it instead
+   of overwriting it — which is why the hover survives the arrival animation.
+   (Careful editing here: this file is a JS template literal, so no backticks.) */
+.project-panel-media { cursor: none; }
+.project-panel-video { transition: scale 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
+.project-panel-media:hover .project-panel-video { scale: 1.04; }
+.project-panel-year { transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+.project-panel-media:hover .project-panel-year { transform: translateY(-4px); }
+
 @media (max-width: 900px) {
   .project-panel-inner { flex-direction: column; gap: 0.75rem; }
   .project-panel-media { flex: 0 0 40%; min-height: 0; }
   .project-panel-info { flex: 1; min-height: 0; justify-content: flex-start; padding: 0.5rem 0.75rem 1rem; }
+  .project-panel-index { margin-bottom: 0.6rem; }
+  .project-panel-subtitle { margin-bottom: 0.55rem; }
+  .project-panel-rule { margin-bottom: 0.7rem; }
   .project-panel-desc { margin-bottom: 16px; }
   .project-panel-rows { gap: 6px; }
   .project-panel-row-label { padding: 0.7rem 0; font-size: 0.7rem; }
   .project-panel-row-icon { width: 42px; }
-  .project-panel-footer { margin-top: 1.25rem; }
+}
+
+/* Hover motion is decoration on top of information that is already legible, so
+   it is dropped wholesale rather than shortened. */
+@media (prefers-reduced-motion: reduce) {
+  .project-panel-row-fill,
+  .project-panel-row-label,
+  .project-panel-row-icon,
+  .project-panel-row-icon svg,
+  .project-panel-video,
+  .project-panel-year { transition: none; }
+  .project-panel-row:hover .project-panel-row-fill { transform: scaleX(1); }
+  .project-panel-media:hover .project-panel-video { scale: 1; }
+  .project-panel-row:hover .project-panel-row-label,
+  .project-panel-media:hover .project-panel-year { transform: none; }
+  .project-panel-row:hover .project-panel-row-icon svg { transform: none; }
 }
 
 .btn-primary {
