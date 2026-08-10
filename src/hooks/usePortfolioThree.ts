@@ -329,7 +329,6 @@ export function usePortfolioThree(
    
       camera.position.x += (mx * 0.6 + group.position.x * 0.15 - camera.position.x) * 0.05;
       camera.position.y += (my * 0.35 - camera.position.y) * 0.05;
-      // ─────────────────────────────────────────────────────────────────────
       camera.lookAt(0, 0, 0);
 
       renderer.domElement.style.opacity = String(sphereState.globalOpacity);
