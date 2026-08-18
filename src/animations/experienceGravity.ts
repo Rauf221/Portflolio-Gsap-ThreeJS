@@ -22,24 +22,36 @@ import { prefersFlatHall } from "../lib/viewport";
  * listeners, classLists, raw style writes) is undone by the returned
  * disposer. */
 
-/** Gravity along +Z (toward the eye), px/s². */
-const GZ = 900;
-/** Air drag on the fall axis, 1/s — with GZ this caps terminal vz ≈ 1800. */
-const DRAG_Z = 0.5;
-/** Drag on lateral drift and on spin. */
-const DRAG_XY = 1.4;
-const ANG_DRAG = 0.35;
+/** Gravity along +Z (toward the eye), px/s². Brisk — a card should read as
+ *  an object falling at real speed, not drifting — while NEAR_BOOST still
+ *  owns the final "shot past the eye" moment. */
+const GZ = 1400;
+/** Air drag on the fall axis, 1/s — kept light so the fall never plateaus. */
+const DRAG_Z = 0.22;
+/** Extra shove once a card is close — the last stretch reads as a whip-past.
+ *  Kicks in late so the growth before it stays gradual. */
+const NEAR_BOOST = 2600;
+const NEAR_BOOST_Z = -300;
+/** Drag on lateral drift and on spin. Both light on purpose: the outward
+ *  shove a card is born with must carry it away from the tunnel tip for the
+ *  whole pass, and the tumble should survive the fall, not damp out mid-air. */
+const DRAG_XY = 0.5;
+const ANG_DRAG = 0.12;
 /** Restoring push (deg/s²) once a card tips far enough to show its back. */
 const ANGLE_SPRING = 140;
-const TILT_LIMIT_X = 28;
-const TILT_LIMIT_Y = 26;
+const TILT_LIMIT_X = 55;
+const TILT_LIMIT_Y = 50;
 /** Hard caps so a wild fling can never explode the sim. */
-const VZ_MAX = 2000;
+const VZ_MAX = 4000;
 const V_XY_MAX = 900;
-const W_MAX = 120;
+const W_MAX = 200;
 /** Spawn depth (± jitter). Deep enough that a card is born tiny and hazy. */
 const SPAWN_Z = -3600;
 const SPAWN_Z_JITTER = 400;
+/* The grow-from-a-point ramp spans the ENTIRE approach: a card scales from
+ * ~1px at its birth depth to exactly full size at the eye plane (z = 0) — its
+ * fastest moment. Ending the ramp anywhere earlier makes the apparent growth
+ * rate visibly halve mid-flight the instant the ramp runs out. */
 /** Where a held card floats: close, fully readable, comfortably inside the
  *  frame. */
 const HOLD_Z = 120;
@@ -56,11 +68,17 @@ const ZSPRING = 10;
 const THROW_GAIN = 0.9;
 const THROW_MAX = 1600;
 /** Pacing: one spawn at a time, misses come back after a beat. */
-const SPAWN_STAGGER = 900;
-const RESPAWN_DELAY_MIN = 900;
-const RESPAWN_DELAY_VAR = 1200;
+const SPAWN_STAGGER = 450;
+const RESPAWN_DELAY_MIN = 500;
+const RESPAWN_DELAY_VAR = 900;
 /** Pin progress per unlocked card — the last third of the pin is pure play. */
 const UNLOCK_STEP = 0.22;
+/** Vanishing-point height (fraction from the top). While the section slides
+ *  up into view the tip rides down from START; the moment the section fills
+ *  the screen it settles at REST and stays there. Both are mirrored live
+ *  into the CSS perspective-origin and the atmosphere shader. */
+const ORIGIN_START = 0.1;
+const ORIGIN_REST = 0.33;
 /** Fixed physics timestep. */
 const H = 1 / 120;
 
@@ -85,6 +103,8 @@ type Body = {
   wz: number;
   halfW: number;
   halfH: number;
+  /** Depth this card was (re)born at — anchors its grow-from-a-point ramp. */
+  bornZ: number;
   respawnAt: number;
   caught: boolean;
   /** Current depth-tier class ("", "deep" or "near") to avoid class churn. */
@@ -128,9 +148,12 @@ export function initExperienceGravity(
   let stageRect = stage.getBoundingClientRect();
   let stageW = stageRect.width;
   let stageH = stageRect.height;
-  // Perspective origin — must match .grav { perspective-origin: 50% 42% }.
+  // Perspective origin. The y fraction is ANIMATED (see the entry trigger
+  // below); every consumer — this math, the CSS perspective-origin and the
+  // shader — reads the same number, or the illusion tears.
+  let originY = ORIGIN_REST;
   let ox = stageW * 0.5;
-  let oy = stageH * 0.42;
+  let oy = stageH * originY;
 
   const bodies: Body[] = cards.map((el) => ({
     el,
@@ -150,6 +173,7 @@ export function initExperienceGravity(
     wz: 0,
     halfW: el.offsetWidth / 2,
     halfH: el.offsetHeight / 2,
+    bornZ: SPAWN_Z,
     respawnAt: 0,
     caught: false,
     tier: "",
@@ -160,7 +184,7 @@ export function initExperienceGravity(
     stageW = stageRect.width;
     stageH = stageRect.height;
     ox = stageW * 0.5;
-    oy = stageH * 0.42;
+    oy = stageH * originY;
     bodies.forEach((b) => {
       b.halfW = b.el.offsetWidth / 2;
       b.halfH = b.el.offsetHeight / 2;
@@ -210,18 +234,27 @@ export function initExperienceGravity(
   const spawn = (b: Body, now: number) => {
     b.phase = "falling";
     b.z = SPAWN_Z + (Math.random() * 2 - 1) * SPAWN_Z_JITTER;
-    // Born in a centre band, clear of the HUD corners.
-    b.x = stageW * (0.3 + Math.random() * 0.4);
-    b.y = stageH * (0.32 + Math.random() * 0.3);
-    b.vx = (Math.random() * 2 - 1) * 40;
-    b.vy = (Math.random() * 2 - 1) * 30;
-    b.vz = 120 + Math.random() * 180;
-    b.rx = (Math.random() * 2 - 1) * 12;
-    b.ry = (Math.random() * 2 - 1) * 12;
-    b.rz = (Math.random() * 2 - 1) * 8;
-    b.wx = (Math.random() * 2 - 1) * 26;
-    b.wy = (Math.random() * 2 - 1) * 30;
-    b.wz = (Math.random() * 2 - 1) * 16;
+    b.bornZ = b.z;
+    // Born exactly ON the vanishing point — the tunnel's tip — so every card
+    // visibly emerges out of that one point of light, never off to a side.
+    // The spread across the screen comes from a gentle outward drift: slow
+    // enough that a deep card still sits on the tip, only easing away from
+    // the centre as it grows.
+    b.x = ox + (Math.random() * 2 - 1) * 12;
+    b.y = oy + (Math.random() * 2 - 1) * 10;
+    const dir = Math.random() * Math.PI * 2;
+    const push = 70 + Math.random() * 90;
+    b.vx = Math.cos(dir) * push;
+    b.vy = Math.sin(dir) * push * 0.7;
+    // Born already moving — a falling object, not a leaf. Still slow enough
+    // deep down that catching stays fair; gravity adds the rest.
+    b.vz = 150 + Math.random() * 170;
+    b.rx = (Math.random() * 2 - 1) * 25;
+    b.ry = (Math.random() * 2 - 1) * 25;
+    b.rz = (Math.random() * 2 - 1) * 20;
+    b.wx = (Math.random() * 2 - 1) * 70;
+    b.wy = (Math.random() * 2 - 1) * 80;
+    b.wz = (Math.random() * 2 - 1) * 90;
     b.el.classList.remove("grav-card--idle");
     nextSpawnAt = now + SPAWN_STAGGER;
   };
@@ -377,7 +410,10 @@ export function initExperienceGravity(
 
   /* ── Integration ── */
   const stepFalling = (b: Body) => {
-    b.vz = clamp((b.vz + GZ * H) * Math.exp(-DRAG_Z * H), -VZ_MAX, VZ_MAX);
+    // Base gravity plus a close-range boost: the nearer the card, the harder
+    // it is pulled, so the final stretch snaps past the eye like a shot.
+    const g = GZ + (b.z > NEAR_BOOST_Z ? NEAR_BOOST : 0);
+    b.vz = clamp((b.vz + g * H) * Math.exp(-DRAG_Z * H), -VZ_MAX, VZ_MAX);
     b.vx = clamp(b.vx * Math.exp(-DRAG_XY * H), -V_XY_MAX, V_XY_MAX);
     b.vy = clamp(b.vy * Math.exp(-DRAG_XY * H), -V_XY_MAX, V_XY_MAX);
     b.x += b.vx * H;
@@ -387,7 +423,9 @@ export function initExperienceGravity(
     // Soft walls keep thrown cards in the frame instead of losing them.
     const xMin = stageW * 0.15;
     const xMax = stageW * 0.85;
-    const yMin = stageH * 0.22;
+    // The ceiling sits above the spawn band (which hugs the high vanishing
+    // point) so a newborn card is never shoved off its birth line.
+    const yMin = stageH * 0.08;
     const yMax = stageH * 0.8;
     if (b.x < xMin) {
       b.x = xMin;
@@ -444,11 +482,16 @@ export function initExperienceGravity(
 
   /* ── Render ── */
   const render = (b: Body) => {
-    const fadeIn = band(SPAWN_Z - 200, SPAWN_Z + 600, b.z);
+    // Anchored to the card's own birth depth so every card, whatever its
+    // spawn jitter, starts at exactly zero and grows — never a pop-in. The
+    // ramp runs all the way to the eye plane (see the note by SPAWN_Z).
+    const grow = band(b.bornZ, 0, b.z);
+    const fadeIn = band(b.bornZ, b.bornZ + 600, b.z);
     const fadeOut = 1 - band(300, NEAR_MISS, b.z);
     b.el.style.transform =
       `translate3d(${(b.x - b.halfW).toFixed(2)}px, ${(b.y - b.halfH).toFixed(2)}px, ${b.z.toFixed(2)}px) ` +
-      `rotateX(${b.rx.toFixed(2)}deg) rotateY(${b.ry.toFixed(2)}deg) rotateZ(${b.rz.toFixed(2)}deg)`;
+      `rotateX(${b.rx.toFixed(2)}deg) rotateY(${b.ry.toFixed(2)}deg) rotateZ(${b.rz.toFixed(2)}deg) ` +
+      `scale(${grow.toFixed(4)})`;
     b.el.style.opacity = (fadeIn * fadeOut).toFixed(3);
     if (b.haze) {
       b.haze.style.opacity = ((1 - band(-3000, -800, b.z)) * 0.9).toFixed(3);
@@ -473,9 +516,9 @@ export function initExperienceGravity(
     if (disposed) return;
     rafId = requestAnimationFrame(tick);
 
-    // Idle with the pin, exactly like the atmosphere canvas: keep scheduling,
-    // do nothing. `last = 0` makes the first active frame a clean restart
-    // instead of one giant catch-up step.
+    // Idle whenever the section is off screen, exactly like the atmosphere
+    // canvas: keep scheduling, do nothing. `last = 0` makes the first active
+    // frame a clean restart instead of one giant catch-up step.
     if (document.hidden || !hallState.active) {
       last = 0;
       return;
@@ -510,6 +553,9 @@ export function initExperienceGravity(
   rafId = requestAnimationFrame(tick);
 
   /* ── The pin ── */
+  // The pin only meters progress (which cards are unlocked). It does NOT own
+  // the sim's on/off switch — the cards keep falling after the pin releases,
+  // for as long as any of the section is on screen.
   const st = window.ScrollTrigger.create({
     trigger: stage,
     start: "top top",
@@ -522,15 +568,48 @@ export function initExperienceGravity(
     anticipatePin: 1,
     invalidateOnRefresh: true,
     fastScrollEnd: true,
-    onToggle: (self: { isActive: boolean; progress: number }) => {
-      hallState.active = self.isActive;
+    onToggle: (self: { progress: number }) => {
       hallState.progress = self.progress;
-      // Scrolled away mid-hold: let the card go gracefully — the sim idles
-      // the moment `active` drops, so a held flag would otherwise stick.
-      if (!self.isActive) releaseHeld(true);
     },
     onUpdate: (self: { progress: number }) => {
       hallState.progress = self.progress;
+    },
+  });
+
+  /* ── The entry ride ── */
+  // While the section slides up into view (top hits the viewport bottom →
+  // top reaches the viewport top) the vanishing point rides down from
+  // ORIGIN_START to ORIGIN_REST, then holds. All three consumers of the
+  // origin — the CSS perspective, this module's math and the shader — are
+  // updated from this one place.
+  const applyOrigin = (p: number) => {
+    originY = ORIGIN_START + (ORIGIN_REST - ORIGIN_START) * clamp01(p);
+    oy = stageH * originY;
+    hallState.originY = originY;
+    stage.style.perspectiveOrigin = `50% ${(originY * 100).toFixed(2)}%`;
+  };
+  const entrySt = window.ScrollTrigger.create({
+    trigger: stage,
+    start: "top bottom",
+    end: "top top",
+    onUpdate: (self: { progress: number }) => applyOrigin(self.progress),
+  });
+  applyOrigin(entrySt.progress);
+
+  /* ── The visibility switch ── */
+  // Spans the whole section including the pin spacer: the sim (and the
+  // atmosphere shader, which reads the same flag) runs from the moment the
+  // section edges into view until it has fully left — scrolling past the pin
+  // no longer freezes the rain of cards.
+  const visSt = window.ScrollTrigger.create({
+    trigger: root,
+    start: "top bottom",
+    end: "bottom top",
+    onToggle: (self: { isActive: boolean }) => {
+      hallState.active = self.isActive;
+      // Scrolled fully away mid-hold: let the card go gracefully — the sim
+      // idles the moment `active` drops, so a held flag would otherwise stick.
+      if (!self.isActive) releaseHeld(true);
     },
   });
 
@@ -542,6 +621,9 @@ export function initExperienceGravity(
     abort.abort();
     ro.disconnect();
     st.kill();
+    visSt.kill();
+    entrySt.kill();
+    stage.style.perspectiveOrigin = "";
     document.body.classList.remove("grav-dragging");
     bodies.forEach((b) => {
       b.el.classList.remove(

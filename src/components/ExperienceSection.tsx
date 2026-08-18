@@ -65,7 +65,10 @@ export function ExperienceSection({ experienceRef }: Props) {
              element at z >= perspective, so the "missed, flew past the eye"
              threshold in experienceGravity.ts (NEAR_MISS) must stay below it. */
           perspective: 1400px;
-          perspective-origin: 50% 42%;
+          /* Resting value only — experienceGravity animates this inline
+             (0.10 → 0.33 from the top) while the section slides into view,
+             in lockstep with the shader's uHorizon and its own math. */
+          perspective-origin: 50% 33%;
           background: var(--hall-void);
         }
 
