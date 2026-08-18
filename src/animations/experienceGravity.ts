@@ -17,9 +17,9 @@ import { prefersFlatHall } from "../lib/viewport";
  * selectable, crawlable and screen-readable.
  *
  * Unlike the scrubbed sections this is NOT a pure function of pin progress —
- * a physics sim is inherently stateful. Scroll only meters how many cards are
- * unlocked; everything created here that gsap.context can't revert (rAF,
- * listeners, classLists, raw style writes) is undone by the returned
+ * a physics sim is inherently stateful. Scroll only rides the vanishing point
+ * down into place; everything created here that gsap.context can't revert
+ * (rAF, listeners, classLists, raw style writes) is undone by the returned
  * disposer. */
 
 /** Gravity along +Z (toward the eye), px/s². Brisk — a card should read as
@@ -71,14 +71,13 @@ const THROW_MAX = 1600;
 const SPAWN_STAGGER = 450;
 const RESPAWN_DELAY_MIN = 500;
 const RESPAWN_DELAY_VAR = 900;
-/** Pin progress per unlocked card — the last third of the pin is pure play. */
-const UNLOCK_STEP = 0.22;
-/** Vanishing-point height (fraction from the top). While the section slides
- *  up into view the tip rides down from START; the moment the section fills
- *  the screen it settles at REST and stays there. Both are mirrored live
- *  into the CSS perspective-origin and the atmosphere shader. */
-const ORIGIN_START = 0.1;
+/** Vanishing-point height (fraction from the top). When the section takes
+ *  the screen the tip sits high at START — barely inside the frame — then
+ *  rides down to REST over the first ORIGIN_RIDE of the pin and holds there.
+ *  Mirrored live into the CSS perspective-origin and the atmosphere shader. */
+const ORIGIN_START = 0;
 const ORIGIN_REST = 0.33;
+const ORIGIN_RIDE = 0.25;
 /** Fixed physics timestep. */
 const H = 1 / 120;
 
@@ -267,19 +266,13 @@ export function initExperienceGravity(
     if (b.haze) b.haze.style.opacity = "0";
   };
 
-  /** Scroll meters the cast: card i may fly once progress passes i·0.22, so
-   *  the set fills as the reader scrolls and thins again on the way back up.
-   *  Airborne or held cards are never yanked — a locked card simply stops
-   *  respawning. */
-  const unlockCount = () =>
-    clamp(Math.floor(hallState.progress / UNLOCK_STEP) + 1, 1, N);
-
+  /** The whole cast cycles from the moment the section is on screen — one
+   *  spawn per SPAWN_STAGGER, oldest-waiting first, so all four cards are in
+   *  the air within a couple of seconds and keep raining while you play. */
   const trySpawn = (now: number) => {
     if (now < nextSpawnAt) return;
-    const limit = unlockCount();
     let pick: Body | null = null;
-    for (let i = 0; i < limit; i++) {
-      const b = bodies[i];
+    for (const b of bodies) {
       if (b.phase !== "idle" || now < b.respawnAt) continue;
       if (!pick || b.respawnAt < pick.respawnAt) pick = b;
     }
@@ -552,16 +545,28 @@ export function initExperienceGravity(
   };
   rafId = requestAnimationFrame(tick);
 
+  /* ── The origin ride ── */
+  // When the section takes the screen the tunnel's tip hangs high at
+  // ORIGIN_START; over the first ORIGIN_RIDE of the pin it rides down to
+  // ORIGIN_REST and holds. All three consumers of the origin — the CSS
+  // perspective, this module's math and the shader — are updated from this
+  // one place, so the descent never tears the illusion.
+  const applyOrigin = (pinProgress: number) => {
+    const t = clamp01(pinProgress / ORIGIN_RIDE);
+    originY = ORIGIN_START + (ORIGIN_REST - ORIGIN_START) * t;
+    oy = stageH * originY;
+    hallState.originY = originY;
+    stage.style.perspectiveOrigin = `50% ${(originY * 100).toFixed(2)}%`;
+  };
+
   /* ── The pin ── */
-  // The pin only meters progress (which cards are unlocked). It does NOT own
-  // the sim's on/off switch — the cards keep falling after the pin releases,
-  // for as long as any of the section is on screen.
+  // The pin rides the vanishing point into place. It does NOT own the sim's
+  // on/off switch — the cards keep falling after the pin releases, for as
+  // long as any of the section is on screen.
   const st = window.ScrollTrigger.create({
     trigger: stage,
     start: "top top",
-    // Shorter than the hall's walk: the physics keeps playing the whole time,
-    // so the pin only needs to be long enough to unlock the cast and leave
-    // room to play.
+    // Long enough to watch the tip settle and still leave room to play.
     end: () => `+=${window.innerHeight * 3.2}`,
     pin: true,
     pinSpacing: true,
@@ -570,31 +575,14 @@ export function initExperienceGravity(
     fastScrollEnd: true,
     onToggle: (self: { progress: number }) => {
       hallState.progress = self.progress;
+      applyOrigin(self.progress);
     },
     onUpdate: (self: { progress: number }) => {
       hallState.progress = self.progress;
+      applyOrigin(self.progress);
     },
   });
-
-  /* ── The entry ride ── */
-  // While the section slides up into view (top hits the viewport bottom →
-  // top reaches the viewport top) the vanishing point rides down from
-  // ORIGIN_START to ORIGIN_REST, then holds. All three consumers of the
-  // origin — the CSS perspective, this module's math and the shader — are
-  // updated from this one place.
-  const applyOrigin = (p: number) => {
-    originY = ORIGIN_START + (ORIGIN_REST - ORIGIN_START) * clamp01(p);
-    oy = stageH * originY;
-    hallState.originY = originY;
-    stage.style.perspectiveOrigin = `50% ${(originY * 100).toFixed(2)}%`;
-  };
-  const entrySt = window.ScrollTrigger.create({
-    trigger: stage,
-    start: "top bottom",
-    end: "top top",
-    onUpdate: (self: { progress: number }) => applyOrigin(self.progress),
-  });
-  applyOrigin(entrySt.progress);
+  applyOrigin(st.progress);
 
   /* ── The visibility switch ── */
   // Spans the whole section including the pin spacer: the sim (and the
@@ -622,7 +610,6 @@ export function initExperienceGravity(
     ro.disconnect();
     st.kill();
     visSt.kill();
-    entrySt.kill();
     stage.style.perspectiveOrigin = "";
     document.body.classList.remove("grav-dragging");
     bodies.forEach((b) => {
