@@ -72,12 +72,12 @@ const SPAWN_STAGGER = 450;
 const RESPAWN_DELAY_MIN = 500;
 const RESPAWN_DELAY_VAR = 900;
 /** Vanishing-point height (fraction from the top). When the section takes
- *  the screen the tip sits high at START — barely inside the frame — then
- *  rides down to REST over the first ORIGIN_RIDE of the pin and holds there.
- *  Mirrored live into the CSS perspective-origin and the atmosphere shader. */
+ *  the screen the tip sits at the very top edge (START); it then rides down
+ *  continuously across the WHOLE pin — through ~33% mid-way — and only stops
+ *  when the pin ends, at END. Mirrored live into the CSS perspective-origin
+ *  and the atmosphere shader. */
 const ORIGIN_START = 0;
-const ORIGIN_REST = 0.33;
-const ORIGIN_RIDE = 0.25;
+const ORIGIN_END = 0.55;
 /** Fixed physics timestep. */
 const H = 1 / 120;
 
@@ -147,10 +147,10 @@ export function initExperienceGravity(
   let stageRect = stage.getBoundingClientRect();
   let stageW = stageRect.width;
   let stageH = stageRect.height;
-  // Perspective origin. The y fraction is ANIMATED (see the entry trigger
+  // Perspective origin. The y fraction is ANIMATED (see the origin ride
   // below); every consumer — this math, the CSS perspective-origin and the
   // shader — reads the same number, or the illusion tears.
-  let originY = ORIGIN_REST;
+  let originY = ORIGIN_START;
   let ox = stageW * 0.5;
   let oy = stageH * originY;
 
@@ -546,14 +546,14 @@ export function initExperienceGravity(
   rafId = requestAnimationFrame(tick);
 
   /* ── The origin ride ── */
-  // When the section takes the screen the tunnel's tip hangs high at
-  // ORIGIN_START; over the first ORIGIN_RIDE of the pin it rides down to
-  // ORIGIN_REST and holds. All three consumers of the origin — the CSS
-  // perspective, this module's math and the shader — are updated from this
-  // one place, so the descent never tears the illusion.
+  // When the section takes the screen the tunnel's tip hangs at the top
+  // edge; it then rides down for the entire length of the pin, only coming
+  // to rest when the pin releases. All three consumers of the origin — the
+  // CSS perspective, this module's math and the shader — are updated from
+  // this one place, so the descent never tears the illusion.
   const applyOrigin = (pinProgress: number) => {
-    const t = clamp01(pinProgress / ORIGIN_RIDE);
-    originY = ORIGIN_START + (ORIGIN_REST - ORIGIN_START) * t;
+    const t = clamp01(pinProgress);
+    originY = ORIGIN_START + (ORIGIN_END - ORIGIN_START) * t;
     oy = stageH * originY;
     hallState.originY = originY;
     stage.style.perspectiveOrigin = `50% ${(originY * 100).toFixed(2)}%`;
