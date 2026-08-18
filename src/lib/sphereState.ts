@@ -58,14 +58,6 @@ export const SPHERE_CENTER_MOVE_SPAN = 0.15;
 export const SPHERE_INNER_EXPLODE_END = 0.85;
 export const SPHERE_FADE_OUT_START = 0.92;
 
-/**
- * The sphere makes a second, calmer appearance: it sits — whole, unexploded and
- * shrunk — at the vanishing point of the Experience tunnel. This is the scale
- * the render loop lerps `group.scale` toward while that section owns the sphere;
- * everywhere else `groupScale` stays 1, so the Skills choreography is untouched.
- */
-export const SPHERE_EXP_SCALE = 0.46;
-
 export const sphereState = {
   groupX: SPHERE_SKILLS_START_X,
   /** Uniform scale of the whole sphere group. 1 for Skills; shrunk for the tunnel. */
@@ -75,7 +67,7 @@ export const sphereState = {
   globalOpacity: 0,
   /** While true the Three.js render loop idles (set false once the intro finishes). */
   paused: true,
-  /** True while EITHER the Skills pin or the Experience tunnel owns the sphere. */
+  /** True while the Skills pin — the sphere's only owner — is on screen. */
   inRange: false,
 };
 

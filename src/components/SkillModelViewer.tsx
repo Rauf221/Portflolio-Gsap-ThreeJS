@@ -12,6 +12,73 @@ type Props = {
   className?: string;
 };
 
+/*
+ * ONE WebGL renderer for all fourteen tiles.
+ *
+ * A renderer per tile means a WebGL context per tile, and contexts are a hard
+ * browser resource: Chrome caps a page at ~16 and silently evicts the oldest
+ * ("Oldest context will be lost") once the cap is hit. Fourteen tiles plus the
+ * hero sphere plus the hall atmosphere sits exactly on that cliff — the main
+ * sphere's context was the likely victim.
+ *
+ * So the tiles share a single off-screen renderer. Every tile keeps its own
+ * scene, camera and model exactly as before; on its frame it renders into the
+ * shared buffer and blits the result onto its own plain 2D canvas with
+ * drawImage. The blit is synchronous, in the same task as the render, so the
+ * drawing buffer is still valid — no preserveDrawingBuffer needed. All tiles
+ * are the same CSS size (.skills-icon-tile), so the shared buffer essentially
+ * never reallocates.
+ *
+ * Ref-counted: the renderer exists only while at least one tile is started,
+ * and is disposed when the section unmounts.
+ */
+let sharedRenderer: THREE.WebGLRenderer | null = null;
+let sharedRendererUsers = 0;
+let sharedW = 0;
+let sharedH = 0;
+
+function acquireSharedRenderer(): THREE.WebGLRenderer {
+  if (!sharedRenderer) {
+    sharedRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    sharedRenderer.setClearColor(0x000000, 0);
+    sharedRenderer.outputColorSpace = THREE.SRGBColorSpace;
+    sharedW = 0;
+    sharedH = 0;
+  }
+  sharedRendererUsers += 1;
+  return sharedRenderer;
+}
+
+function releaseSharedRenderer() {
+  sharedRendererUsers -= 1;
+  if (sharedRendererUsers <= 0 && sharedRenderer) {
+    sharedRenderer.dispose();
+    sharedRenderer = null;
+    sharedRendererUsers = 0;
+  }
+}
+
+/** Render a tile's scene into the shared buffer and blit it to the tile. */
+function renderTile(
+  renderer: THREE.WebGLRenderer,
+  scene: THREE.Scene,
+  camera: THREE.PerspectiveCamera,
+  ctx: CanvasRenderingContext2D,
+  bufW: number,
+  bufH: number,
+) {
+  if (bufW !== sharedW || bufH !== sharedH) {
+    // Buffer pixels are managed directly (pixelRatio stays 1); the DPR clamp
+    // is folded into bufW/bufH by the tile's resize handler.
+    renderer.setSize(bufW, bufH, false);
+    sharedW = bufW;
+    sharedH = bufH;
+  }
+  renderer.render(scene, camera);
+  ctx.clearRect(0, 0, bufW, bufH);
+  ctx.drawImage(renderer.domElement, 0, 0, bufW, bufH, 0, 0, bufW, bufH);
+}
+
 function toBasicMaterial(mat: THREE.Material): THREE.Material {
   if (mat instanceof THREE.MeshBasicMaterial) {
     mat.side = THREE.DoubleSide;
@@ -126,16 +193,15 @@ export function SkillModelViewer({ modelPath, modelTune, className }: Props) {
     const host = hostRef.current;
     if (!host) return;
 
-    // Shared between the IntersectionObserver and the lazily-built WebGL instance.
+    // Shared between the IntersectionObserver and the lazily-built instance.
     let isVisible = false;
     let started = false;
     let teardown: (() => void) | null = null;
 
-    // ALL WebGL setup (canvas, renderer, scene, GLB) is deferred until the tile
-    // first nears the viewport. Building on mount would spin up ~14 WebGLRenderers
-    // (one per skill) at once — a big synchronous freeze that lands right on the
-    // preloader intro. Skills sit far below the fold, so during the intro nothing
-    // here runs.
+    // ALL scene setup (canvas, scene, GLB) is deferred until the tile first
+    // nears the viewport. Building on mount would parse ~14 GLBs at once — a
+    // big synchronous freeze that lands right on the preloader intro. Skills
+    // sit far below the fold, so during the intro nothing here runs.
     const start = () => {
       if (started) return;
       started = true;
@@ -143,15 +209,20 @@ export function SkillModelViewer({ modelPath, modelTune, className }: Props) {
       const canvas = document.createElement("canvas");
       canvas.className = "skills-icon-model-canvas";
       host.appendChild(canvas);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
 
-      const renderer = new THREE.WebGLRenderer({
-        canvas,
-        alpha: true,
-        antialias: true,
-      });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setClearColor(0x000000, 0);
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      // No WebGL: the tile stays an empty square (it is aria-hidden
+      // decoration); the names column still lists the skill. The render loop
+      // reads the module-level sharedRenderer, so only the acquisition needs
+      // guarding here.
+      try {
+        acquireSharedRenderer();
+      } catch (err) {
+        console.warn("[SkillModelViewer] WebGL unavailable:", err);
+        canvas.remove();
+        return;
+      }
 
       const scene = new THREE.Scene();
       const cameraZ = modelTune?.cameraZ ?? 4.2;
@@ -171,11 +242,18 @@ export function SkillModelViewer({ modelPath, modelTune, className }: Props) {
       let targetRotY = 0;
       let raf = 0;
       let hasRendered = false;
+      let bufW = 0;
+      let bufH = 0;
 
       const resize = () => {
         const { width, height } = host.getBoundingClientRect();
         if (width < 2 || height < 2) return;
-        renderer.setSize(width, height, false);
+        const pr = Math.min(window.devicePixelRatio, 2);
+        bufW = Math.round(width * pr);
+        bufH = Math.round(height * pr);
+        // The blit target owns its own buffer; CSS keeps it at 100% of the tile.
+        canvas.width = bufW;
+        canvas.height = bufH;
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
       };
@@ -235,8 +313,8 @@ export function SkillModelViewer({ modelPath, modelTune, className }: Props) {
           hasRendered = true;
         }
 
-        if (isVisible || !hasRendered) {
-          renderer.render(scene, camera);
+        if ((isVisible || !hasRendered) && sharedRenderer && bufW > 0 && bufH > 0) {
+          renderTile(sharedRenderer, scene, camera, ctx, bufW, bufH);
         }
       };
       animate();
@@ -263,7 +341,7 @@ export function SkillModelViewer({ modelPath, modelTune, className }: Props) {
           }
         });
 
-        renderer.dispose();
+        releaseSharedRenderer();
         canvas.remove();
       };
     };

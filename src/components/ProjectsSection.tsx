@@ -2,7 +2,7 @@
 
 import { type CSSProperties, type RefObject } from "react";
 import { projects as projectsContent } from "../content/site";
-import { PROJECTS_META } from "../data";
+import { PROJECTS_META } from "../data/portfolioMeta";
 
 /*
  * The curve the headline is written along: four waves, then a flat run-out.

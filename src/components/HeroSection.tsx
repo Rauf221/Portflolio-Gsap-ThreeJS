@@ -1,9 +1,21 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { type RefObject } from "react";
+import { metadata as siteMetadata } from "../content/site";
 import { DESKTOP_REFERENCE_HEIGHT } from "../lib/viewport";
 import { HeroOverlay } from "./HeroOverlay";
-import { UnicornHeroBackground } from "./UnicornHeroBackground";
+
+/* The UnicornStudio SDK bundled into unicornstudio-react is ~1.4 MB — imported
+ * statically it was the bulk of the page's hydration-blocking JS. Loaded
+ * lazily it arrives while the preloader still covers the screen, so the scene
+ * is in place before the reveal; ssr:false because the SDK reads the DOM and
+ * devicePixelRatio at construction time (same treatment as SkillModelViewer
+ * and the hall atmosphere). */
+const UnicornHeroBackground = dynamic(
+  () => import("./UnicornHeroBackground").then((m) => m.UnicornHeroBackground),
+  { ssr: false },
+);
 
 type Props = {
   heroRef: RefObject<HTMLElement | null>;
@@ -43,6 +55,11 @@ export function HeroSection({ heroRef, heroUiRef, activeSection }: Props) {
         background: "var(--hero-bg)",
       }}
     >
+      {/* The page's only h1 — visually the hero speaks through the overlay
+          statement, so the document heading is screen-reader-only. Every
+          section heading below is an h2, so the hierarchy starts here. */}
+      <h1 className="sr-only">{siteMetadata.title}</h1>
+
       <div className="hero-parallax" style={{ position: "absolute", inset: 0, willChange: "transform" }}>
         <UnicornHeroBackground />
       </div>
@@ -50,8 +67,6 @@ export function HeroSection({ heroRef, heroUiRef, activeSection }: Props) {
       {/* Darkens + grains the Unicorn scene so the white overlay text reads
           against it at every point of the image. */}
       <div className="hero-scrim" aria-hidden="true" />
-
-      <div className="hero-fade-bottom" aria-hidden="true" />
 
       <HeroOverlay heroUiRef={heroUiRef} activeSection={activeSection} />
     </section>

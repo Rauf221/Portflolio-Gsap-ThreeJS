@@ -1,4 +1,5 @@
 import { type RefObject, useEffect } from "react";
+import type { BufferAttribute, BufferGeometry } from "three";
 import { sphereShouldRender, sphereState } from "../lib/sphereState";
 import { DESKTOP_REFERENCE_HEIGHT } from "../lib/viewport";
 
@@ -10,11 +11,19 @@ export function usePortfolioThree(
     if (!loaded || !canvasRef.current) return;
     const THREE = window.THREE;
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas: canvasRef.current,
-      alpha: true,
-      antialias: true,
-    });
+    // No WebGL (blocked, exhausted, software-only) must not take the page down
+    // — the canvas simply stays empty behind the DOM content.
+    let renderer: InstanceType<typeof THREE.WebGLRenderer>;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas: canvasRef.current,
+        alpha: true,
+        antialias: true,
+      });
+    } catch (err) {
+      console.warn("[portfolio] WebGL unavailable, sphere disabled:", err);
+      return;
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, DESKTOP_REFERENCE_HEIGHT);
 
@@ -34,6 +43,11 @@ export function usePortfolioThree(
 
     const makeSphere = (radius: number, detail: number, color: number, opacity: number) => {
       const geo = new THREE.IcosahedronGeometry(radius, detail);
+      // morphSphere rewrites every vertex each frame; the default StaticDrawUsage
+      // tells the driver the opposite. Streaming hint, zero visual change.
+      // (IcosahedronGeometry always uses a plain BufferAttribute, so the cast
+      // only narrows away the InterleavedBufferAttribute half of the union.)
+      (geo.attributes.position as BufferAttribute).setUsage(THREE.DynamicDrawUsage);
       const mat = new THREE.MeshBasicMaterial({
         color,
         wireframe: true,
@@ -96,7 +110,10 @@ export function usePortfolioThree(
     }
     pPos.set(pOrigins);
     const pGeo = new THREE.BufferGeometry();
-    pGeo.setAttribute("position", new THREE.BufferAttribute(pPos, 3));
+    const pAttrBuf = new THREE.BufferAttribute(pPos, 3);
+    // Scattered every frame during the pin — same streaming hint as the spheres.
+    pAttrBuf.setUsage(THREE.DynamicDrawUsage);
+    pGeo.setAttribute("position", pAttrBuf);
     const pMat = new THREE.PointsMaterial({
       size: 0.06,
       color: 0x6B5BCB,
@@ -190,7 +207,7 @@ export function usePortfolioThree(
     const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
     const morphSphere = (
-      geo: any,
+      geo: BufferGeometry,
       originArr: Float32Array,
       explodeArr: Float32Array,
       explodeT: number,
@@ -201,7 +218,7 @@ export function usePortfolioThree(
       mxi: number,
       myi: number,
     ) => {
-      const pos = geo.attributes.position;
+      const pos = geo.attributes.position as BufferAttribute;
       const breathe = 1 + Math.sin(frame * 1.3 + frameOff) * 0.025;
       for (let i = 0; i < pos.count; i++) {
         const ox = originArr[i * 3],
@@ -224,14 +241,21 @@ export function usePortfolioThree(
       pos.needsUpdate = true;
     };
 
+    /* Reduced motion: `frame` never advances, which stills everything ambient
+     * — breathe, waves, ring/sphere rotation drift, particle jitter — while
+     * the scroll-driven state (fade, travel, explode) still applies, since
+     * that motion only happens when the user scrolls. Read once at init, same
+     * as every other reduced-motion gate on the page. */
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     let frame = 0;
     let outerExplodeRender = 0;
     let innerExplodeRender = 0;
     let wasActive = false;
+    let rafId = 0;
     const canvas = renderer.domElement;
     const animate = () => {
-      const id = requestAnimationFrame(animate);
-      (animate as any)._id = id;
+      rafId = requestAnimationFrame(animate);
 
       /*
        * The sphere only exists during the Skills pin. Outside it the whole loop
@@ -270,7 +294,7 @@ export function usePortfolioThree(
         camera.position.x = group.position.x * 0.15;
       }
 
-      frame += 0.004;
+      if (!reducedMotion) frame += 0.004;
 
       group.position.x += (sphereState.groupX - group.position.x) * 0.08;
       // Skills never writes groupScale (stays 1); the Experience tunnel shrinks
@@ -322,7 +346,6 @@ export function usePortfolioThree(
       }
       pAttr.needsUpdate = true;
       pMat.opacity = 0.65 - maxExplode * 0.5;
-      pMat.color.setHex(innerExplodeT > 0.1 ? 0x6B5BCB : 0x6B5BCB);
       particles.rotation.y = frame * 0.06 + mx * 0.05;
       particles.rotation.x = my * 0.04;
 
@@ -337,7 +360,7 @@ export function usePortfolioThree(
     animate();
 
     return () => {
-      cancelAnimationFrame((animate as any)._id);
+      cancelAnimationFrame(rafId);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("resize", onResize);
       if (settleTimer) clearTimeout(settleTimer);

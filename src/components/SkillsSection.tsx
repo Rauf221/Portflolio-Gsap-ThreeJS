@@ -3,7 +3,7 @@
 import { type RefObject } from "react";
 import dynamic from "next/dynamic";
 import { skills } from "../content/site";
-import { SKILLS_META } from "../data";
+import { SKILLS_META } from "../data/portfolioMeta";
 import { splitGraphemes } from "../lib/splitGraphemes";
 
 // three + GLTFLoader are heavy; keep them out of the initial bundle. The host

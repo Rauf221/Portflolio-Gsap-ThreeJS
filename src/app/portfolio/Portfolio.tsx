@@ -1,27 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  AboutSection,
-  CustomCursor,
-  ExperienceSection,
-  FloatingDock,
-  HeroSection,
-  Preloader,
-  ProjectsSection,
-  ScrollProgress,
-  SiteFooter,
-  SkillsSection,
-  ThreeCanvas,
-} from "../../components";
+import { AboutSection } from "../../components/AboutSection";
+import { CustomCursor } from "../../components/CustomCursor";
+import { ExperienceSection } from "../../components/ExperienceSection";
+import { FloatingDock } from "../../components/FloatingDock";
+import { HeroSection } from "../../components/HeroSection";
+import { Preloader } from "../../components/Preloader";
+import { ProjectsSection } from "../../components/ProjectsSection";
+import { ScrollProgress } from "../../components/ScrollProgress";
+import { SiteFooter } from "../../components/SiteFooter";
+import { SkillsSection } from "../../components/SkillsSection";
+import { ThreeCanvas } from "../../components/ThreeCanvas";
 import "../../globals";
-import {
-  useLoadPortfolioScripts,
-  usePortfolioCursor,
-  usePortfolioGsap,
-  usePortfolioLenis,
-  usePortfolioThree,
-} from "../../hooks";
+import { useLoadPortfolioScripts } from "../../hooks/useLoadPortfolioScripts";
+import { usePortfolioCursor } from "../../hooks/usePortfolioCursor";
+import { usePortfolioGsap } from "../../hooks/usePortfolioGsap";
+import { usePortfolioLenis } from "../../hooks/usePortfolioLenis";
+import { usePortfolioThree } from "../../hooks/usePortfolioThree";
 import { lockScroll, scrollToTop, unlockScroll } from "../../lib/scroll";
 import { sphereState } from "../../lib/sphereState";
 import { PortfolioStyles } from "../../styles/PortfolioStyles";
@@ -40,6 +36,10 @@ export default function Portfolio() {
   const experienceRef = useRef<HTMLElement>(null);
 
   const [loaded, setLoaded] = useState(false);
+  // Scripts failed to arrive (offline, CDN block). The page downgrades to a
+  // plain readable document: the preloader exits via its CSS fallback and the
+  // scroll lock is released — content over choreography.
+  const [loadFailed, setLoadFailed] = useState(false);
   const [introDone, setIntroDone] = useState(false);
   // Written by the per-section ScrollTriggers in usePortfolioGsap; read by the
   // hero overlay nav to highlight the link for whatever section is on screen.
@@ -60,7 +60,15 @@ export default function Portfolio() {
     }
   }, [introDone]);
 
-  useLoadPortfolioScripts(setLoaded);
+  useEffect(() => {
+    if (loadFailed) {
+      unlockScroll();
+      // body carries cursor:none for the custom cursor, which never wired up.
+      document.body.style.cursor = "auto";
+    }
+  }, [loadFailed]);
+
+  useLoadPortfolioScripts(setLoaded, () => setLoadFailed(true));
   usePortfolioLenis(loaded);
   usePortfolioThree(canvasRef, loaded);
   usePortfolioCursor(cursorRef, cursorDotRef, loaded);
@@ -78,7 +86,9 @@ export default function Portfolio() {
   return (
     <>
       <PortfolioStyles />
-      <Preloader loaded={loaded} onDone={() => setIntroDone(true)} />
+      {/* `loadFailed` reuses the preloader's no-gsap CSS fallback exit, so the
+          curtain still lifts on a page whose scripts never arrived. */}
+      <Preloader loaded={loaded || loadFailed} onDone={() => setIntroDone(true)} />
       <CustomCursor cursorRef={cursorRef} cursorDotRef={cursorDotRef} />
       <ScrollProgress progressRef={progressRef} />
       <FloatingDock dockRef={dockRef} />

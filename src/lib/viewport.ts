@@ -9,3 +9,18 @@
  * min(100vh, DESKTOP_REFERENCE_HEIGHT) and clips this frozen box.
  */
 export const DESKTOP_REFERENCE_HEIGHT = 900;
+
+/**
+ * When the Experience hall drops its 3D treatment for a plain readable stack.
+ * Read from two places that must agree exactly — the GSAP choreography (which
+ * skips the pin) and the atmosphere canvas (which refuses to mount) — so the
+ * query lives here rather than being written out twice.
+ */
+export const HALL_FLAT_MEDIA =
+  "(prefers-reduced-motion: reduce), (max-width: 900px)";
+
+export function prefersFlatHall() {
+  return (
+    typeof window !== "undefined" && window.matchMedia(HALL_FLAT_MEDIA).matches
+  );
+}

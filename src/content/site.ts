@@ -4,34 +4,6 @@ export const metadata = {
     "Next.js, React, TypeScript, interactive web experiences, dashboards, and production-grade frontend engineering.",
 } as const;
 
-export const nav = {
-  brand: "Rauf Huseynzade",
-  initials: "RH",
-  hireMe: "Contact",
-  sections: {
-    hero: "Home",
-    about: "About",
-    skills: "Skills",
-    projects: "Projects",
-    experience: "Experience",
-  },
-} as const;
-
-export const hero = {
-  line1: "Rauf",
-  line2: "Huseynzade",
-  wordLeft: "Code",
-  wordRight: "Has",
-  wordIdenLeft: "Iden",
-  wordIdenRight: "tity",
-  subBefore: "I build",
-  subStrong: " high-performance, production-ready web applications ",
-  subAfter:
-    "with the modern React ecosystem — interactive UI, motion, 3D visuals, and scalable frontend architecture.",
-  ctaWork: "View work",
-  ctaTalk: "Let's talk",
-} as const;
-
 /* Copy for the hero overlay layer (HeroOverlay.tsx): the grouped navigation,
    the clock, the centre statement, and the corner labels. Items carry EITHER a
    `section` (an in-page id, scrolled to via scrollToSection) OR an `href` (an
@@ -226,6 +198,13 @@ export const experience = {
     line3: "since",
     year: "2019",
     hint: "Scroll",
+  },
+  /* Gravity playground treatment: cards fall out of the deep toward the
+     camera; the reader catches them with the pointer. */
+  playground: {
+    hint: "Press & hold a card to catch it",
+    caught: "Caught",
+    done: "All caught — nice hands",
   },
   items: {
     burdaqal: {

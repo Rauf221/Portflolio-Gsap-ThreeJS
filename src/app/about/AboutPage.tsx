@@ -27,6 +27,11 @@ export default function AboutPage() {
 
   useEffect(() => {
     let killed = false;
+    // Scoped context instead of the old ScrollTrigger.getAll().kill() sweep:
+    // revert() also stops the repeat:-1 particle/orb tweens, which the sweep
+    // left animating detached nodes after navigating away, and it cannot
+    // collaterally kill triggers belonging to another page.
+    let ctx: { revert: () => void } | undefined;
     const cleanups: (() => void)[] = [];
 
     const init = async () => {
@@ -34,6 +39,8 @@ export default function AboutPage() {
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
       if (killed) return;
       gsap.registerPlugin(ScrollTrigger);
+
+      ctx = gsap.context(() => {
 
       document.querySelectorAll(".mystic-particle").forEach((p) => {
         gsap.to(p, {
@@ -98,6 +105,8 @@ export default function AboutPage() {
         });
       });
 
+      }); // end gsap.context
+
       ScrollTrigger.refresh();
     };
 
@@ -105,9 +114,7 @@ export default function AboutPage() {
     return () => {
       killed = true;
       cleanups.forEach((fn) => fn());
-      import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
-        ScrollTrigger.getAll().forEach((st) => st.kill());
-      });
+      ctx?.revert();
     };
   }, []);
 

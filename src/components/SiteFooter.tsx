@@ -106,7 +106,7 @@ export function SiteFooter() {
           will-change: clip-path;
         }
         .rk-slogan {
-          font-family: 'Hanken Grotesk', sans-serif;
+          font-family: var(--font-sans-project);
           font-weight: 800;
           font-size: clamp(3.5rem, 14vw, 14rem);
           line-height: 1.04;

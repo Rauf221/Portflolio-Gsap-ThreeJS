@@ -1,21 +1,20 @@
 /** Inline global styles for the portfolio page (fonts, tokens, utilities). */
 export const PORTFOLIO_GLOBAL_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&display=swap');
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
   --bg: #FFF8E7;
   --bg2: #F5F0E4;
   --indigo: #6B5BCB;
-  --sphere: #6B5BCB;
-  --sphere-dim: #6B5BCB;
-  --sphere-glow: rgba(107,91,203,0.4);
+  /* One source for the brand indigo; --sphere survives as an alias because the
+     3D-related rules read it by that name. */
+  --sphere: var(--indigo);
   --text: #25212C;
   --muted: rgba(37,33,44,0.6);
-  --border: rgba(107,91,203,0.28);
-  --glass: rgba(37,33,44,0.04);
   --max-w: 1440px;
   --pad-x: max(2rem, calc((100vw - var(--max-w)) / 2 + 2rem));
+  /* Shared film-grain tile (feTurbulence SVG), referenced by the page wash and
+     the hero scrim — one definition instead of two copies of the data URI. */
+  --noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 
   /* Hero-only palette. The hero is the single dark section on an otherwise
      cream page, so these are deliberately separate tokens rather than an
@@ -29,7 +28,7 @@ html { scroll-behavior: auto; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Hanken Grotesk', sans-serif;
+  font-family: var(--font-sans-project);
   overflow-x: hidden;
   cursor: none;
 }
@@ -37,7 +36,7 @@ body::before {
   content: '';
   position: fixed; inset: 0;
   background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(107,91,203,0.12) 0%, transparent 70%),
-              url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+              var(--noise);
   pointer-events: none;
   z-index: 1;
   mix-blend-mode: overlay;
@@ -46,10 +45,19 @@ body::before {
 ::-webkit-scrollbar { width: 4px; background: var(--bg2); }
 ::-webkit-scrollbar-thumb { background: var(--sphere); border-radius: 2px; }
 
-.font-display { font-family: 'Hanken Grotesk', sans-serif; }
-.font-mono { font-family: 'Hanken Grotesk', sans-serif; }
+.font-display { font-family: var(--font-sans-project); }
+.font-mono { font-family: var(--font-sans-project); }
 .overflow-clip { overflow: hidden; }
-.perspective { perspective: 1200px; }
+/* Screen-reader-only: rendered for assistive tech, invisible on screen. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
 
 .container {
   width: 100%;
@@ -60,31 +68,13 @@ body::before {
   padding-right: 2rem;
 }
 
-.glow-sphere { box-shadow: 0 0 40px var(--sphere-glow), 0 0 80px rgba(107,91,203,0.15); }
-.text-glow { text-shadow: 0 0 40px rgba(107,91,203,0.6); }
-
-.glass {
-  background: var(--glass);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--border);
-}
-
 .grad-indigo {
   background: linear-gradient(135deg, var(--indigo), #25212C);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-.grad-hot { background: linear-gradient(135deg, #6B5BCB, #25212C); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-
 @keyframes pulse-glow { 0%,100%{opacity:0.4} 50%{opacity:0.9} }
-
-.skill-bar-fill { transform-origin: left center; }
-
-.project-card { transition: transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275); cursor: none; }
-.project-card:hover { transform: translateY(-12px) scale(1.02) !important; }
-.project-card:hover .project-img-overlay { opacity: 0; }
 
 .projects-section { position: relative; z-index: 1; width: 100%; background: transparent; }
 .projects-path-scroll {
@@ -135,7 +125,7 @@ body::before {
   --path-font-size: 110px;
 }
 .projects-path-text {
-  font-family: 'Hanken Grotesk', sans-serif;
+  font-family: var(--font-sans-project);
   font-size: var(--path-font-size);
   font-weight: 400;
   letter-spacing: -0.025em;
@@ -148,7 +138,7 @@ body::before {
   pointer-events: none;
 }
 .projects-path-chars .projects-path-char {
-  font-family: 'Hanken Grotesk', sans-serif;
+  font-family: var(--font-sans-project);
   /* Must equal .projects-path-text — see the note on --path-font-size. */
   font-size: var(--path-font-size);
   font-weight: 400;
@@ -489,39 +479,7 @@ body::before {
   .project-panel-row:hover .project-panel-row-icon svg { transform: none; }
 }
 
-.btn-primary {
-  display: inline-flex; align-items: center; gap: 0.5rem;
-  background: linear-gradient(135deg, var(--indigo), #25212C);
-  color: #FFF8E7; font-family: 'Hanken Grotesk', sans-serif; font-weight: 700;
-  font-size: 0.9rem; letter-spacing: 0.05em;
-  padding: 0.85rem 2rem; border-radius: 100px; border: none;
-  cursor: none; transition: all 0.3s; text-decoration: none;
-  box-shadow: 0 8px 32px var(--sphere-glow);
-}
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 48px rgba(107,91,203,0.6); }
-
-.btn-ghost {
-  display: inline-flex; align-items: center; gap: 0.5rem;
-  background: transparent;
-  color: var(--text); font-family: 'Hanken Grotesk', sans-serif; font-weight: 600;
-  font-size: 0.9rem; letter-spacing: 0.05em;
-  padding: 0.85rem 2rem; border-radius: 100px;
-  border: 1px solid rgba(37,33,44,0.2);
-  cursor: none; transition: all 0.3s; text-decoration: none;
-}
-.btn-ghost:hover { border-color: var(--sphere); color: var(--sphere); background: rgba(107,91,203,0.08); }
-
-.exp-dot {
-  width: 14px; height: 14px; border-radius: 50%;
-  background: var(--sphere);
-  box-shadow: 0 0 0 4px rgba(107,91,203,0.2), 0 0 20px rgba(107,91,203,0.5);
-}
-
 /* ===== Hero ===== */
-
-.hero-fade-bottom {
-  display: none;
-}
 
 /*
  * Darkens the Unicorn scene under the overlay layer. Two gradients: a vignette
@@ -548,7 +506,7 @@ body::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background: var(--noise);
   opacity: 0.5;
   mix-blend-mode: soft-light;
 }
@@ -1169,16 +1127,6 @@ body::before {
   padding-bottom: 6rem;
   padding-left: var(--pad-x);
   padding-right: var(--pad-x);
-}
-
-.footer-inner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  max-width: var(--max-w);
-  margin: 0 auto;
-  padding: 0 2rem;
 }
 
 /* ===== About — mystic observatory ===== */

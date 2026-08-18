@@ -9,6 +9,15 @@ export function usePortfolioCursor(
     if (!loaded) return;
     const cursor = cursorRef.current!;
     const dot = cursorDotRef.current!;
+
+    // Touch devices have no cursor to replace. Without this guard the two
+    // fixed elements sit visible in the top-left corner (they only move on
+    // mousemove) and the lerp rAF runs for nothing.
+    if (window.matchMedia("(hover: none), (pointer: coarse)").matches) {
+      cursor.style.display = "none";
+      dot.style.display = "none";
+      return;
+    }
     let cx = 0,
       cy = 0,
       dx = 0,

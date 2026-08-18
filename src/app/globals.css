@@ -1,11 +1,12 @@
-/* Hanken Grotesk is loaded via a single <link> in app/layout.tsx alongside the other
-   families — keeping it out of CSS @import avoids a render-blocking request. */
+/* Hanken Grotesk is self-hosted via next/font in app/layout.tsx, which
+   publishes it as --font-hanken on <html>. The quoted family name stays in the
+   stack purely as a fallback for anything rendering outside that scope. */
 @import "tailwindcss";
 
 :root {
   --background: #FFF8E7;
   --foreground: #25212C;
-  --font-sans-project: "Hanken Grotesk", sans-serif;
+  --font-sans-project: var(--font-hanken, "Hanken Grotesk"), sans-serif;
 }
 
 @theme inline {
