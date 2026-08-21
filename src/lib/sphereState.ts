@@ -1,9 +1,12 @@
+import { DESKTOP_REFERENCE_HEIGHT } from "./viewport";
+
 /**
  * The sphere lives for exactly one section: the pinned Skills ("What I do best")
  * block, in two acts:
  *
- *   1. fades in on the right, rides the headline across to the left, shedding
- *      its purple shell as it goes;
+ *   1. fades in on the right as the headline's first character enters, rides
+ *      across to the left in lockstep with it, and sheds its purple shell —
+ *      that first burst starting once the word "What" has finished assembling;
  *   2. the moment the swiper lands — just before the headline clears the screen
  *      — it sweeps back to centre and its dark core bursts, then fades out.
  *
@@ -12,11 +15,81 @@
  * GSAP writes these targets; the Three.js loop reads them each frame and lerps
  * toward them, so every value here is a destination, not a position.
  */
-/** Where it appears — screen right. */
+/**
+ * Seed value only. The ride itself is not authored from here any more: the
+ * sphere's centre is pinned to the screen position of the headline's first
+ * character (see the desktop branch in animations/skills.ts), so where it
+ * appears is wherever the "W" appears. This is what `groupX` holds before
+ * anything has computed a real one.
+ */
 export const SPHERE_SKILLS_START_X = 6.2;
-/** Where the headline drags it — screen left. */
-export const SPHERE_SKILLS_LEFT_X = -6.2;
 export const SPHERE_CENTER_X = 0;
+
+/*
+ * Those two numbers are authored for a desktop frame. The renderer is sized
+ * innerWidth x DESKTOP_REFERENCE_HEIGHT, so the camera's aspect — and with it
+ * the world width it can see — collapses with the viewport: a 390px phone
+ * sees ~7 world units across, where a 1440px desktop sees ~26. Used as
+ * literals there, the sphere would ride entirely off-screen and be wider than
+ * the frame while it did it.
+ *
+ * So both the travel and the size are refitted to the half-width the camera
+ * actually sees, with the desktop values as the ceiling. These three must
+ * match the camera and geometry built in usePortfolioThree.
+ */
+const SPHERE_CAMERA_Z = 14;
+const SPHERE_FOV_DEG = 60;
+const SPHERE_OUTER_RADIUS = 3.8;
+/** How much of the visible width the sphere may span, and how far out from
+ *  centre it may sit as a fraction of the visible half-width — the anchor it
+ *  parks at once the "W" it is riding carries on off the edge. */
+const SPHERE_WIDTH_SHARE = 0.62;
+const SPHERE_TRAVEL_SHARE = 0.55;
+
+/** Half the world width the camera sees at the sphere's plane, in units. */
+export function sphereVisibleHalfWidth(viewportWidth: number) {
+  const visibleH =
+    2 * SPHERE_CAMERA_Z * Math.tan((SPHERE_FOV_DEG * Math.PI) / 360);
+  return (visibleH / 2) * (viewportWidth / DESKTOP_REFERENCE_HEIGHT);
+}
+
+/** Park anchor and scale that keep the sphere on screen at any width. */
+export function sphereFit(viewportWidth: number) {
+  const halfW = sphereVisibleHalfWidth(viewportWidth);
+  return {
+    travelX: Math.min(SPHERE_SKILLS_START_X, halfW * SPHERE_TRAVEL_SHARE),
+    scale: Math.min(1, (halfW * SPHERE_WIDTH_SHARE) / SPHERE_OUTER_RADIUS),
+  };
+}
+
+/**
+ * A screen x (CSS px from the left of the viewport) as the sphere's world X —
+ * the inverse of how the scene lands on the page, so the choreography can say
+ * "be exactly here, where that letter is" instead of guessing at a fraction.
+ *
+ * Two things make this exact rather than approximate:
+ *
+ *  - The camera pans by `group.position.x * 0.15` and then `lookAt(0,0,0)`.
+ *    Those two very nearly cancel: the pan moves the sphere 0.85x across the
+ *    frame and the re-aim gives back the 0.15x, so to first order one world
+ *    unit is still one `halfW`-th of the frame. Do not "fix" this by
+ *    subtracting the pan — that would double-count the re-aim.
+ *  - The canvas is innerWidth CSS px wide but drawn into a frozen
+ *    DESKTOP_REFERENCE_HEIGHT-tall box that usePortfolioThree scales up to
+ *    cover a taller viewport. That scale widens the frame on screen too, so it
+ *    has to divide out here. It mirrors `coverScale` there at its steady state
+ *    (the dpr terms in that copy are browser-zoom compensation, which cancels).
+ */
+export function sphereWorldXAtScreenX(
+  screenX: number,
+  viewportWidth: number,
+  viewportHeight: number,
+) {
+  const halfW = sphereVisibleHalfWidth(viewportWidth);
+  const cover = Math.max(1, viewportHeight / DESKTOP_REFERENCE_HEIGHT);
+  const halfFramePx = (viewportWidth / 2) * cover;
+  return ((screenX - viewportWidth / 2) / halfFramePx) * halfW;
+}
 
 /*
  * Choreography, as fractions of the Skills pin's progress.
@@ -27,8 +100,21 @@ export const SPHERE_CENTER_X = 0;
  * headline width and card geometry and therefore shifts on every resize.
  */
 export const SPHERE_SKILLS_FADE_IN_END = 0.02;
-/** Purple starts shedding as soon as the fade-in completes. */
+/**
+ * Phone fallback for where the purple shell starts shedding: as soon as the
+ * fade-in completes. On desktop this moment is measured rather than authored —
+ * act 1 waits for the word "What" to complete (`burstStartPin` in
+ * animations/skills.ts), so the first burst reads as the headline's own beat.
+ * Phones have no ride to sync to, so they keep this literal.
+ */
 export const SPHERE_OUTER_EXPLODE_START = 0.02;
+/**
+ * Floor on how much of the pin act 1 gets, whatever that measurement says. The
+ * word-completion anchor is derived from headline width against viewport width,
+ * so a very wide headline on a narrow screen could otherwise push it past the
+ * act break and leave the purple shell to shed in zero scroll.
+ */
+export const SPHERE_OUTER_EXPLODE_MIN_SPAN = 0.04;
 /**
  * Pulls the whole second act earlier. The measured act break (swiper landing /
  * headline exit) sits around 0.22 of the pin; this multiplies it, so 0.5 fires

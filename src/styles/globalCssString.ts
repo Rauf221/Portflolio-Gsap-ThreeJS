@@ -1,3 +1,5 @@
+import { MOBILE_MAX_WIDTH, SKILLS_MOBILE_LIFT } from "../lib/viewport";
+
 /** Inline global styles for the portfolio page (fonts, tokens, utilities). */
 export const PORTFOLIO_GLOBAL_CSS = `
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -83,7 +85,11 @@ body::before {
 .projects-path-stage {
   position: relative;
   width: 100%;
-  height: 100vh;
+  /* svh, not vh: on mobile vh includes the space under the URL bar, so a
+     "full viewport" pinned stage sits partly out of sight. MUST stay the same
+     unit as .projects-after-path's negative margin-top below — the curtain's
+     overlap is that margin cancelling this height exactly. */
+  height: 100svh;
   overflow: hidden;
   background: transparent;
   z-index: 5; 
@@ -169,8 +175,9 @@ body::before {
   z-index: 2;
   opacity: 1;          
   pointer-events: none; 
-  margin-top: -100vh;   
-  background: var(--bg); 
+  /* Cancels .projects-path-stage's height exactly — same unit, always. */
+  margin-top: -100svh;
+  background: var(--bg);
 }
 .projects-intro-count {
   margin-top: 1.25rem;
@@ -192,13 +199,15 @@ body::before {
 .projects-stage-scroll {
   position: relative;
   width: 100%;
-  height: calc(100vh + var(--scroll-units, var(--swaps, 1)) * 70vh);
+  /* The leading term is the sticky viewport (svh, matching .projects-sticky-list);
+     the per-unit term is pure scroll distance, so plain vh is right there. */
+  height: calc(100svh + var(--scroll-units, var(--swaps, 1)) * 70vh);
 }
 .projects-sticky-list {
   position: sticky;
   top: 0;
   width: 100%;
-  height: 100vh;
+  height: 100svh;
   background: var(--bg);
   overflow: clip;
 }
@@ -461,6 +470,34 @@ body::before {
   .project-panel-rows { gap: 6px; }
   .project-panel-row-label { padding: 0.7rem 0; font-size: 0.7rem; }
   .project-panel-row-icon { width: 42px; }
+}
+
+/* Phones: the panel is a full viewport tall and has to hold a video, a title,
+   a paragraph and three rows. Everything tightens; the description is the one
+   element that can lose lines without losing meaning, so it is clamped rather
+   than allowed to push the rows off the bottom. */
+@media (max-width: ${MOBILE_MAX_WIDTH}px) {
+  .project-panel-media { flex: 0 0 34%; border-radius: 12px; }
+  .project-panel-title { font-size: clamp(1.5rem, 7.5vw, 2.1rem); }
+  .project-panel-index { font-size: 0.62rem; margin-bottom: 0.5rem; }
+  .project-panel-index-label { padding-left: 1.9rem; }
+  .project-panel-index-label::before { left: 0.5rem; width: 1rem; }
+  .project-panel-subtitle { font-size: 0.68rem; }
+  .project-panel-desc {
+    font-size: 0.82rem;
+    line-height: 1.55;
+    margin-bottom: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .project-panel-rows { gap: 5px; }
+  .project-panel-row-label { padding: 0.6rem 0; font-size: 0.65rem; }
+  .project-panel-row-icon { width: 38px; }
+  .project-panel-row:hover .project-panel-row-icon { width: 38px; }
+  /* Panels sit above the floating dock, which spans the bottom edge here. */
+  .project-panel-info { padding-bottom: 4.5rem; }
 }
 
 /* Hover motion is decoration on top of information that is already legible, so
@@ -924,7 +961,7 @@ body::before {
   .dock-tile--action.is-on .dock-glyph--meter i { animation: none; }
 }
 
-@media (max-width: 700px) {
+@media (max-width: ${MOBILE_MAX_WIDTH}px) {
   .dock { --dock-h: 42px; }
   .dock-layer { bottom: 1rem; }
   /* The bar spans the viewport so the square tiles above it stay big enough to
@@ -1014,11 +1051,23 @@ body::before {
   left: 0;
   top: 0;
   white-space: nowrap;
-  font-size: clamp(1.05rem, 2.1vw, 1.65rem);
-  font-weight: 400;
-  letter-spacing: -0.01em;
+  font-size: clamp(1.2rem, 2.4vw, 1.95rem);
+  /* Heavy, and haloed in the page background. These names sit directly on top
+     of the sphere's second act — a full screen of thin dark wireframe lines at
+     roughly their own weight — so at 400 with no separation they read as more
+     of the mesh. The halo is the same cream as the page, so it is invisible
+     anywhere the background is plain and only shows as breathing room where a
+     line would otherwise cross a stem. GSAP owns this element's opacity
+     (layoutSkillsStack), so legibility has to come from weight and contrast,
+     never from raising the opacity here. */
+  font-weight: 700;
+  letter-spacing: -0.015em;
   line-height: 1.2;
   color: #25212C;
+  text-shadow:
+    0 0 10px var(--bg),
+    0 0 4px var(--bg),
+    0 0 2px var(--bg);
   opacity: 0.35;
   will-change: transform, opacity;
   transform-origin: left center;
@@ -1075,6 +1124,41 @@ body::before {
   display: block;
 }
 
+/* ===== Skills, small screens =====
+ *
+ * The pin, the fly-in and the carousel all survive — only the geometry
+ * changes. The two columns (names left, tiles right) are far too tight side
+ * by side on a phone, so the names move to the upper third and the tiles sit
+ * centred below them, which is also why the tile column's left offset drops
+ * to 50%.
+ */
+@media (max-width: ${MOBILE_MAX_WIDTH}px) {
+  .skills-headline-stage {
+    /* The off-screen run-up is one viewport wide whatever the screen, so the
+       stage only needs the headline's own width on top of it. */
+    min-width: 200vw;
+    padding-right: 10vw;
+    /* Vertical bias out of dead centre, interpolated from SKILLS_MOBILE_LIFT
+       so the sphere's canvas offset — which reads the same constant — can
+       never drift off this line. Currently 0: see the note on the constant.
+       Deliberately on the STAGE, not on .skills-headline: GSAP owns that
+       element's transform (the descent tween) and .skills-track's (the
+       horizontal fly-in), so this is the one box in the chain that no
+       animation writes to. */
+    transform: translateY(-${SKILLS_MOBILE_LIFT * 100}vh);
+  }
+  .skills-headline { font-size: clamp(3.4rem, 19vw, 6.5rem); }
+  .skills-carousel-name-list { left: 8vw; top: 34%; }
+  .skills-carousel-name-row { font-size: clamp(1.05rem, 4.8vw, 1.45rem); }
+  /* Centred, and low enough that the names above never collide with a tile. */
+  .skills-icon-track { left: 50%; top: 62%; }
+  /* MUST mirror getSkillsCarouselMetrics' cardSize in animations/skills.ts. */
+  .skills-icon-tile {
+    width: clamp(118px, 32vw, 154px);
+    height: clamp(118px, 32vw, 154px);
+  }
+}
+
 @media (max-width: 900px) {
   /* Three nav columns cannot fit at this width, so the sub-items drop and the
      group titles collapse into one wrapped row under the mark. The sections
@@ -1114,6 +1198,21 @@ body::before {
     text-align: center;
     font-size: 0.85rem;
   }
+}
+
+/* Narrow phones: the statement lines are nowrap so their three-line shape
+   survives, but below this width a line can genuinely exceed the frame — at
+   which point wrapping is better than being clipped by the page's
+   overflow-x guard. */
+@media (max-width: 430px) {
+  .hero-statement {
+    width: calc(100% - 2rem);
+    font-size: clamp(0.9rem, 5vw, 1.2rem);
+  }
+  .hero-statement-line { white-space: normal; }
+  .hero-nav { gap: 0.85rem; }
+  .hero-nav-group-title { font-size: 0.72rem; }
+  .hero-clock-meta { display: none; }
 }
 
 /*
@@ -1259,10 +1358,16 @@ body::before {
   .about-content { text-align: left; }
 }
 
-@media (max-width: 700px) {
-  .about-logo-wrap { max-width: 320px; }
-  .about-meta { max-width: none; }
-  .about-mystic { padding-top: 6rem; padding-bottom: 4rem; }
+@media (max-width: ${MOBILE_MAX_WIDTH}px) {
+  .about-logo-wrap { max-width: 260px; }
+  .about-meta { max-width: none; margin-top: 2rem; }
+  .about-body { font-size: 0.95rem; line-height: 1.75; }
+  .about-meta-row { gap: 1rem; padding: 0.7rem 0; }
+  .about-meta-value { font-size: 1rem; }
+  .about-mantra { margin-top: 2rem; font-size: 0.92rem; padding-left: 1rem; }
+  /* Section padding comes from .section-padded's own small-screen rule at the
+     end of this sheet — both classes are on the section, and duplicating it
+     here would just be a silent last-one-wins fight. */
 }
 
 /* First-load preloader: R [logo] H lockup + center-growing reveal */
@@ -1345,5 +1450,39 @@ body::before {
 .pl.pl-exit {
   opacity: 0;
   transition: opacity 0.9s ease;
+}
+
+/* ===== Small screens: shared rhythm =====
+ *
+ * Kept last so these win over the section blocks above without needing
+ * heavier selectors. Only spacing and type scale live here — every section's
+ * own layout adjustments stay next to that section's rules.
+ */
+@media (max-width: ${MOBILE_MAX_WIDTH}px) {
+  :root {
+    /* 2rem of gutter on a 360px screen is a ninth of the width; 1.25rem keeps
+       the same optical margin at phone scale. */
+    --pad-x: 1.25rem;
+  }
+  .container { padding-left: 1.25rem; padding-right: 1.25rem; }
+  .section-padded { padding-top: 5rem; padding-bottom: 3.5rem; }
+  /* Nothing is allowed to widen the page: a single overflowing child turns
+     the whole document into a horizontal scroller on touch. */
+  body { overflow-x: hidden; }
+}
+
+/*
+ * The custom cursor disables itself on coarse/hoverless pointers
+ * (usePortfolioCursor). body and the interactive elements set cursor:none for
+ * it, so on exactly those devices the native pointer must be handed back —
+ * otherwise a tablet with a mouse attached has no visible cursor at all.
+ */
+@media (hover: none), (pointer: coarse) {
+  body { cursor: auto; }
+  .hero-ui a,
+  .dock a,
+  .dock button,
+  .project-panel-row,
+  .project-panel-media { cursor: pointer; }
 }
 `.trim();

@@ -22,7 +22,9 @@ export function SkillsSection({ skillsRef }: Props) {
   const line2 = splitGraphemes(skills.headingLine2);
 
   return (
-    <section id="skills" ref={skillsRef} style={{ position: "relative", height: "100vh", overflow: "hidden", zIndex: 1 }}>
+    // svh so the pinned stage matches what is actually visible on mobile
+    // rather than reaching under the URL bar.
+    <section id="skills" ref={skillsRef} style={{ position: "relative", height: "100svh", overflow: "hidden", zIndex: 1 }}>
       <div
         className="skills-track"
         style={{

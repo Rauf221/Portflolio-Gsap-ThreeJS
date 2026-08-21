@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { hallState } from "../lib/hallState";
-import { prefersFlatHall } from "../lib/viewport";
+import { MOBILE_MAX_WIDTH, prefersFlatHall } from "../lib/viewport";
 
 /*
  * The air in the gravity playground.
@@ -208,8 +208,11 @@ export function ExperienceHallAtmosphere() {
       const w = Math.max(1, Math.round(rect.width));
       const h = Math.max(1, Math.round(rect.height));
       // Capped at 1.5 rather than 2: this pass is fill-rate bound and full
-      // retina buys nothing on a shader with no hard edges in it.
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      // retina buys nothing on a shader with no hard edges in it. Phones cap
+      // at 1 — they carry the highest device pixel ratios and the least
+      // fill-rate, and every pixel here runs five octaves of fbm.
+      const dprCap = window.innerWidth <= MOBILE_MAX_WIDTH ? 1 : 1.5;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, dprCap));
       renderer.setSize(w, h, false);
       uniforms.uResolution.value.set(w, h);
     };

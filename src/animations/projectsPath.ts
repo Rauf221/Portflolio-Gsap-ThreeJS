@@ -20,6 +20,15 @@
  * and the waves start throwing the line off the top and bottom of the stage.
  */
 const PROJECTS_PATH_POV_SCALE = { from: 2.24, to: 2.45 };
+/**
+ * Width the zoom above was authored against. The glyphs are sized in the SVG's
+ * own units and then scaled by the camera, so at a fixed zoom they keep their
+ * PIXEL size while the screen shrinks — on a phone a single letter would be
+ * most of the frame. Scaling the zoom by stageWidth / this keeps the letters
+ * at a constant FRACTION of the frame instead. Capped at 1: a screen wider
+ * than the reference keeps the authored zoom rather than magnifying past it.
+ */
+const PROJECTS_PATH_REFERENCE_WIDTH = 1440;
 const PROJECTS_CHAR_WRITE_LEAD = 0.045;
 const PROJECTS_CHAR_WRITE_WINDOW = 0.028;
 /**
@@ -210,6 +219,16 @@ export function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.
     };
   };
 
+  /** Camera zoom at write-progress t, refitted to the current stage width. */
+  const getPovScale = (t: number) => {
+    const { vw } = getMetrics();
+    const fit = Math.min(1, vw / PROJECTS_PATH_REFERENCE_WIDTH);
+    return (
+      gsap.utils.interpolate(PROJECTS_PATH_POV_SCALE.from, PROJECTS_PATH_POV_SCALE.to, t) *
+      fit
+    );
+  };
+
   const getPathFocus = (t: number) => {
     const { vw, vh } = getMetrics();
     return {
@@ -237,7 +256,7 @@ export function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.
   const applyWriteScene = (writeT: number) => {
     const cameraProgress = writeT * textPathRatio;
     const pt = stagePointOnPath(cameraProgress);
-    const scale = gsap.utils.interpolate(PROJECTS_PATH_POV_SCALE.from, PROJECTS_PATH_POV_SCALE.to, writeT);
+    const scale = getPovScale(writeT);
     const focus = getPathFocus(writeT);
 
     gsap.set(camera, {
@@ -254,7 +273,7 @@ export function initProjectsPathHeadline(root: HTMLElement, gsap: typeof window.
   const applyExitScene = (exitT: number) => {
     const { vw } = getMetrics();
     const pt = stagePointOnPath(textPathRatio);
-    const scale = gsap.utils.interpolate(PROJECTS_PATH_POV_SCALE.from, PROJECTS_PATH_POV_SCALE.to, 1);
+    const scale = getPovScale(1);
     const exitX = -exitT * vw * 1.35;
     const focus = getPathFocus(1);
 

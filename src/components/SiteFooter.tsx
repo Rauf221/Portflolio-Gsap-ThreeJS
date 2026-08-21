@@ -25,7 +25,7 @@ export function SiteFooter() {
           z-index: 2;
           background: var(--text);      /* #25212C — inverted dark panel */
           color: var(--bg);             /* cream */
-          min-height: min(100vh, 940px);
+          min-height: min(100svh, 940px);
           display: flex;
           flex-direction: column;
           overflow: hidden;             /* the slogan bleeds past the edges */
@@ -137,6 +137,9 @@ export function SiteFooter() {
         a.rk-info-col:hover, a.rk-info-col:hover .l2 { color: var(--sphere); }
 
         @media (max-width: 760px) {
+          /* The floating dock is fixed across the bottom edge at this width;
+             without the extra room the last info row sits behind it. */
+          .rk-footer { padding-bottom: 6.5rem; }
           .rk-contact { grid-template-columns: 1fr; row-gap: 2.5rem; }
           .rk-col-r { margin-top: 2.5rem; }
           .rk-mark:nth-child(2), .rk-mark:nth-child(5), .rk-mark:nth-child(8) { display: none; }

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import UnicornStudioScene from "unicornstudio-react";
 import { DESKTOP_REFERENCE_HEIGHT } from "../lib/viewport";
 
@@ -29,6 +29,33 @@ export function UnicornHeroBackground() {
   // frozen rather than measured.
   const [width, setWidth] = useState<number | null>(null);
   const [zoomScale, setZoomScale] = useState(1);
+
+  /*
+   * The scene is a full-viewport WebGL renderer at dpi 1.5, and it has no idea
+   * the page has scrolled: left alone it keeps drawing every frame for the
+   * whole session, including the eight screens below where the sphere, the
+   * fourteen skill tiles and the gravity hall are all competing for the same
+   * GPU. Pausing it off-screen is the single biggest saving on this page.
+   *
+   * `paused` is applied by the SDK wrapper in an effect of its own and is not
+   * in its init effect's dependency list, so this toggles the render loop
+   * without tearing the scene down and rebuilding its context.
+   */
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    const el = sceneRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setPaused(!entry.isIntersecting),
+      // Resume a little before it is back on screen, so scrolling up to the
+      // hero never catches a frozen frame.
+      { rootMargin: "300px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   useEffect(() => {
     let baseDpr = window.devicePixelRatio;
@@ -76,6 +103,7 @@ export function UnicornHeroBackground() {
 
   return (
     <div
+      ref={sceneRef}
       aria-hidden="true"
       style={{
         position: "absolute",
@@ -95,6 +123,7 @@ export function UnicornHeroBackground() {
         height="100%"
         scale={1}
         dpi={1.5}
+        paused={paused}
       />
     </div>
   );

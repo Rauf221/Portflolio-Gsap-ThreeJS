@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 import { metadata as siteMetadata } from "@/content/site";
@@ -16,6 +16,22 @@ const hanken = Hanken_Grotesk({
   display: "swap",
   variable: "--font-hanken",
 });
+
+/*
+ * Explicit rather than relying on Next's default: `viewportFit: "cover"` is
+ * what lets the full-bleed dark sections reach into a notched phone's safe
+ * areas, and it is the pair to the svh-based section heights. Zoom is left
+ * unrestricted on purpose — capping it is an accessibility regression.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FFF8E7" },
+    { media: "(prefers-color-scheme: dark)", color: "#060606" },
+  ],
+};
 
 export const metadata: Metadata = {
   title: siteMetadata.title,

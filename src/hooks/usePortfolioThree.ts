@@ -1,7 +1,11 @@
 import { type RefObject, useEffect } from "react";
 import type { BufferAttribute, BufferGeometry } from "three";
 import { sphereShouldRender, sphereState } from "../lib/sphereState";
-import { DESKTOP_REFERENCE_HEIGHT } from "../lib/viewport";
+import {
+  DESKTOP_REFERENCE_HEIGHT,
+  MOBILE_MAX_WIDTH,
+  SKILLS_MOBILE_LIFT,
+} from "../lib/viewport";
 
 export function usePortfolioThree(
   canvasRef: RefObject<HTMLCanvasElement | null>,
@@ -24,7 +28,11 @@ export function usePortfolioThree(
       console.warn("[portfolio] WebGL unavailable, sphere disabled:", err);
       return;
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Phones cap lower: they pair the highest pixel ratios with the least
+    // fill-rate, and the sphere is a per-frame-morphed wireframe.
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, window.innerWidth <= MOBILE_MAX_WIDTH ? 1.5 : 2),
+    );
     renderer.setSize(window.innerWidth, DESKTOP_REFERENCE_HEIGHT);
 
     const scene = new THREE.Scene();
@@ -171,11 +179,33 @@ export function usePortfolioThree(
     // compensation multiplied in beside it.
     const coverScale = () =>
       Math.max(1, (window.innerHeight * window.devicePixelRatio) / (frozenHeight * baseDpr));
+    /*
+     * Phones only: lift the frozen box so the sphere rides the headline.
+     *
+     * The box is a fixed `frozenHeight` tall and top-anchored, so the sphere —
+     * which sits at its vertical middle — always renders at half that height
+     * down the screen. On a desktop the viewport is the same order of height
+     * and the two agree; on a 700px phone the sphere lands ~100px below the
+     * middle of the screen, and the Skills headline it is supposed to ride
+     * beside is lifted a further SKILLS_MOBILE_LIFT above centre, so the two
+     * end up a quarter of a screen apart.
+     *
+     * SKILLS_MOBILE_LIFT is the same constant the headline's own CSS lift is
+     * interpolated from, so the sphere cannot drift off that line.
+     */
+    const headlineOffsetY = (scale: number) => {
+      if (window.innerWidth > MOBILE_MAX_WIDTH) return 0;
+      const headlineY = window.innerHeight * (0.5 - SKILLS_MOBILE_LIFT);
+      return headlineY - (frozenHeight / 2) * scale;
+    };
     const applyTransform = (zoomScale: number) => {
       if (canvasRef.current) {
+        const scale = zoomScale * coverScale();
         // transform-origin is the top edge, so the growth all goes downward,
-        // into the gap — the sphere's vertical framing does not shift.
-        canvasRef.current.style.transform = `translateX(-50%) scale(${zoomScale * coverScale()})`;
+        // into the gap — the sphere's vertical framing does not shift. The
+        // translate is written before the scale, so its px are screen px.
+        canvasRef.current.style.transform =
+          `translateX(-50%) translateY(${headlineOffsetY(scale).toFixed(1)}px) scale(${scale})`;
         canvasRef.current.style.transformOrigin = "center top";
       }
     };
@@ -186,7 +216,7 @@ export function usePortfolioThree(
       baseDpr = dpr;
       baseInnerW = w;
       applyTransform(1);
-      renderer.setPixelRatio(Math.min(dpr, 2));
+      renderer.setPixelRatio(Math.min(dpr, w <= MOBILE_MAX_WIDTH ? 1.5 : 2));
       camera.aspect = w / frozenHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(w, frozenHeight);

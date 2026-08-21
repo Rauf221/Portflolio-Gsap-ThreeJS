@@ -44,7 +44,10 @@ export function HeroSection({ heroRef, heroUiRef, activeSection }: Props) {
         // UnicornHeroBackground, the same factor its scale() uses) so the top
         // crop stays put under zoom-out instead of jumping. Fallback 1 = plain
         // min(100vh, 900px) before the variable is set (SSR / first paint).
-        minHeight: `min(100vh, calc(${DESKTOP_REFERENCE_HEIGHT}px * var(--hero-zoom-scale, 1)))`,
+        // svh, not vh: on mobile the URL bar makes 100vh taller than what is
+        // actually visible, which pushed the hero's bottom under the browser
+        // chrome. svh is the stable small-viewport height.
+        minHeight: `min(100svh, calc(${DESKTOP_REFERENCE_HEIGHT}px * var(--hero-zoom-scale, 1)))`,
         display: "flex",
         alignItems: "center",
         overflow: "hidden",

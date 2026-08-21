@@ -58,7 +58,10 @@ export function ExperienceSection({ experienceRef }: Props) {
 
         .grav {
           position: relative;
-          height: 100vh;
+          /* svh so the HUD's bottom row is never hidden under a mobile URL
+             bar; the section background is the same void, so the sliver the
+             bar sometimes frees up stays seamless. */
+          height: 100svh;
           min-height: 640px;
           overflow: hidden;
           /* The one number the whole illusion hangs on. CSS stops drawing an
@@ -294,7 +297,25 @@ export function ExperienceSection({ experienceRef }: Props) {
           color: var(--hall-edge);
         }
 
-        /* ── Flat fallback (reduced motion / small screens) ──────────────────
+        /* ── Small screens ────────────────────────────────────────────────
+           The playground runs on phones too (touch drags work through the
+           same pointer events) — the cards just shrink so a held one still
+           fits the frame with room to read. */
+        @media (max-width: 700px) {
+          .grav-card {
+            width: clamp(220px, 74vw, 300px);
+            padding: 1.3rem 1.25rem 1.2rem;
+          }
+          .grav-year { font-size: 2.2rem; }
+          .grav-desc { font-size: 0.72rem; }
+          .grav-head { max-width: 70vw; }
+          /* Lifted clear of the floating dock, which spans the bottom edge
+             on phones. */
+          .grav-hint { bottom: clamp(4.5rem, 12vh, 6rem); }
+          .grav-count { bottom: clamp(4.5rem, 12vh, 6rem); }
+        }
+
+        /* ── Flat fallback (reduced motion) ──────────────────────────────────
            No physics, no pin, no canvas — the cards simply stand and stack.
            This is also the keyboard / assistive-tech presentation. */
         .exp--flat .grav {

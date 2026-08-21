@@ -474,6 +474,10 @@ const MYSTIC_STYLES = `
   @media (max-width: 768px) {
     .mystic-stats-container { grid-template-columns: 1fr; }
     .tech-matrix { grid-template-columns: 1fr; }
-    .hero-title { font-size: 3.5rem; }
+    /* Kept fluid rather than a flat 3.5rem: uppercase serif at a fixed size
+       runs past the frame on a narrow phone. */
+    .hero-title { font-size: clamp(2rem, 11vw, 3.5rem); }
+    .mystic-hero-wrap { padding: 1.5rem 1.25rem; }
+    .mystic-body { padding: 0 1.25rem; }
   }
 `;

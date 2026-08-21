@@ -85,15 +85,25 @@ function toBasicMaterial(mat: THREE.Material): THREE.Material {
     return mat;
   }
 
-  const basic = new THREE.MeshBasicMaterial({
-    map: "map" in mat ? (mat.map as THREE.Texture | null) ?? undefined : undefined,
+  const params: THREE.MeshBasicMaterialParameters = {
     color: "color" in mat && mat.color instanceof THREE.Color ? mat.color.clone() : new THREE.Color(0xffffff),
     transparent: mat.transparent,
     opacity: mat.opacity ?? 1,
     side: THREE.DoubleSide,
     alphaTest: mat.transparent ? 0.04 : 0,
     depthWrite: !mat.transparent,
-  });
+  };
+
+  // Assigned only when there IS one. Material.setValues() warns on any key
+  // whose value is undefined and then skips it, so passing `map: undefined`
+  // for the untextured materials — most of these logos are flat colour — got
+  // us one console warning per material for no behavioural difference. An
+  // absent key leaves map null, which is exactly what the undefined branch
+  // was already achieving, silently.
+  const map = "map" in mat ? (mat.map as THREE.Texture | null) : null;
+  if (map) params.map = map;
+
+  const basic = new THREE.MeshBasicMaterial(params);
 
   mat.dispose();
   return basic;
@@ -197,6 +207,9 @@ export function SkillModelViewer({ modelPath, modelTune, className }: Props) {
     let isVisible = false;
     let started = false;
     let teardown: (() => void) | null = null;
+    // Set by start(); lets the observer below restart a loop that parked
+    // itself. Null until the tile has been built.
+    let resume: (() => void) | null = null;
 
     // ALL scene setup (canvas, scene, GLB) is deferred until the tile first
     // nears the viewport. Building on mount would parse ~14 GLBs at once — a
@@ -275,6 +288,8 @@ export function SkillModelViewer({ modelPath, modelTune, className }: Props) {
           pivot.add(fitted);
           model = pivot;
           hasRendered = false;
+          // The loop may have parked while this was in flight.
+          resume?.();
         },
         undefined,
         (err) => {
@@ -302,24 +317,57 @@ export function SkillModelViewer({ modelPath, modelTune, className }: Props) {
       host.addEventListener("pointerleave", onPointerLeave);
       resize();
 
+      /*
+       * Parks rather than spins. The old loop re-armed unconditionally and
+       * only skipped its body, so fourteen tiles kept fourteen rAF callbacks
+       * alive for the whole session no matter where the page was. Now the loop
+       * stops when there is nothing to draw and the observer (or the model
+       * finally arriving) starts it again.
+       */
       const animate = () => {
-        raf = requestAnimationFrame(animate);
+        raf = 0;
         if (!isVisible && hasRendered) return;
 
-        if (model) {
+        /*
+         * A tile can be inside the viewport and still have nothing to show: the
+         * carousel fades all but the few tiles around the focus to zero and
+         * marks them `visibility: hidden` (layoutSkillsStack). Geometry is all
+         * an IntersectionObserver sees, so without this every one of the
+         * fourteen would render and blit on every frame of the Skills pin —
+         * the heaviest moment on the page — to paint something invisible.
+         * checkVisibility also covers the whole stage being hidden between
+         * acts. Guarded because it is a recent API; where it is missing the
+         * behaviour is simply the old one.
+         */
+        const drawable =
+          typeof host.checkVisibility !== "function" || host.checkVisibility();
+
+        if (model && drawable) {
           model.rotation.x += (targetRotX - model.rotation.x) * 0.09;
           model.rotation.y += (targetRotY - model.rotation.y) * 0.09;
           model.rotation.y += 0.004;
           hasRendered = true;
         }
 
-        if ((isVisible || !hasRendered) && sharedRenderer && bufW > 0 && bufH > 0) {
+        if (
+          drawable &&
+          (isVisible || !hasRendered) &&
+          sharedRenderer &&
+          bufW > 0 &&
+          bufH > 0
+        ) {
           renderTile(sharedRenderer, scene, camera, ctx, bufW, bufH);
         }
+
+        raf = requestAnimationFrame(animate);
+      };
+      resume = () => {
+        if (!raf) raf = requestAnimationFrame(animate);
       };
       animate();
 
       teardown = () => {
+        resume = null;
         cancelAnimationFrame(raf);
         ro.disconnect();
         host.removeEventListener("pointermove", onPointerMove);
@@ -350,6 +398,7 @@ export function SkillModelViewer({ modelPath, modelTune, className }: Props) {
       ([entry]) => {
         isVisible = entry.isIntersecting && entry.intersectionRatio > 0.02;
         if (entry.isIntersecting) start();
+        if (isVisible) resume?.();
       },
       { rootMargin: "200px", threshold: [0, 0.02, 0.1, 0.25] },
     );
