@@ -25,6 +25,40 @@ Single-page, scroll-driven portfolio: **Next.js App Router**, **GSAP + ScrollTri
 - `src/app/page.tsx` — root route, renders `Portfolio`
 - `src/app/portfolio/Portfolio.tsx` — **main orchestrator**: holds every DOM ref, mounts all sections, calls the lifecycle hooks in a fixed order, and owns the load-failure downgrade path (failed script load → preloader exits via CSS fallback, scroll unlocks, page stays readable)
 - `src/app/about/AboutPage.tsx` — separate "mystic" page with its own styling and its own GSAP context (scoped; `ctx.revert()` on unmount)
+- `src/app/works/WorksPage.tsx` — **the works archive** (`/works`), the page the home Projects section links out to. Same palette, type and motion vocabulary as the home page, but staged as a filterable index instead of a pinned sequence: the four-panel swap costs a viewport of pinned scroll per project, which is what stops scaling past a handful. Its own lighter stack — `useWorksScripts` (gsap + ScrollTrigger only, no three/DrawSVG) → `usePortfolioLenis` → `usePortfolioCursor` → `useWorksGsap`, all reused from the home page except the first and last. Reuses `ScrollProgress`, `CustomCursor` and `SiteFooter` (including `initFooterReveals`, passed `null` for the dock) so both pages close identically
+
+### The works archive (`/works`)
+
+| File | Owns |
+|---|---|
+| `data/worksMeta.ts` | the archive list — year, category, accent, optional clip, optional `href`. **This is the list meant to grow**; `key` joins it to `worksPage.items` in `content/site.ts`, which is where the copy lives (and which spreads `projects.items`, so a shared project is written once) |
+| `animations/worksArchive.ts` | hero entrance (Phase A, no ScrollTriggers), per-card reveals, the rail counter, and the video discipline (returns a disposer — raw listeners) |
+| `hooks/useWorksGsap.ts` | thin orchestrator, one `gsap.context()`, same two-phase order as `usePortfolioGsap` |
+| `styles/worksCssString.ts` | the page's CSS as a JS template literal (no backticks inside), tokens deliberately **copied** from `globalCssString` rather than imported |
+| `components/WorksSpiralHero.tsx` | the hero — a Three.js helix of project panels. Imports three statically, so it **must** stay behind `next/dynamic` + `ssr: false` |
+
+The hero carries no text (the `<h1>` is `sr-only`). Each panel is a **slice of a cylinder** whose arc length is the tile width, not a plane, so the whole ring is one curved surface; a single normalised `t` in `[0,1)` sets both a panel's height on the helix and its rotation around it, and wrapping `t` is what makes the column endless. `poleFlare` pushes panels outward by the *square* of their height (pinched middle, flared ends), the corners are an SDF in the fragment shader (a texture mask would break under the vertex stage's curve), and the leftover scroll velocity is fed in as `wind`. Panels come from `WORKS_META` in order — `poster` where there is one, a canvas-drawn accent card where there isn't — and a list shorter than `MIN_TILES` is cycled, so the hero needs no maintenance as the archive grows. `public/works/*.jpg` are still frames pulled from the project clips with ffmpeg. The flat poster strip under the canvas is the no-WebGL/first-paint state; the scene's own `onReady` adds `.is-ready`, which cross-fades them — **never animate `.works-spiral`'s opacity from GSAP**, that fade owns it.
+
+Filtering is a **Flip** (`gsap/Flip`, dynamically imported in the click handler): state captured, `flushSync` applies the React class change, `Flip.from` animates the reflow, and `ScrollTrigger.refresh()` runs on complete because the grid's height just changed. Card reveals use `once: true`, which is what makes hiding and re-showing a card safe.
+
+### Project detail pages (`/works/[slug]`)
+
+One statically generated page per entry in `WORKS_META` (`generateStaticParams` over its slugs; `slug` is a URL and must stay stable). `app/works/[slug]/page.tsx` is a server component that awaits `params` — a Promise in this version of Next — and owns the metadata; `WorkDetailPage.tsx` is the client half.
+
+| File | Owns |
+|---|---|
+| `animations/workDetail.ts` | hero entrance + the scrubbed hero close, chapter reveals and number drift, the gallery deck, the stack spectrum (returns a disposer), the next-project panel |
+| `hooks/useWorkDetailGsap.ts` | thin orchestrator; `slug` is in its dep list so a client-side navigation between two projects rebuilds the whole context |
+| `styles/workDetailCssString.ts` | the page's CSS; shares tokens with `worksCssString` via `styles/worksTokens.ts` |
+| `content/site.ts` → `workDetail` | labels + per-project narrative. **The narrative is a draft** written from the existing one-line summaries — see the warning above it |
+
+Three pieces carry the page:
+
+- **The hero closes.** The poster starts full-bleed and its `clip-path` inset is scrubbed into a rounded card while the image pushes in behind the crop. The open state must be written as `inset(0% round 0px)` in CSS — a clip-path only interpolates against a shape of the same kind, so animating from `none` would snap.
+- **The gallery deals out.** Frames are placed by the `--x/--y/--w/--r` custom properties in `DECK_SLOTS` (percentages of the stage, never `vw` — on a wide monitor `--pad-x` grows while the stage stops at `--max-w`, and `vw` widths would overflow). The motion is **measured off that layout** with `offsetLeft/offsetTop` (layout values, immune to the transforms the timeline writes), so the scatter can be reshuffled freely and the phone's plain column works with the same code. Desktop pins the stage; phones must not — the column is taller than the viewport there, hence the `gsap.matchMedia()` split, whose `revert()` is returned as a disposer.
+- **The spectrum answers the rows.** Each band's `flex-grow` *is* its share, so the bar is exact with no percentage arithmetic. Hovering a row lifts its band — written as the independent `translate` property, because the draw-in tween leaves an inline `transform: scaleX(1)` on every segment and `translate` composes with it instead of being overwritten.
+
+The lightbox is a **`Flip.fit`**, not a moved node: the overlay's own `<img>` is snapped onto the clicked frame's rect, that state is recorded, the transform is cleared, and `Flip.from` animates between the two. Never relocate the thumbnail into the overlay — React rendered both nodes and owns them. `public/works/gallery/*.jpg` are six frames per project pulled from its clip with ffmpeg; a work with no `gallery` simply drops that section.
 
 ### Hook Initialization Order (in `Portfolio.tsx`)
 
@@ -106,6 +140,12 @@ The full choreography runs on mobile — there is no "flat site" branch. Only re
 ## Don't do this
 
 - **No barrel files** (`index.ts` re-exports) — they were removed deliberately; import modules directly
+- **Don't autoplay the archive's videos** — `initWorksMedia` decides when a clip may decode (hover on a pointer device, mid-screen on a coarse one). Twenty clips looping at once is exactly the failure the archive page exists to avoid
+- **Don't put the space *inside* a word mask** — `.pp-word-mask` / `.wk-word-mask` crop their contents, so the separator has to be rendered between the masks, explicitly: React puts no text node between array items, and neither mask carries a margin (`.about-headline-word` solves the same problem the other way, with `margin-right`)
+- **Don't give the archive's Flip `absolute: true`** — lifting the cards out of flow collapses the grid's height mid-animation and the whole page below it jumps
+- **Don't size the detail page's deck slots in `vw`** — the stage stops at `--max-w` while `vw` keeps growing, so frames overflow on a wide monitor. Percentages of the stage, always
+- **Don't measure the deck with `getBoundingClientRect`** — the deal-out writes transforms to the very elements it measures; `offsetLeft/offsetTop` are layout values and immune to that
+- **Don't pin the deck on phones** — the scatter collapses to a column taller than the viewport there, and pinning something taller than the screen traps the reader (that is what the `matchMedia` split is for)
 - **No `any`** — `window.gsap/ScrollTrigger/THREE` are properly typed in `src/globals.ts`
 - **Don't import `unicornstudio-react` statically** — its SDK is ~1.4 MB; `UnicornHeroBackground` must stay behind `next/dynamic` + `ssr: false` (the preloader covers its load). Same for anything importing three
 - **Don't create ScrollTriggers in Phase A** (`heroIntro.ts`) or reorder Phase B's init calls without a reason — pins must register in document order
@@ -115,7 +155,7 @@ The full choreography runs on mobile — there is no "flat site" branch. Only re
 - **Don't hardcode the sphere's act-break point** — it's measured live from headline width and card geometry (`swiperOnScreen` in `animations/skills.ts`) and must stay measured
 - **Don't give the sphere's desktop ride an authored travel range** — its centre is put *on* the headline's first character: `sphereWorldXAtScreenX(firstCharCenter + trackX, …)`. The letter covers three-odd screen widths while the sphere covers one, so any fixed range drifts apart immediately. Two things that look like cleanups but are not: (a) `trackX` must be the track's **live** `gsap.getProperty(skillsTrack, "x")`, never recomputed from pin progress — the track runs `scrub: 1.2` and the sphere would sit ~a second ahead of the letter; (b) `sphereWorldXAtScreenX` does **not** subtract the camera's `0.15` pan, because `lookAt(0,0,0)` gives it back — see the comment there. It parks at `-fit.travelX` once the "W" carries on off screen, so the burst is never half off-frame
 - **Don't hardcode the sphere's first burst or its fade-in either** — both are measured off the headline characters' own fly-in anchors: `rideStartPin` (the "W" crossing `SKILLS_CHAR_ENTER_VW`) opens the fade-in, `burstStartPin` (the "t" of "What" `SKILLS_BURST_CHAR_FLY_IN` of the way through its window) starts the purple shedding, and the fade-in ends exactly where the burst starts so the sphere is never shedding half-transparent. `SKILLS_BURST_CHAR_FLY_IN` is the dial if the burst feels early or late; it is 0.5 and **not** 1 because the from-tweens use hard out-eases, so a character reads as landed at roughly half its trigger window. The two viewport fractions mirror the `"left 108%"` / `"left 54%"` literals on the per-character triggers — change one, change both. Measure off `.skills-headline-char-wrap`, never `.skills-headline-char`: GSAP owns the inner element's transform
-- **Keep the two reciprocal media scales in sync** — if `PROJECTS_MEDIA_PARKED_SCALE` changes, its `1/x` counter-scale must follow (that reciprocal is what makes the reveal read as an unfold, not a zoom)
+- **Keep the two reciprocal media scales in sync** — if `PROJECTS_MEDIA_PARKED_SCALE` changes, its `1/x` counter-scale must follow (that reciprocal is what makes the reveal read as an unfold, not a zoom). `WORK_MEDIA_PARKED_SCALE` (`animations/worksArchive.ts`) is the archive's copy of the same pairing
 - **Keep the Experience "past the eye" threshold (`NEAR_MISS`, 900) below the `.grav` CSS `perspective` (1400)** — at z ≥ perspective CSS stops drawing the card; the perspective value is also hardcoded as `P` in `experienceGravity.ts` and the two must agree
 - **Don't touch DOM nodes created by hand inside gsap.context and expect revert() to remove them** — clear them explicitly (see the glyph clearing in `projectsPath.ts`)
 - **Respect `prefers-reduced-motion`** — every new one-shot reveal must either skip its tweens (from-tweens at rest = the no-motion presentation) or provide a flat variant like the hall's `exp--flat`

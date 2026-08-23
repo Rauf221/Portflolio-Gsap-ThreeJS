@@ -1,6 +1,7 @@
 "use client";
 
-import { type CSSProperties, type RefObject } from "react";
+import Link from "next/link";
+import { Fragment, type CSSProperties, type RefObject } from "react";
 import { projects as projectsContent } from "../content/site";
 import { PROJECTS_META } from "../data/portfolioMeta";
 
@@ -67,7 +68,16 @@ export function ProjectsSection({ projectsRef }: Props) {
       </div>
 
       <div className="projects-after-path">
-        <p className="projects-intro-count font-mono">{projectsContent.countLabel(PROJECTS_META.length)}</p>
+        <div className="projects-intro-row">
+          <p className="projects-intro-count font-mono">{projectsContent.countLabel(PROJECTS_META.length)}</p>
+          {/* .projects-after-path is pointer-events:none (it lies over the
+              pinned path stage), so this link re-enables them for itself —
+              see .projects-archive-link in globalCssString. */}
+          <Link href="/works" className="projects-archive-link font-mono">
+            {projectsContent.archiveLabel}
+            <span className="projects-archive-arrow" aria-hidden="true">→</span>
+          </Link>
+        </div>
 
         {/* The scroll wrapper supplies the distance; the stage inside it is
             CSS-sticky. Deliberately NOT a GSAP pin — .projects-after-path
@@ -155,9 +165,16 @@ export function ProjectsSection({ projectsRef }: Props) {
                     {/* Split on words, not characters: the titles run to five words
                         and a per-character stagger at this size reads as noise. */}
                     {item.title.split(" ").map((word, wordIndex) => (
-                      <span key={`${word}-${wordIndex}`} className="pp-word-mask">
-                        <span className="pp-word">{word}</span>
-                      </span>
+                      /* The space belongs OUTSIDE the mask — inside it, the
+                         crop would eat it. React renders array items adjacent
+                         with no text node between them, so without this a
+                         multi-word title reads as one run-on word. */
+                      <Fragment key={`${word}-${wordIndex}`}>
+                        {wordIndex > 0 ? " " : null}
+                        <span className="pp-word-mask">
+                          <span className="pp-word">{word}</span>
+                        </span>
+                      </Fragment>
                     ))}
                   </h3>
 

@@ -16,6 +16,9 @@ export const heroNav = {
       title: "Repertoire",
       items: [
         { label: "Works", section: "projects" },
+        /* The full archive lives on its own route — the home section only ever
+           shows the four featured panels. */
+        { label: "All works", href: "/works" },
         { label: "Insights", section: "skills" },
       ],
     },
@@ -62,6 +65,9 @@ export const dock = {
        Each tile is either in-page (`section`) or a link (`href`); an `href`
        tile may also carry an `icon` to render a mark instead of its label. */
     rows: [
+      /* A 1—2—3—3 staircase: the archive gets the solo tile at the top, which
+         is the widest-reading position in a left-aligned short row. */
+      [{ label: "All works", href: "/works" }],
       [
         { label: "For Agencies", href: "mailto:Rauf280604@gmail.com?subject=Collaboration" },
         { label: "For Brands", href: "mailto:Rauf280604@gmail.com?subject=Project" },
@@ -142,6 +148,9 @@ export const skills = {
 export const projects = {
   label: "Selected projects",
   countLabel: (count: number) => `${count} projects`,
+  /* The way out of the four-panel sequence and into the full archive
+     (/works) — the section itself only ever shows the featured few. */
+  archiveLabel: "See the full archive",
   /* Written character by character along the curve in ProjectsSection. Its
      LENGTH is load-bearing: the camera travels `textSpan / pathLength` of the
      curve, so a much shorter line leaves the back of the path unvisited — and
@@ -361,5 +370,213 @@ export const aboutPage = {
         ],
       },
     ],
+  },
+} as const;
+
+/*
+ * Copy for the /works archive (app/works/WorksPage.tsx).
+ *
+ * `items` deliberately SPREADS projects.items rather than restating the four
+ * projects the home page also shows — one edit to a shared project's title or
+ * stack updates both surfaces. Entries after the spread exist only in the
+ * archive. Every key here must have a matching entry in WORKS_META
+ * (data/worksMeta.ts), which owns the year, accent and clip.
+ */
+export const worksPage = {
+  metaTitle: "Works — Rauf Huseynzade",
+  metaDescription:
+    "The full archive: production platforms, dashboards, storefronts and interactive web experiences built with Next.js, TypeScript, GSAP and Three.js.",
+  backHome: "Back to home",
+  /* The hero draws no text at all — it is the spiral scene. This line survives
+     as the page's <h1>, rendered for screen readers and the document outline
+     only, so `|` here is just the word separator the other headlines use. */
+  headline: "Everything|I|have|shipped.",
+  lede:
+    "Production platforms, admin surfaces, storefronts and experiments — each one still carrying the shape of the problem it was built to dissolve.",
+  meta: {
+    countLabel: "Projects",
+  },
+  index: {
+    title: "Index",
+    filterLabel: "Filter",
+    emptyLabel: "Nothing in this bucket yet.",
+    viewLabel: "View project",
+  },
+  filters: {
+    all: "All",
+    platform: "Platforms",
+    product: "Products",
+    ecommerce: "Commerce",
+    experience: "Experiences",
+  },
+  cta: {
+    line1: "Have something",
+    line2: "worth building?",
+    label: "Start collaboration",
+    href: "mailto:Rauf280604@gmail.com?subject=Project",
+  },
+  items: {
+    ...projects.items,
+    wayouth: {
+      title: "World Azerbaijanis Youth",
+      subtitle: "Corporate organisation platform",
+      desc: "End-to-end corporate site and admin workflows, built from scratch with motion-driven design and a responsive content architecture.",
+      tags: "Next.js, TypeScript, Admin panel, Motion, Responsive UI",
+    },
+    portfolio: {
+      title: "This portfolio",
+      subtitle: "Scroll-driven WebGL experience",
+      desc: "A single-page, scroll-choreographed site: a morphing sphere, a headline written along a curve, and a gravity playground where the cards fall out of the deep.",
+      tags: "Next.js App Router, Three.js, GSAP ScrollTrigger, Lenis",
+    },
+  },
+} as const;
+
+/*
+ * Copy for the project detail pages (/works/[slug], app/works/[slug]).
+ *
+ * ⚠ The per-project NARRATIVE below (tagline, challenge, approach, outcome,
+ * highlights) was drafted from the one-line summaries already in `projects` and
+ * `worksPage` — it is a working draft in the author's voice, not a transcript of
+ * what happened. Read it through and correct it before this ships; `role`,
+ * `timeline` and `client` in particular are the fields most likely to be wrong.
+ *
+ * Every key here must exist in WORKS_META (data/worksMeta.ts), which owns the
+ * slug, the gallery and the stack spectrum.
+ */
+export const workDetail = {
+  metaSuffix: "— Rauf Huseynzade",
+  labels: {
+    backToArchive: "All works",
+    overview: "Overview",
+    role: "Role",
+    timeline: "Timeline",
+    client: "Client",
+    category: "Discipline",
+    scrollCue: "Scroll",
+    challenge: "The problem",
+    approach: "The approach",
+    outcome: "What it became",
+    highlights: "What shipped",
+    gallery: "Screens",
+    galleryHint: "Click any frame to open it",
+    galleryClose: "Close",
+    galleryPrev: "Previous frame",
+    galleryNext: "Next frame",
+    stack: "Written in",
+    stackHint: "Proportions are how much of the build each piece carried.",
+    stackShare: "Share",
+    next: "Next project",
+    visit: "Visit the site",
+  },
+  items: {
+    burdaqal: {
+      tagline: "A real-estate platform that had to stay fast while it kept growing.",
+      role: "Lead Frontend / Full Stack Developer",
+      timeline: "2024 — Present",
+      client: "BurdaQal.az",
+      challenge:
+        "Property platforms drown in their own data. Thousands of listings, every one of them filterable, in three languages, on phones that give you no patience — and an admin side that has to stay usable for people who are not developers.",
+      approach:
+        "A typed Next.js App Router build with TanStack Query owning every server round trip, so the UI never guesses what it already knows. Filtering, pagination and search read from one cache; charts and dashboards sit on the same source rather than re-fetching their own.",
+      outcome:
+        "Listings, search, dashboards and admin tooling in one product, with the motion layer tuned so it never costs a frame on a mid-range phone.",
+      highlights: [
+        "Multi-language listing and search flows",
+        "Dashboard and analytics surfaces",
+        "Admin panel infrastructure",
+        "Advanced filtering with cached server state",
+        "SEO and Core Web Vitals tuning",
+      ],
+    },
+    develup: {
+      tagline: "A developer community that needed a front door worth walking through.",
+      role: "Founder / Developer",
+      timeline: "2023 — Present",
+      client: "DevelUP",
+      challenge:
+        "A community is only as real as the first thirty seconds of its landing page. It had to read as a product rather than a template, and it had to handle real accounts and real content from day one.",
+      approach:
+        "Firebase carries auth and data so the whole thing stays serverless, and the interface layer is built as a small design system: one set of motion rules, one type scale, one spacing rhythm, reused everywhere instead of restyled per page.",
+      outcome:
+        "A community platform with working account flows, a landing experience with its own character, and a structure that new sections drop straight into.",
+      highlights: [
+        "Firebase auth and Firestore-backed flows",
+        "Motion-led landing experience",
+        "Reusable UI system across the site",
+        "Contact and onboarding pipelines",
+      ],
+    },
+    bakuFlames: {
+      tagline: "A jury system where the wrong person must never see the wrong screen.",
+      role: "Full Stack · Platform UI",
+      timeline: "2024",
+      client: "Baku Flames",
+      challenge:
+        "Event judging is a permissions problem wearing a UI. Juries, organisers and the public need three different products out of one codebase, and media has to play flawlessly during a live event with an audience watching.",
+      approach:
+        "Redux Toolkit holds the role and session state so every screen derives what it may show rather than being told, a custom HTTP layer over Axios keeps the API surface in one place, and the media components are isolated so a player problem can never take a page down.",
+      outcome:
+        "Role-based flows for jury, organiser and public views, with media integration and deployment automation behind them.",
+      highlights: [
+        "Role-based access across three audiences",
+        "Redux Toolkit session and scoring state",
+        "Custom HTTP server architecture",
+        "Media playback and streaming integration",
+      ],
+    },
+    casiobaku: {
+      tagline: "A storefront that moves like a showroom, not a catalogue.",
+      role: "Frontend Developer",
+      timeline: "2024",
+      client: "Casiobaku.az",
+      challenge:
+        "Retail pages are usually a grid and a hope. The brief was a browsing experience with some theatre in it that still gets a shopper to the product page without a detour.",
+      approach:
+        "Product surfaces are composed from a small set of motion primitives — reveal, unfold, settle — so every page moves in the same language, and the catalogue stays a straight line from landing to product.",
+      outcome:
+        "A product catalogue and storefront where the motion is part of the browsing rather than decoration around it.",
+      highlights: [
+        "Motion-led catalogue browsing",
+        "Product and contact surfaces",
+        "Responsive storefront layouts",
+      ],
+    },
+    wayouth: {
+      tagline: "An organisation's whole public face, built from an empty folder.",
+      role: "Full Project Developer",
+      timeline: "2024",
+      client: "World Azerbaijanis Youth Organization",
+      challenge:
+        "There was no site, no content model and no admin workflow — only an organisation that needed all three at once, and staff who would have to run it without a developer beside them.",
+      approach:
+        "Content structure first: everything the organisation publishes was modelled before a single page was styled, so the admin side and the public side are two views of one shape rather than two products kept in step by hand.",
+      outcome:
+        "A corporate platform with its own admin workflows, motion-driven design, and a content model the team maintains themselves.",
+      highlights: [
+        "End-to-end corporate platform",
+        "Admin workflows for non-technical staff",
+        "Content model shared by both surfaces",
+        "Responsive, motion-driven design",
+      ],
+    },
+    portfolio: {
+      tagline: "The site you are reading — a scroll turned into choreography.",
+      role: "Everything",
+      timeline: "2026",
+      client: "Self-initiated",
+      challenge:
+        "Most portfolios describe the work. This one had to BE the work: proof that a scroll-driven WebGL site can stay smooth, readable and accessible instead of trading all three for spectacle.",
+      approach:
+        "One shared Three.js instance and at most three WebGL contexts on the page, GSAP owning every scroll-linked value, and choreography written as stateless maths over pin progress so reversing the scroll is correct for free. Reduced motion is a real branch, not an afterthought.",
+      outcome:
+        "A morphing sphere, a headline written along a curve, a gravity playground you catch cards in — and a page that still degrades to a readable document when the scripts never arrive.",
+      highlights: [
+        "Scroll-choreographed single page",
+        "Morphing sphere and hall atmosphere shaders",
+        "Hand-rolled Z-axis physics playground",
+        "Reduced-motion and no-WebGL fallbacks",
+      ],
+    },
   },
 } as const;

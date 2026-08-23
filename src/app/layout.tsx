@@ -34,6 +34,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  /*
+   * The project pages advertise an OG image by absolute path, and Next needs a
+   * base to resolve it against — without one it warns and falls back to
+   * localhost, which would ship a dead image URL to every social preview.
+   * Set NEXT_PUBLIC_SITE_URL to the real origin in the deployment environment.
+   */
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: siteMetadata.title,
   description: siteMetadata.description,
   openGraph: {

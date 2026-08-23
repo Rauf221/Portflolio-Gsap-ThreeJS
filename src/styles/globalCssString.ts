@@ -179,12 +179,56 @@ body::before {
   margin-top: -100svh;
   background: var(--bg);
 }
+/* No horizontal padding on purpose: the count's own position is unchanged by
+   this row, the archive link simply joins it on the same line. */
+.projects-intro-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
 .projects-intro-count {
   margin-top: 1.25rem;
   font-size: 0.75rem;
   letter-spacing: 0.1em;
   color: var(--muted);
 }
+/*
+ * The way out to /works. Its parent (.projects-after-path) is
+ * pointer-events:none — it lies over the pinned path stage and must not eat
+ * that section's input — so this link turns them back on for itself alone.
+ */
+.projects-archive-link {
+  pointer-events: auto;
+  position: relative;
+  margin-top: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  text-decoration: none;
+  cursor: none;
+}
+.projects-archive-link::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: -5px;
+  width: 100%; height: 1px;
+  background: var(--indigo);
+  transform: scaleX(0);
+  transform-origin: 100% 50%;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.projects-archive-link:hover::after { transform: scaleX(1); transform-origin: 0 50%; }
+.projects-archive-arrow {
+  display: inline-block;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.projects-archive-link:hover .projects-archive-arrow { transform: translateX(5px); }
 /* The list is pinned by GSAP for the length of the whole sequence and the
    panels are stacked absolutely inside it, because the transition moves them
    diagonally (in from top-right, out to bottom-left) — that needs full control
