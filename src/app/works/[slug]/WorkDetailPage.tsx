@@ -19,24 +19,19 @@ import { WORK_DETAIL_CSS } from "../../../styles/workDetailCssString";
 
 type Props = { slug: string };
 
-/*
- * Where the gallery frames sit on the stage, as shares of the stage itself —
- * percentages, never vw, so a wide monitor (where --pad-x grows and the stage
- * stops at --max-w) cannot push a frame past the right edge.
+/**
+ * Where a card rests once the fan is open.
  *
- * This is the only place the scatter is authored. The deal-out animation
- * measures whatever these produce, so the arrangement can be reshuffled freely
- * without touching animations/workDetail.ts. A gallery longer than this list
- * wraps back to the first slot.
+ * The cards share one pivot and differ only by rotation, so this single line is
+ * the entire layout: the screens divide a full circle between them and the
+ * whole rosette is turned by FAN_OFFSET so the first card starts up and to the
+ * left rather than lying flat along the axis.
+ *
+ * Because it is a share of 360, the rosette stays even at any count — six
+ * screens sit 60 degrees apart, ten sit 36 apart, and nothing else changes.
  */
-const DECK_SLOTS = [
-  { x: "2%", y: "6%", w: "31%", r: "-4deg" },
-  { x: "39%", y: "0%", w: "27%", r: "3deg" },
-  { x: "71%", y: "15%", w: "27%", r: "-2deg" },
-  { x: "0%", y: "53%", w: "28%", r: "5deg" },
-  { x: "31%", y: "45%", w: "34%", r: "-3deg" },
-  { x: "68%", y: "63%", w: "30%", r: "4deg" },
-];
+const FAN_OFFSET = -60;
+const fanAngle = (index: number, total: number) => FAN_OFFSET + (360 / total) * index;
 
 function Arrow({ dir = "right" }: { dir?: "left" | "right" }) {
   return (
@@ -199,9 +194,9 @@ export default function WorkDetailPage({ slug }: Props) {
   const nextArchive = worksPage.items[upNext.key as keyof typeof worksPage.items];
 
   const chapters = [
-    { n: "01", title: labels.challenge, text: copy.challenge },
-    { n: "02", title: labels.approach, text: copy.approach },
-    { n: "03", title: labels.outcome, text: copy.outcome },
+    { title: labels.challenge, text: copy.challenge },
+    { title: labels.approach, text: copy.approach },
+    { title: labels.outcome, text: copy.outcome },
   ];
 
   return (
@@ -231,10 +226,6 @@ export default function WorkDetailPage({ slug }: Props) {
           <span className="wd-hero-year" aria-hidden="true">{work.year}</span>
 
           <div className="wd-hero-inner">
-            <p className="wd-hero-eyebrow works-label">
-              <i aria-hidden="true" />
-              {worksPage.filters[work.category]} · {work.year}
-            </p>
             <h1 className="wd-title">
               <MaskedWords text={archive.title} />
             </h1>
@@ -260,25 +251,24 @@ export default function WorkDetailPage({ slug }: Props) {
             <span className="works-label">{labels.client}</span>
             <span className="wd-fact-val">{copy.client}</span>
           </div>
-          <div className="wd-fact">
-            <span className="works-label">{labels.category}</span>
-            {work.href ? (
+          {/* Only rendered when there is somewhere to go — the strip is an
+              auto-fit grid, so three facts close ranks on their own. */}
+          {work.href ? (
+            <div className="wd-fact">
+              <span className="works-label">{labels.visit}</span>
               <a className="wd-fact-val wd-visit" href={work.href} target="_blank" rel="noreferrer">
-                {labels.visit}
+                {archive.title}
                 <Arrow />
               </a>
-            ) : (
-              <span className="wd-fact-val">{worksPage.filters[work.category]}</span>
-            )}
-          </div>
+            </div>
+          ) : null}
         </section>
 
         {/* ── the three chapters ─────────────────────────────────────── */}
         <section className="wd-story">
           {chapters.map((chapter) => (
-            <article className="wd-chapter" key={chapter.n}>
+            <article className="wd-chapter" key={chapter.title}>
               <div className="wd-chapter-head">
-                <span className="wd-chapter-num" aria-hidden="true">{chapter.n}</span>
                 <h2 className="wd-chapter-title">
                   <MaskedWords text={chapter.title} />
                 </h2>
@@ -297,9 +287,9 @@ export default function WorkDetailPage({ slug }: Props) {
           <span className="works-label">{archive.subtitle}</span>
         </div>
         <ul className="wd-highlights">
-          {copy.highlights.map((item, i) => (
+          {copy.highlights.map((item) => (
             <li className="wd-highlight" key={item}>
-              <span className="wd-highlight-num">{String(i + 1).padStart(2, "0")}</span>
+              <span className="wd-highlight-mark" aria-hidden="true" />
               <span className="wd-highlight-text">{item}</span>
             </li>
           ))}
@@ -313,18 +303,27 @@ export default function WorkDetailPage({ slug }: Props) {
               <span className="works-label">{labels.galleryHint}</span>
             </div>
 
-            <div className="wd-deck">
-              {gallery.map((src, i) => {
-                const slot = DECK_SLOTS[i % DECK_SLOTS.length];
-                return (
+            {/* One pivot, and every card hung off it by nothing but its own
+                angle. The pivot is a zero-size point: it is a position, not a
+                box, which is why the rosette stays centred at any card size. */}
+            <div className="wd-fan">
+              <div className="wd-fan-pivot">
+                {gallery.map((src, i) => (
                   <button
                     type="button"
                     key={src}
                     ref={(el) => {
                       frameRefs.current[i] = el;
                     }}
-                    className={`wd-frame${activeFrame === i ? " is-lifted" : ""}`}
-                    style={{ "--x": slot.x, "--y": slot.y, "--w": slot.w, "--r": slot.r } as CSSProperties}
+                    className={`wd-card${activeFrame === i ? " is-lifted" : ""}`}
+                    style={
+                      {
+                        "--angle": `${fanAngle(i, gallery.length)}deg`,
+                        // First card on top, so the stack has a face before it
+                        // opens.
+                        zIndex: gallery.length - i,
+                      } as CSSProperties
+                    }
                     onClick={() => void openFrame(i)}
                     aria-label={`${archive.title} — ${i + 1}/${gallery.length}`}
                   >
@@ -332,10 +331,9 @@ export default function WorkDetailPage({ slug }: Props) {
                         request serves both. They are already sized for the job. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={src} alt="" loading="lazy" width={1280} height={720} />
-                    <span className="wd-frame-index">{String(i + 1).padStart(2, "0")}</span>
                   </button>
-                );
-              })}
+                ))}
+              </div>
             </div>
           </section>
         ) : null}
@@ -448,8 +446,21 @@ export default function WorkDetailPage({ slug }: Props) {
             >
               <Arrow dir="left" />
             </button>
-            <span className="wd-lb-count">
-              {String(activeFrame + 1).padStart(2, "0")} / {String(gallery.length).padStart(2, "0")}
+            {/* Dots rather than "03 / 06": the reader still needs to know
+                where they are in the set, and this says it without putting a
+                number on screen. Each one is also a way straight to that
+                frame. */}
+            <span className="wd-lb-dots">
+              {gallery.map((src, i) => (
+                <button
+                  type="button"
+                  key={src}
+                  className={`wd-lb-dot${i === activeFrame ? " is-active" : ""}`}
+                  aria-label={`${archive.title} ${i + 1}`}
+                  aria-current={i === activeFrame}
+                  onClick={() => stepFrame(i - activeFrame)}
+                />
+              ))}
             </span>
             <button
               type="button"

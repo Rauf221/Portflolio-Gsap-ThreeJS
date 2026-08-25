@@ -24,8 +24,8 @@ export type WorkCategory = "platform" | "product" | "ecommerce" | "experience";
  *
  * `share` is an AUTHORED proportion, not a measured line count — it is how much
  * of the build each technology carried, as the author reads it. The shares of a
- * work should add up to 100 (assertShares below shouts in dev if they don't),
- * because the spectrum bar lays them out as percentages of its own width.
+ * work should add up to 100, because the spectrum bar lays them out as shares
+ * of its own width — anything else just re-scales silently.
  *
  * `color` is the technology's own brand colour, which is what makes the bar
  * readable at a glance rather than a row of tinted blocks.
@@ -173,12 +173,6 @@ export const WORK_CATEGORY_ORDER: readonly WorkCategory[] = [
   "ecommerce",
   "experience",
 ];
-
-/** How many works sit in a bucket — the small count next to each filter. */
-export function countWorks(category: WorkCategory | "all") {
-  if (category === "all") return WORKS_META.length;
-  return WORKS_META.filter((w) => w.category === category).length;
-}
 
 export function findWork(slug: string) {
   return WORKS_META.find((w) => w.slug === slug);

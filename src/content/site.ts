@@ -146,11 +146,6 @@ export const skills = {
 } as const;
 
 export const projects = {
-  label: "Selected projects",
-  countLabel: (count: number) => `${count} projects`,
-  /* The way out of the four-panel sequence and into the full archive
-     (/works) — the section itself only ever shows the featured few. */
-  archiveLabel: "See the full archive",
   /* Written character by character along the curve in ProjectsSection. Its
      LENGTH is load-bearing: the camera travels `textSpan / pathLength` of the
      curve, so a much shorter line leaves the back of the path unvisited — and
@@ -393,9 +388,6 @@ export const worksPage = {
   headline: "Everything|I|have|shipped.",
   lede:
     "Production platforms, admin surfaces, storefronts and experiments — each one still carrying the shape of the problem it was built to dissolve.",
-  meta: {
-    countLabel: "Projects",
-  },
   index: {
     title: "Index",
     filterLabel: "Filter",
@@ -452,7 +444,6 @@ export const workDetail = {
     role: "Role",
     timeline: "Timeline",
     client: "Client",
-    category: "Discipline",
     scrollCue: "Scroll",
     challenge: "The problem",
     approach: "The approach",

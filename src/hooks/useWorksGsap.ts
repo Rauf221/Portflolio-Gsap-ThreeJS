@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, type RefObject } from "react";
 import { initProgressBar } from "../animations/chrome";
 import { initFooterReveals } from "../animations/footer";
 import {
@@ -6,14 +6,7 @@ import {
   initWorksCta,
   initWorksHero,
   initWorksMedia,
-  initWorksRailCounter,
 } from "../animations/worksArchive";
-
-type Args = {
-  progressRef: RefObject<HTMLDivElement | null>;
-  /** Called with the data-work-index of whichever card is crossing mid-screen. */
-  onActiveWork: (index: number) => void;
-};
 
 /**
  * Thin orchestrator for /works — the archive's counterpart to usePortfolioGsap.
@@ -26,14 +19,10 @@ type Args = {
  * because it owns raw listeners and standalone triggers that revert() cannot
  * see.
  */
-export function useWorksGsap(loaded: boolean, { progressRef, onActiveWork }: Args) {
-  // Kept in a ref so a parent re-render (the filter state lives up there) never
-  // tears down and rebuilds every trigger on the page.
-  const onActiveRef = useRef(onActiveWork);
-  useEffect(() => {
-    onActiveRef.current = onActiveWork;
-  }, [onActiveWork]);
-
+export function useWorksGsap(
+  loaded: boolean,
+  progressRef: RefObject<HTMLDivElement | null>,
+) {
   useEffect(() => {
     if (!loaded || !window.gsap || !window.ScrollTrigger) return;
     const gsap = window.gsap;
@@ -48,7 +37,6 @@ export function useWorksGsap(loaded: boolean, { progressRef, onActiveWork }: Arg
       // Phase B — scroll-driven, in document order.
       initProgressBar(progressRef.current, gsap);
       initWorksCards(gsap);
-      initWorksRailCounter(ST, (index) => onActiveRef.current(index));
       initWorksCta(gsap);
       // The shared footer, animated exactly as it is on the home page. `null`
       // for the dock: there is no floating dock on this page to step aside.

@@ -11,7 +11,6 @@ import { worksPage } from "../../content/site";
 import {
   WORKS_META,
   WORK_CATEGORY_ORDER,
-  countWorks,
   type WorkCategory,
 } from "../../data/worksMeta";
 import "../../globals";
@@ -77,10 +76,6 @@ export default function WorksPage() {
   const [loaded, setLoaded] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("all");
-  // Which card the reader is on, reported by the rail counter's triggers. 1 so
-  // the rail reads "01 / 06" before the first trigger has fired.
-  const [activeWork, setActiveWork] = useState(1);
-
   // Flips once the spiral has painted its first frame, which cross-fades the
   // flat poster strip out from under it.
   const [spiralReady, setSpiralReady] = useState(false);
@@ -107,7 +102,7 @@ export default function WorksPage() {
   useWorksScripts(setLoaded, onLoadError);
   usePortfolioLenis(loaded);
   usePortfolioCursor(cursorRef, cursorDotRef, loaded);
-  useWorksGsap(loaded, { progressRef, onActiveWork: setActiveWork });
+  useWorksGsap(loaded, progressRef);
 
   useEffect(() => {
     if (!loadFailed) return;
@@ -178,10 +173,6 @@ export default function WorksPage() {
             <span className="works-back-arrow" aria-hidden="true">←</span>
             {worksPage.backHome}
           </Link>
-          <span className="works-topbar-tag works-label">
-            <i className="works-topbar-dot" aria-hidden="true" />
-            {WORKS_META.length} {worksPage.meta.countLabel}
-          </span>
         </header>
 
         {/*
@@ -220,9 +211,6 @@ export default function WorksPage() {
           <aside className="works-rail">
             <div className="works-rail-head">
               <span className="works-label">{worksPage.index.title}</span>
-              <span className="works-rail-count">
-                {String(activeWork).padStart(2, "0")} / {String(WORKS_META.length).padStart(2, "0")}
-              </span>
             </div>
 
             <ul className="works-filters">
@@ -236,9 +224,6 @@ export default function WorksPage() {
                   >
                     <span className="works-filter-fill" aria-hidden="true" />
                     <span>{worksPage.filters[key]}</span>
-                    <span className="works-filter-count">
-                      {String(countWorks(key)).padStart(2, "0")}
-                    </span>
                   </button>
                 </li>
               ))}
@@ -308,11 +293,6 @@ export default function WorksPage() {
                   >
                     {media}
                   </Link>
-
-                  <div className="work-card-index wk-rise">
-                    <span className="work-card-num">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="work-card-cat">{worksPage.filters[work.category]}</span>
-                  </div>
 
                   <h2 className="work-card-title">
                     <Link className="work-card-title-link" href={`/works/${work.slug}`}>

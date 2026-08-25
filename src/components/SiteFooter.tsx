@@ -65,7 +65,11 @@ export function SiteFooter() {
           line-height: 1.2;
           font-size: clamp(1.3rem, 2.5vw, 2rem);
           transition: color 0.3s;
+          /* The arrow has to stay on the line, so the item never wraps — which
+             means the FONT is what gives on narrow screens (see the phone
+             block below), not the line. */
           white-space: nowrap;
+          max-width: 100%;
         }
         .rk-muted { color: rgba(255,248,231,0.55); }
         .rk-item .rk-arrow {
@@ -128,6 +132,7 @@ export function SiteFooter() {
           text-align: center;
           font-size: clamp(0.82rem, 1vw, 0.95rem);
           line-height: 1.4;
+          overflow-wrap: break-word;
           color: var(--bg);
           text-decoration: none;
           transition: color 0.3s;
@@ -136,16 +141,64 @@ export function SiteFooter() {
         .rk-info-col .l2 { color: rgba(255,248,231,0.55); }
         a.rk-info-col:hover, a.rk-info-col:hover .l2 { color: var(--sphere); }
 
-        @media (max-width: 760px) {
-          /* The floating dock is fixed across the bottom edge at this width;
-             without the extra room the last info row sits behind it. */
-          .rk-footer { padding-bottom: 6.5rem; }
-          .rk-contact { grid-template-columns: 1fr; row-gap: 2.5rem; }
-          .rk-col-r { margin-top: 2.5rem; }
+        /* Breakpoints mirror the site's own (900 layout / 700 phone / 430
+           narrow phone) rather than a footer-local width, so the footer
+           reflows on the same lines as everything above it. */
+
+        /* ── 900px: the contact zone stacks, the info strip halves ── */
+        @media (max-width: 900px) {
+          .rk-contact {
+            grid-template-columns: 1fr;
+            row-gap: clamp(2rem, 5vh, 3rem);
+          }
+          /* The row-gap already carries the separation — a margin on top of it
+             doubled the space between the CTA block and the location. */
+          .rk-col-r { margin-top: 0; }
+          /* The centre column of registration marks has nothing to register
+             against once there is only one column of content. */
           .rk-mark:nth-child(2), .rk-mark:nth-child(5), .rk-mark:nth-child(8) { display: none; }
+          /* Four columns land at ~180px here, narrower than either of the two
+             lines of copy they hold. 2x2 gives each line its width. */
           .rk-info { grid-template-columns: 1fr 1fr; }
           .rk-info-col:nth-child(3) { border-left: none; }
           .rk-info-col:nth-child(n+3) { border-top: 1px solid rgba(255,248,231,0.14); }
+        }
+
+        /* ── 700px: phone ── */
+        @media (max-width: 700px) {
+          /* The floating dock is fixed across the bottom edge; without the
+             extra room the last info row sits behind it. */
+          .rk-footer { padding-bottom: 6.5rem; }
+          .rk-contact { padding-top: clamp(2.5rem, 7vh, 4rem); }
+          /* Sized off the viewport, not a fixed floor: the item cannot wrap
+             (the arrow rides the line), so on a 320px screen the type is the
+             only thing left that can shrink to keep the email on screen. */
+          .rk-item { font-size: clamp(1.15rem, 4.6vw, 1.75rem); }
+          /* The slogan WRAPS on phones instead of bleeding. One nowrap line is
+             ~1.3x the band at any width, which costs a partial letter at each
+             end and reads as bleed at 1440px — but at 375px the same ratio
+             eats a whole character off each end and the line stops reading.
+             Broken over two lines it keeps the scale and stays legible; 19vw
+             is set so the longest word sits inside the band with room spare. */
+          .rk-slogan {
+            white-space: normal;
+            text-align: center;
+            font-size: clamp(2.6rem, 19vw, 5rem);
+            line-height: 0.98;
+            padding: 0.12em var(--fpad);
+          }
+          .rk-x {
+            width: 28px; height: 28px;
+            margin-bottom: clamp(1.25rem, 3vh, 2rem);
+          }
+          .rk-info-col { padding: clamp(0.9rem, 2.2vh, 1.25rem) 0.85rem; }
+        }
+
+        /* ── 430px: narrow phone ── */
+        @media (max-width: 430px) {
+          .rk-footer { --fpad: 1rem; }
+          .rk-mark { width: 5px; height: 5px; }
+          .rk-info-col { padding: 0.9rem 0.6rem; font-size: 0.8rem; }
         }
       `}</style>
 

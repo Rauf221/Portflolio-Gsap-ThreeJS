@@ -3,7 +3,7 @@ import { initProgressBar } from "../animations/chrome";
 import { initFooterReveals } from "../animations/footer";
 import {
   initWorkChapters,
-  initWorkDeck,
+  initWorkFan,
   initWorkFacts,
   initWorkHero,
   initWorkHeroScrub,
@@ -33,7 +33,6 @@ export function useWorkDetailGsap(
     const ST = window.ScrollTrigger;
 
     let disposeSpectrum: (() => void) | undefined;
-    let disposeDeck: (() => void) | undefined;
 
     const ctx = gsap.context(() => {
       // Phase A — entrance only.
@@ -45,7 +44,7 @@ export function useWorkDetailGsap(
       initWorkFacts(gsap);
       initWorkChapters(gsap);
       initWorkHighlights(gsap);
-      disposeDeck = initWorkDeck(gsap);
+      initWorkFan(gsap);
       disposeSpectrum = initWorkSpectrum(gsap);
       initWorkNext(gsap);
       initFooterReveals(gsap, null);
@@ -54,7 +53,6 @@ export function useWorkDetailGsap(
     ST.refresh();
 
     return () => {
-      disposeDeck?.();
       disposeSpectrum?.();
       ctx.revert();
     };

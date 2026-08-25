@@ -113,28 +113,6 @@ export function initWorksCta(gsap: typeof window.gsap) {
 }
 
 /**
- * Tells the rail which card the reader is on, so its counter tracks the scroll
- * the way the home panels' index does. Reports the card's `data-work-index`
- * rather than its position in the list, so the number stays correct while the
- * filter is hiding half the grid.
- */
-export function initWorksRailCounter(
-  ST: typeof window.ScrollTrigger,
-  onActive: (index: number) => void,
-) {
-  document.querySelectorAll<HTMLElement>(".work-card").forEach((card) => {
-    const index = Number(card.dataset.workIndex ?? "0");
-    ST.create({
-      trigger: card,
-      start: "top 60%",
-      end: "bottom 60%",
-      onEnter: () => onActive(index),
-      onEnterBack: () => onActive(index),
-    });
-  });
-}
-
-/**
  * Video discipline, and the reason this page can carry twenty clips.
  *
  * Nothing autoplays. On a pointer device a clip decodes only while the card is

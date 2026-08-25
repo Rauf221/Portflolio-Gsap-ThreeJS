@@ -163,14 +163,6 @@ export function ExperienceSection({ experienceRef }: Props) {
         }
 
         /* ── Card interior ── */
-        .grav-idx {
-          display: block;
-          font-size: 0.58rem;
-          letter-spacing: 0.38em;
-          text-transform: uppercase;
-          color: rgba(201,192,255,0.5);
-          margin-bottom: 0.95rem;
-        }
         .grav-year {
           display: block;
           font-size: clamp(2.6rem, 3.6vw, 3.4rem);
@@ -356,13 +348,10 @@ export function ExperienceSection({ experienceRef }: Props) {
         <ExperienceHallAtmosphere />
 
         <div className="grav-field">
-          {experiences.map((exp, i) => {
+          {experiences.map((exp) => {
             const item = experience.items[exp.key];
             return (
               <article key={exp.key} className="grav-card grav-card--idle" data-cursor>
-                <span className="grav-idx">
-                  {String(i + 1).padStart(2, "0")} / {String(experiences.length).padStart(2, "0")}
-                </span>
                 <span className="grav-year">{startYear(item.period)}</span>
                 <div className="grav-rule" aria-hidden="true" />
                 <h3 className="grav-company">{item.company}</h3>

@@ -128,17 +128,6 @@ export const WORK_DETAIL_CSS = (WORKS_BASE_CSS + `
   gap: clamp(0.9rem, 2.4vh, 1.6rem);
   color: #FFF8E7;
 }
-.wd-hero-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  color: rgba(255,248,231,0.75);
-}
-.wd-hero-eyebrow i {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-}
 .wd-title {
   font-size: clamp(2.4rem, 7.5vw, 6.5rem);
   font-weight: 800;
@@ -173,9 +162,12 @@ export const WORK_DETAIL_CSS = (WORKS_BASE_CSS + `
 }
 
 /* ── fact strip ──────────────────────────────────────────────────────── */
+/* auto-fit, not a fixed four: the visit column only exists for works with a
+   live site, and the remaining facts should close ranks rather than leave a
+   hole where it would have been. */
 .wd-facts {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
   gap: clamp(1.25rem, 3vw, 2.5rem);
   padding: clamp(2.5rem, 7vh, 4.5rem) var(--pad-x);
   border-bottom: 1px solid var(--line);
@@ -223,17 +215,6 @@ export const WORK_DETAIL_CSS = (WORKS_BASE_CSS + `
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
   gap: clamp(1.5rem, 4vw, 4rem);
   align-items: start;
-}
-/* The chapter number is drawn as an outline and drifts against the scroll, so
-   the three blocks read as one long column rather than three cards. */
-.wd-chapter-num {
-  font-size: clamp(4.5rem, 13vw, 12rem);
-  font-weight: 800;
-  line-height: 0.8;
-  letter-spacing: -0.05em;
-  color: transparent;
-  -webkit-text-stroke: 1px color-mix(in srgb, var(--accent) 55%, transparent);
-  will-change: transform;
 }
 .wd-chapter-head { display: flex; flex-direction: column; gap: 1rem; }
 .wd-chapter-title {
@@ -289,11 +270,14 @@ export const WORK_DETAIL_CSS = (WORKS_BASE_CSS + `
   transition: transform 0.5s var(--ease-out);
 }
 .wd-highlight:hover::before { transform: scaleX(1); }
-.wd-highlight-num {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--accent);
+/* Replaces the old 01/02 counter: the row still gets an accent anchor at its
+   left edge, without putting a position on screen. */
+.wd-highlight-mark {
+  flex: 0 0 auto;
+  width: 7px; height: 7px;
+  border-radius: 2px;
+  background: var(--accent);
+  align-self: center;
 }
 .wd-highlight-text {
   font-size: clamp(0.95rem, 1.2vw, 1.1rem);
@@ -318,61 +302,83 @@ export const WORK_DETAIL_CSS = (WORKS_BASE_CSS + `
   line-height: 1;
 }
 
-/* ── gallery: the deck ───────────────────────────────────────────────── */
+/* ── gallery: the fan ────────────────────────────────────────────────── */
 .wd-gallery { position: relative; padding: clamp(3rem, 9vh, 6rem) 0; }
 /*
- * The stage is pinned while the deck deals out. Its children are absolutely
- * placed from the --x/--y/--w/--r custom properties the component hands them,
- * so the layout is authored in the markup and the MOTION is measured off it
- * (animations/workDetail.ts reads each frame's real position and tweens it in
- * from the middle of the stage). Change the scatter freely — nothing in the JS
- * hardcodes where a frame ends up.
+ * The stage is pinned while a neat stack of screens spreads into a full 360
+ * degree rosette. Every card is anchored to ONE pivot — the zero-size element
+ * at the centre — and carries transform-origin: left bottom, so a card is
+ * placed entirely by its own rotation. Its resting angle is --angle, handed
+ * down per card by the component.
+ *
+ * The FANNED state is the resting state, on purpose: a reader whose scripts
+ * never arrived, or who asked for reduced motion, gets the composed rosette
+ * rather than a pile of cards on top of each other. The JS only animates the
+ * page INTO it, from the stack.
  */
-.wd-deck {
+.wd-fan {
   position: relative;
   height: 100svh;
-  margin: 0 var(--pad-x);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  /*
+   * THE dial for how big the rosette reads. It is the card's width as a share
+   * of the short viewport axis, and the circle the cards sweep is
+   * 2 x 1.147 x that (the radius is the card's DIAGONAL, since every card is
+   * pinned by a corner). So the rosette spans 2.29 x this much of the short
+   * side: at 0.42 that is ~96%, which is as close to edge-to-edge as it can sit
+   * before the outermost cards start clipping. Lower it to give the fan air.
+   */
+  --fan-fit: 0.42;
 }
-.wd-frame {
+/* Zero-size on purpose: it is a point, not a box, and every card hangs off it. */
+.wd-fan-pivot { position: relative; width: 0; height: 0; will-change: transform; }
+.wd-card {
   position: absolute;
-  left: var(--x);
-  top: var(--y);
-  width: var(--w);
+  left: 0;
+  bottom: 0;
+  /* Sized off the SMALLER viewport axis, because the rosette is as wide as it
+     is tall. The factor lives on .wd-fan above, where the geometry is
+     explained — it is the one number that resizes the whole thing. */
+  width: calc(var(--fan-fit, 0.42) * min(100vw, 100svh));
   padding: 0;
   border: 0;
   border-radius: 14px;
   overflow: hidden;
   background: var(--bg2);
-  transform: rotate(var(--r));
-  box-shadow: 0 24px 60px -30px rgba(37,33,44,0.55);
+  transform-origin: left bottom;
+  transform: rotate(var(--angle));
+  box-shadow: 0 26px 60px -28px rgba(37,33,44,0.55);
   cursor: none;
   will-change: transform;
-  transition: box-shadow 0.5s var(--ease-out);
+  transition: box-shadow 0.5s var(--ease-out), scale 0.5s var(--ease-out);
 }
-.wd-frame img {
+.wd-card img {
   display: block;
   width: 100%;
   height: auto;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  transition: scale 0.7s var(--ease-out);
 }
-.wd-frame:hover { box-shadow: 0 34px 80px -28px rgba(37,33,44,0.65); }
-.wd-frame:hover img { scale: 1.05; }
-/* The frame the lightbox is currently showing is held invisible, so the image
-   never appears in two places while the overlay is open. */
-.wd-frame.is-lifted { opacity: 0; }
-.wd-frame-index {
+/* The sheen that makes the stack read as a deck of physical cards rather than
+   a pile of screenshots — brightest at the top-left corner of each one. */
+.wd-card::after {
+  content: '';
   position: absolute;
-  left: 10px; bottom: 10px;
-  padding: 3px 9px;
-  border-radius: 20px;
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  color: #fff;
-  background: rgba(0,0,0,0.45);
-  backdrop-filter: blur(6px);
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.07) 42%, transparent 100%);
 }
+/* Lifts under the pointer with the INDEPENDENT scale property: GSAP owns this
+   element's transform (the rotation), and scale composes with it instead of
+   overwriting it. */
+.wd-card:hover { scale: 1.05; box-shadow: 0 36px 80px -26px rgba(37,33,44,0.7); }
+/* The card the lightbox is showing is held invisible, so the image is never in
+   two places at once. */
+.wd-card.is-lifted { opacity: 0; }
 
 /* ── lightbox ────────────────────────────────────────────────────────── */
 .wd-lightbox {
@@ -419,13 +425,18 @@ export const WORK_DETAIL_CSS = (WORKS_BASE_CSS + `
   transition: background 0.35s var(--ease-out), border-color 0.35s var(--ease-out);
 }
 .wd-lb-btn:hover { background: rgba(255,248,231,0.14); border-color: rgba(255,248,231,0.5); }
-.wd-lb-count {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  min-width: 5rem;
-  text-align: center;
+.wd-lb-dots { display: flex; align-items: center; gap: 10px; }
+.wd-lb-dot {
+  width: 7px; height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255,248,231,0.32);
+  cursor: none;
+  transition: background 0.35s var(--ease-out), scale 0.35s var(--ease-out);
 }
+.wd-lb-dot:hover { background: rgba(255,248,231,0.6); }
+.wd-lb-dot.is-active { background: #FFF8E7; scale: 1.5; }
 .wd-lb-close {
   position: absolute;
   top: clamp(1rem, 3vh, 2rem);
@@ -558,7 +569,6 @@ export const WORK_DETAIL_CSS = (WORKS_BASE_CSS + `
 /* ── responsive ──────────────────────────────────────────────────────── */
 @media (max-width: 1080px) {
   .wd-chapter { grid-template-columns: 1fr; gap: 1.25rem; }
-  .wd-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .wd-band { grid-template-columns: 14px minmax(0, 1fr) auto; }
   .wd-band-role { display: none; }
 }
@@ -568,24 +578,20 @@ export const WORK_DETAIL_CSS = (WORKS_BASE_CSS + `
   .wd-highlights { grid-template-columns: 1fr; }
   .wd-hero-year { bottom: 26%; -webkit-text-stroke-width: 1px; }
   .wd-title { max-width: none; }
-  .wd-deck { height: auto; margin: 0 var(--pad-x); }
-  /* The scatter collapses to a plain column on a phone: absolute placement in a
-     viewport this narrow puts frames on top of each other. The deal-out still
-     works, because the JS measures wherever the frames actually land. */
-  .wd-frame {
-    position: relative;
-    left: auto; top: auto;
-    width: 100%;
-    margin-bottom: 1rem;
-    transform: rotate(0deg);
-  }
+  /* The rosette needs no phone branch for its geometry — every dimension in it
+     is a share of the short viewport axis, so it just gets smaller. It only
+     takes a slightly gentler fit: on a phone the short axis is the WIDTH, and
+     cards reaching to within a few pixels of both edges reads as an accident
+     rather than as full bleed. */
+  .wd-fan { --fan-fit: 0.40; }
+  .wd-card { border-radius: 10px; }
   .wd-lb-btn { width: 40px; height: 40px; }
 }
 
-/* Reduced motion: the reveals are skipped in JS and the deck is laid out at
-   rest, so only the decorative loops need stopping. */
+/* Reduced motion: the reveals are skipped in JS and the fan's RESTING state is
+   already the spread rosette, so only the decorative loops need stopping. */
 @media (prefers-reduced-motion: reduce) {
   .wd-hero-cue span { animation: none; transform: scaleX(1); opacity: 1; }
-  .wd-frame img, .wd-next-media img, .wd-seg, .wd-band { transition: none; }
+  .wd-card, .wd-next-media img, .wd-seg, .wd-band { transition: none; }
 }
 `+WORKS_CURSOR_CSS).trim();

@@ -179,56 +179,6 @@ body::before {
   margin-top: -100svh;
   background: var(--bg);
 }
-/* No horizontal padding on purpose: the count's own position is unchanged by
-   this row, the archive link simply joins it on the same line. */
-.projects-intro-row {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
-}
-.projects-intro-count {
-  margin-top: 1.25rem;
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  color: var(--muted);
-}
-/*
- * The way out to /works. Its parent (.projects-after-path) is
- * pointer-events:none — it lies over the pinned path stage and must not eat
- * that section's input — so this link turns them back on for itself alone.
- */
-.projects-archive-link {
-  pointer-events: auto;
-  position: relative;
-  margin-top: 1.25rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text);
-  text-decoration: none;
-  cursor: none;
-}
-.projects-archive-link::after {
-  content: '';
-  position: absolute;
-  left: 0; bottom: -5px;
-  width: 100%; height: 1px;
-  background: var(--indigo);
-  transform: scaleX(0);
-  transform-origin: 100% 50%;
-  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.projects-archive-link:hover::after { transform: scaleX(1); transform-origin: 0 50%; }
-.projects-archive-arrow {
-  display: inline-block;
-  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.projects-archive-link:hover .projects-archive-arrow { transform: translateX(5px); }
 /* The list is pinned by GSAP for the length of the whole sequence and the
    panels are stacked absolutely inside it, because the transition moves them
    diagonally (in from top-right, out to bottom-left) — that needs full control
@@ -264,7 +214,10 @@ body::before {
   align-items: stretch;
   padding: 0;
   background: var(--bg);
-  will-change: transform, opacity;
+  /* transform only: the swap deliberately never fades (opacity stays 1 the
+     whole way — see PROJECTS_PANEL_IN/OUT), and listing opacity here asks the
+     compositor for an alpha layer per panel that nothing ever uses. */
+  will-change: transform;
 }
 .project-panel-inner {
   width: 100%;
@@ -311,8 +264,15 @@ body::before {
   padding: 4px 11px;
   border-radius: 20px;
   color: #fff;
-  background: rgba(0,0,0,0.42);
-  backdrop-filter: blur(6px);
+  /*
+   * Deliberately NOT backdrop-filter. This chip rides a full-viewport panel
+   * that is transformed and skewed on every scrubbed frame, and a backdrop
+   * filter makes the browser snapshot and blur what is behind it EVERY one of
+   * those frames — four times over, once per panel. Over footage this busy the
+   * blur was never legible anyway; a denser pill reads the same and costs
+   * nothing.
+   */
+  background: rgba(0,0,0,0.55);
 }
 .project-panel-info {
   flex: 1;
@@ -323,43 +283,6 @@ body::before {
   padding: clamp(1rem, 3vw, 2.5rem) clamp(0.5rem, 1.5vw, 1.5rem);
 }
 
-/* Index row — the panel's own number, then the section label pushed right by
-   an accent rule that fills whatever space is left. */
-.project-panel-index {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-bottom: clamp(0.9rem, 2vh, 1.6rem);
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.project-panel-index-num {
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--panel-accent);
-}
-.project-panel-index-total {
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-left: -0.35rem;
-}
-.project-panel-index-label {
-  position: relative;
-  padding-left: 2.6rem;
-  color: var(--muted);
-}
-.project-panel-index-label::before {
-  content: "";
-  position: absolute;
-  left: 0.7rem;
-  top: 50%;
-  width: 1.5rem;
-  height: 1px;
-  background: var(--panel-accent);
-  opacity: 0.55;
-}
 
 .project-panel-title {
   font-size: clamp(1.9rem, 3.2vw, 3.1rem);
@@ -507,7 +430,6 @@ body::before {
   .project-panel-inner { flex-direction: column; gap: 0.75rem; }
   .project-panel-media { flex: 0 0 40%; min-height: 0; }
   .project-panel-info { flex: 1; min-height: 0; justify-content: flex-start; padding: 0.5rem 0.75rem 1rem; }
-  .project-panel-index { margin-bottom: 0.6rem; }
   .project-panel-subtitle { margin-bottom: 0.55rem; }
   .project-panel-rule { margin-bottom: 0.7rem; }
   .project-panel-desc { margin-bottom: 16px; }
@@ -523,9 +445,6 @@ body::before {
 @media (max-width: ${MOBILE_MAX_WIDTH}px) {
   .project-panel-media { flex: 0 0 34%; border-radius: 12px; }
   .project-panel-title { font-size: clamp(1.5rem, 7.5vw, 2.1rem); }
-  .project-panel-index { font-size: 0.62rem; margin-bottom: 0.5rem; }
-  .project-panel-index-label { padding-left: 1.9rem; }
-  .project-panel-index-label::before { left: 0.5rem; width: 1rem; }
   .project-panel-subtitle { font-size: 0.68rem; }
   .project-panel-desc {
     font-size: 0.82rem;
@@ -1194,8 +1113,18 @@ body::before {
   .skills-headline { font-size: clamp(3.4rem, 19vw, 6.5rem); }
   .skills-carousel-name-list { left: 8vw; top: 34%; }
   .skills-carousel-name-row { font-size: clamp(1.05rem, 4.8vw, 1.45rem); }
-  /* Centred, and low enough that the names above never collide with a tile. */
-  .skills-icon-track { left: 50%; top: 62%; }
+  /*
+   * X only — the vertical staging above is unchanged.
+   *
+   * left: 50% centred the TILE, not the section: the block a reader actually
+   * sees runs from the names' left edge to the tile's right edge, so a tile
+   * sitting dead centre left an 8vw gutter on one side and roughly a third of
+   * the screen empty on the other. Mirroring the names' 8vw inset on the right
+   * instead puts equal margin either side, which centres that block. The track
+   * is a zero-width anchor with the tile centred on it, hence the half tile
+   * coming off the inset; keep the clamp identical to .skills-icon-tile below.
+   */
+  .skills-icon-track { left: calc(92vw - clamp(118px, 32vw, 154px) / 2); top: 62%; }
   /* MUST mirror getSkillsCarouselMetrics' cardSize in animations/skills.ts. */
   .skills-icon-tile {
     width: clamp(118px, 32vw, 154px);

@@ -382,26 +382,6 @@ export function initProjectsPanels(root: HTMLElement, gsap: typeof window.gsap) 
        * text-content interpolation here, just a number GSAP owns and an
        * onUpdate that stamps it into the DOM.
        */
-      const indexEl = panel.querySelector(".project-panel-index-num");
-      if (indexEl) {
-        const counter = { value: 0 };
-        const target = index + 1;
-        tl.fromTo(
-          counter,
-          { value: 0 },
-          {
-            value: target,
-            duration: PROJECTS_INFO_DURATION * 1.6,
-            ease: "power2.out",
-            snap: { value: 1 },
-            onUpdate: () => {
-              indexEl.textContent = String(Math.round(counter.value)).padStart(2, "0");
-            },
-          },
-          at + PROJECTS_INFO_LEAD,
-        );
-      }
-
       /*
        * Each tag row is wiped through by a bright band as it lands: in from
        * the left, then out to the right. Flipping transformOrigin between the

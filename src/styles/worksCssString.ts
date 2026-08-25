@@ -56,23 +56,6 @@ export const WORKS_PAGE_CSS = (WORKS_BASE_CSS + `
   transition: transform 0.5s var(--ease-out);
 }
 .works-back:hover::after { transform: scaleX(1); transform-origin: 0 50%; }
-.works-topbar-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 0.9rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(255,248,231,0.55);
-  backdrop-filter: blur(8px);
-}
-.works-topbar-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--indigo);
-  animation: works-pulse 2.4s ease-in-out infinite;
-}
-@keyframes works-pulse { 0%,100% { opacity: 0.35; } 50% { opacity: 1; } }
 
 /* ── hero: the spiral scene, and nothing else ────────────────────────── */
 .works-hero {
@@ -159,11 +142,6 @@ export const WORKS_PAGE_CSS = (WORKS_BASE_CSS + `
   padding-bottom: 0.9rem;
   border-bottom: 1px solid var(--line);
 }
-.works-rail-count {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--indigo);
-}
 .works-filters {
   display: flex;
   flex-direction: column;
@@ -209,11 +187,6 @@ export const WORKS_PAGE_CSS = (WORKS_BASE_CSS + `
   background: var(--indigo);
 }
 .works-filter.is-active { color: #FFF8E7; }
-.works-filter-count {
-  font-size: 0.7rem;
-  font-weight: 700;
-  opacity: 0.65;
-}
 .works-rail-note {
   font-size: 0.72rem;
   line-height: 1.6;
@@ -319,32 +292,6 @@ export const WORKS_PAGE_CSS = (WORKS_BASE_CSS + `
 .work-card-media:hover .work-card-arrow svg { transform: rotate(45deg); }
 .work-card-arrow svg { transition: transform 0.55s var(--ease-out); }
 
-.work-card-index {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.work-card-num {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--work-accent);
-}
-.work-card-cat {
-  position: relative;
-  padding-left: 2.4rem;
-  color: var(--muted);
-}
-.work-card-cat::before {
-  content: '';
-  position: absolute;
-  left: 0.6rem; top: 50%;
-  width: 1.4rem; height: 1px;
-  background: var(--work-accent);
-  opacity: 0.55;
-}
 .work-card-title {
   font-size: clamp(1.35rem, 2vw, 1.9rem);
   font-weight: 800;
@@ -479,7 +426,6 @@ export const WORKS_PAGE_CSS = (WORKS_BASE_CSS + `
   :root { --pad-x: 1.25rem; }
   body { overflow-x: hidden; }
   .works-grid { grid-template-columns: 1fr; }
-  .works-topbar-tag { display: none; }
   .work-card-media { border-radius: 12px; }
   /* Three tiles instead of five: at phone width the outer pair of the fan is
      mostly off the screen anyway. */
@@ -491,7 +437,6 @@ export const WORKS_PAGE_CSS = (WORKS_BASE_CSS + `
 /* Reduced motion: the from-tweens are skipped in JS, so nothing here has to
    restore a resting state — only the decorative loops are stopped. */
 @media (prefers-reduced-motion: reduce) {
-  .works-topbar-dot { animation: none; opacity: 1; }
   /* The scene paints a single still frame under reduced motion, so the stage
      still resolves to the spiral rather than staying on the flat strip. */
   .works-spiral, .works-hero-flat { transition: none; }

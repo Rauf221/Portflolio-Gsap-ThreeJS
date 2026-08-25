@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Fragment, type CSSProperties, type RefObject } from "react";
 import { projects as projectsContent } from "../content/site";
 import { PROJECTS_META } from "../data/portfolioMeta";
@@ -68,17 +67,6 @@ export function ProjectsSection({ projectsRef }: Props) {
       </div>
 
       <div className="projects-after-path">
-        <div className="projects-intro-row">
-          <p className="projects-intro-count font-mono">{projectsContent.countLabel(PROJECTS_META.length)}</p>
-          {/* .projects-after-path is pointer-events:none (it lies over the
-              pinned path stage), so this link re-enables them for itself —
-              see .projects-archive-link in globalCssString. */}
-          <Link href="/works" className="projects-archive-link font-mono">
-            {projectsContent.archiveLabel}
-            <span className="projects-archive-arrow" aria-hidden="true">→</span>
-          </Link>
-        </div>
-
         {/* The scroll wrapper supplies the distance; the stage inside it is
             CSS-sticky. Deliberately NOT a GSAP pin — .projects-after-path
             carries margin-top:-100vh and already sits under the path pin, and
@@ -153,13 +141,6 @@ export function ProjectsSection({ projectsRef }: Props) {
                   reading order.
                 */}
                 <div className="project-panel-info">
-                  <div className="project-panel-index font-mono pp-rise">
-                    <span className="project-panel-index-num">{String(p.id).padStart(2, "0")}</span>
-                    <span className="project-panel-index-total">
-                      /{String(PROJECTS_META.length).padStart(2, "0")}
-                    </span>
-                    <span className="project-panel-index-label">{projectsContent.label}</span>
-                  </div>
 
                   <h3 className="project-panel-title font-display">
                     {/* Split on words, not characters: the titles run to five words
