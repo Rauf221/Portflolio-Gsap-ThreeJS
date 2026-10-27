@@ -4,53 +4,69 @@ export const metadata = {
     "Next.js, React, TypeScript, interactive web experiences, dashboards, and production-grade frontend engineering.",
 } as const;
 
-/* Copy for the hero overlay layer (HeroOverlay.tsx): the grouped navigation,
-   the clock, the centre statement, and the corner labels. Items carry EITHER a
-   `section` (an in-page id, scrolled to via scrollToSection) OR an `href` (an
-   external / mailto link) — never both. */
+/*
+ * Copy for the hero overlay layer (HeroOverlay.tsx).
+ *
+ * The overlay is four clusters pinned to the frame's edges with the portrait
+ * breathing between them: a top rail (mark / centred nav / clock), a
+ * left-middle lead block (headline, one supporting line, one primary link), a
+ * right-middle section index, and a foot band with contact at one end and the
+ * scroll hint at the other. Nothing is ruled across the frame — the clusters
+ * are held by alignment alone, so the only drawn shapes are the index rail's
+ * hairline and the two small circles in the foot band.
+ *
+ * Nav items carry EITHER a `section` (an in-page id, scrolled to via
+ * scrollToSection) OR an `href` (an external / route link) — never both. The
+ * same rule applies to `cta` and `scrollHint`.
+ */
 export const heroNav = {
-  groups: [
-    {
-      id: "repertoire",
-      glyph: "flag",
-      title: "Repertoire",
-      items: [
-        { label: "Works", section: "projects" },
-        /* The full archive lives on its own route — the home section only ever
-           shows the four featured panels. */
-        { label: "All works", href: "/works" },
-        { label: "Insights", section: "skills" },
-      ],
-    },
-    {
-      id: "narrative",
-      glyph: "circle",
-      title: "Narrative",
-      items: [
-        { label: "About", section: "about" },
-        { label: "Experience", section: "experience" },
-      ],
-    },
-    {
-      id: "liaison",
-      glyph: "square",
-      title: "Liaison",
-      items: [
-        { label: "For Brands", href: "mailto:Rauf280604@gmail.com?subject=Project" },
-        { label: "For Agencies", href: "mailto:Rauf280604@gmail.com?subject=Collaboration" },
-      ],
-    },
+  nav: [
+    { label: "Works", section: "projects" },
+    /* The full archive lives on its own route — the home section only ever
+       shows the four featured panels. */
+    { label: "Archive", href: "/works" },
+    { label: "Insights", section: "skills" },
+    { label: "About", section: "about" },
+    { label: "Experience", section: "experience" },
   ],
-  /* Local time of wherever the site's owner is (footer.location). Swap
-     timeZone/zoneLabel together to show a different city. */
-  clock: { timeZone: "Asia/Baku", zoneLabel: "AZT", localeLabel: "EN" },
-  discover: "Discover",
-  cta: { label: "Get in touch", href: "mailto:Rauf280604@gmail.com?subject=Collaboration" },
-  /* One <p> per line — they are staggered individually on entrance. */
-  statement: ["Rauf Huseynzade.", "Design & Code for those", "who refuse to settle."],
-  era: "2026—Future",
+  /* Local time of wherever the site's owner is. Swap timeZone/zoneLabel
+     together to show a different city. */
+  clock: { timeZone: "Asia/Baku", zoneLabel: "AZT" },
+  /*
+   * The headline is written as explicit lines rather than one string left to a
+   * max-width, because where it breaks IS the composition: two lines with the
+   * accent closing the second is the shape, and a measure would pick a
+   * different break at every viewport width. `accent` is the indigo tail of
+   * line two — keep the period on it, it is the full stop of the whole block.
+   */
+  headline: { line1: "Where structure", line2: "meets", accent: "atmosphere." },
+  /* Two lines' worth at the set measure — the only prose in the frame, so it
+     says what the work is for instead of restating the headline. */
+  subline: "I build digital experiences that balance clarity, motion and purpose.",
+  /* The lead block's own link: the one thing the hero actually asks for. Points
+     at the archive ROUTE, not the home section — the arrow is a north-east one,
+     so it has to leave the page for that arrow to be honest. */
+  cta: { label: "View works", href: "/works" },
+  /*
+   * The right-hand index. `section` joins each row to a real section id, so the
+   * live row lights up off the same activeSection the nav rail reads; the
+   * numbers come from row order and are never authored, so inserting a section
+   * cannot leave a gap in the count. Order must stay DOCUMENT order — it is
+   * read as a position in the page, not as a menu.
+   */
+  index: [
+    { section: "about", label: "About" },
+    { section: "skills", label: "Insights" },
+    { section: "projects", label: "Works" },
+    { section: "experience", label: "Experience" },
+  ],
+  /* Foot band, left end. The mail link that used to be the lead CTA — down here
+     it reads as the way out of the page rather than the point of it. */
+  contact: { label: "Get in touch", href: "mailto:Rauf280604@gmail.com?subject=Collaboration" },
+  /* Foot band, right end. Points at the first section under the hero, so the
+     circle is a control and not just a caption about scrolling. */
+  scrollHint: { label: "Scroll to explore", section: "about" },
 } as const;
-
 /* Copy for the floating dock (FloatingDock.tsx) — the small centred bar that
    takes over once the hero overlay's navigation has scrolled away. */
 export const dock = {
@@ -399,13 +415,22 @@ export const worksPage = {
     platform: "Platforms",
     product: "Products",
     ecommerce: "Commerce",
+    corporate: "Corporate",
     experience: "Experiences",
   },
+  /* Chip on the cards of work the Markup Agency team shipped without my
+     commits in it (WORKS_META `agency: true`). */
+  agencyCredit: "Markup Agency",
   cta: {
     line1: "Have something",
     line2: "worth building?",
     label: "Start collaboration",
     href: "mailto:Rauf280604@gmail.com?subject=Project",
+    lede: "Platforms, storefronts, dashboards, scroll-driven sites. Tell me what you are building and I will tell you how I would build it.",
+    factProjects: "Projects in the archive",
+    factSince: "Writing code since",
+    emailLabel: "Or write directly",
+    email: "Rauf280604@gmail.com",
   },
   items: {
     ...projects.items,
@@ -420,6 +445,126 @@ export const worksPage = {
       subtitle: "Scroll-driven WebGL experience",
       desc: "A single-page, scroll-choreographed site: a morphing sphere, a headline written along a curve, and a gravity playground where the cards fall out of the deep.",
       tags: "Next.js App Router, Three.js, GSAP ScrollTrigger, Lenis",
+    },
+    fonderaPlatform: {
+      title: "Fondera · Startup platform",
+      subtitle: "Startup & investor platform",
+      desc: "The platform side of Fondera: startups submit and edit their projects, investors browse, favourite and track them from their own dashboard.",
+      tags: "Next.js 16, TypeScript, TanStack Query, React Hook Form, Zod, CKEditor, Recharts",
+    },
+    markupAgency: {
+      title: "Markup.az",
+      subtitle: "Agency website · 3D · multilingual",
+      desc: "The Markup Agency site: core pages with a Three.js scene, an AI assistant, a digital academy, and an API-driven media gallery.",
+      tags: "Next.js 16, TypeScript, Three.js, GSAP, Lenis, next-intl",
+    },
+    fondera: {
+      title: "Fondera.az",
+      subtitle: "Tech & startup news portal",
+      desc: "Azerbaijan's technology and startup news portal. I built its vacancies section and the event filtering.",
+      tags: "Next.js 16, TypeScript, TanStack Query, GSAP, Motion, Tailwind CSS",
+    },
+    shoplink: {
+      title: "Shoplink.az",
+      subtitle: "Store builder SaaS",
+      desc: "A platform where anyone can open their own online store. I added the Cloudflare nameserver step to the store's domain settings.",
+      tags: "Next.js 16, TypeScript, TanStack Query, Tiptap, next-intl",
+    },
+    fleurGarden: {
+      title: "Fleur Garden",
+      subtitle: "Wholesale flower store",
+      desc: "A storefront with wishlist, compare and a minimum-order checkout. My part was wiring order details to the real backend data.",
+      tags: "Next.js 16, TypeScript, TanStack Query, next-intl",
+    },
+    gbaru: {
+      title: "GBARU",
+      subtitle: "Global B2B trade network",
+      desc: "An AI-assisted B2B platform: listings, procurement auctions and company profiles across 25+ countries, with web, API and mobile clients.",
+      tags: "Next.js 16, TypeScript, TanStack Query, Tiptap, Laravel, Flutter",
+    },
+    platinium: {
+      title: "Platinium-17",
+      subtitle: "Professional kitchen equipment",
+      desc: "Catalogue site for a professional kitchen equipment supplier — brands, categories, projects and news, managed from its own admin panel.",
+      tags: "Next.js 16, TypeScript, MUI, next-intl, Swiper",
+    },
+    elba: {
+      title: "ELBA",
+      subtitle: "Industrial producer · corporate",
+      desc: "Corporate site for Azerbaijan's first potassium sulphate (SOP) production complex — products, sustainability, production and news.",
+      tags: "Next.js 15, TypeScript, TanStack Query, next-intl",
+    },
+    glassHouse: {
+      title: "Glass House",
+      subtitle: "Glass processing · corporate",
+      desc: "Corporate site for a glass processing company — products, services, projects, vacancies and a gallery.",
+      tags: "Next.js 16, TypeScript, TanStack Query, next-intl",
+    },
+    lezzetGroup: {
+      title: "Lezzet Group",
+      subtitle: "Food group · corporate",
+      desc: "Corporate site for a food producer active since 1995 — business lines, brands and export.",
+      tags: "Laravel, Bootstrap, Sass",
+    },
+    shamkirAgro: {
+      title: "Şəmkir Aqro",
+      subtitle: "Agriculture · corporate",
+      desc: "Corporate site for an agricultural company in Shamkir — about, products and contact, in three languages.",
+      tags: "Next.js 16, TypeScript, next-intl",
+    },
+    innosert: {
+      title: "Innosert",
+      subtitle: "Online exams & certificates",
+      desc: "An exam platform: public and code-protected exams, paid exams, results and earned certificates.",
+      tags: "Next.js 14, i18next, ApexCharts, React Quill, Laravel",
+    },
+    azfar: {
+      title: "Azfar Group",
+      subtitle: "Reservation CRM",
+      desc: "An internal CRM for Azfar Group built around reservations, including automatic reservation rules.",
+      tags: "Next.js 14, MUI, Formik, Yup, Laravel",
+    },
+    feridinEvi: {
+      title: "Fərid'in Evi",
+      subtitle: "Rental housing",
+      desc: "Site for a rental housing concept — listings, search, a map of the homes and campaign sign-ups.",
+      tags: "Next.js 16, TypeScript, TanStack Query, Leaflet, next-intl",
+    },
+    agriman: {
+      title: "Agriman",
+      subtitle: "Agricultural consulting",
+      desc: "Site for an agricultural consulting firm — services, projects, an expert blog and application forms, with a Turkish edition.",
+      tags: "Next.js 15, TypeScript, react-i18next, AOS",
+    },
+    bcGroup: {
+      title: "BC Group",
+      subtitle: "Equipment manufacturer · corporate",
+      desc: "Corporate site for a company that manufactures and imports equipment — product range, FAQ and enquiry forms.",
+      tags: "Next.js 16, i18next, Swiper, Yup",
+    },
+    consultex: {
+      title: "Consultex",
+      subtitle: "Consulting · corporate",
+      desc: "Corporate site for a consulting company, with validated contact flows and its own admin panel.",
+      tags: "Next.js 15, TypeScript, next-intl, React Hook Form",
+    },
+    greenCaspian: {
+      title: "Green Caspian",
+      subtitle: "Corporate site",
+      desc: "Multilingual corporate site with its own admin panel.",
+      tags: "Next.js 16, TypeScript, next-intl, Swiper",
+    },
+    agriGubre: {
+      title: "AgriGübrə",
+      subtitle: "Fertiliser · corporate",
+      desc: "Multilingual corporate site for a fertiliser company.",
+      tags: "Next.js 15, TypeScript, next-intl",
+    },
+    bakuCreators: {
+      title: "Baku Creators",
+      subtitle: "Videography studio",
+      desc: "Site for a videography studio — services and showcase.",
+      tags: "Next.js 16, Embla Carousel",
     },
   },
 } as const;
@@ -436,6 +581,22 @@ export const worksPage = {
  * Every key here must exist in WORKS_META (data/worksMeta.ts), which owns the
  * slug, the gallery and the stack spectrum.
  */
+/**
+ * Detail copy for work the Markup Agency team shipped without my commits in it
+ * (WORKS_META `agency: true`). The role is fixed so no page reads as my build.
+ */
+function agencyWork(copy: {
+  tagline: string;
+  timeline: string;
+  client: string;
+  challenge: string;
+  approach: string;
+  outcome: string;
+  highlights: readonly string[];
+}) {
+  return { ...copy, role: "Markup Agency team project" };
+}
+
 export const workDetail = {
   metaSuffix: "— Rauf Huseynzade",
   labels: {
@@ -569,5 +730,227 @@ export const workDetail = {
         "Reduced-motion and no-WebGL fallbacks",
       ],
     },
+    fonderaPlatform: {
+      tagline: "Where a startup's pitch and an investor's shortlist meet.",
+      role: "Frontend Developer",
+      timeline: "2026",
+      client: "Fondera",
+      challenge:
+        "Two audiences, one product. Founders need to put a whole startup on the page — team, strategy, operations, reports — and keep editing it; investors need to scan many of them and keep track of the few that matter.",
+      approach:
+        "I set up the core app structure and auth flows, then built the founder side as multi-tab forms with rich-text editing (CKEditor) and a guarded edit route, and the investor side as listings with status filters, favourites and a metrics dashboard.",
+      outcome:
+        "A working startup and investor platform: submission and editing for founders, discovery, inquiries and a dashboard for investors.",
+      highlights: [
+        "Core app structure and authentication flows",
+        "Startup submission and editing with rich text",
+        "Investor dashboard with investment metrics",
+        "Startup listings, favourites and status filters",
+        "Support requests and messaging screens",
+      ],
+    },
+    markupAgency: {
+      tagline: "An agency site that has to show the craft it sells.",
+      role: "Frontend Developer",
+      timeline: "2026",
+      client: "Markup Agency",
+      challenge:
+        "An agency's own site is its first case study. It had to carry a 3D first impression, read in several languages, and give the team a place to publish their AI and motion work without a developer.",
+      approach:
+        "I built the core pages and components around a Three.js scene, added the AI assistant with localisation, the sitemap route and the digital academy section, and later made the AI content gallery API-driven with real aspect ratios, a Motion tab and YouTube / Instagram embeds.",
+      outcome:
+        "markup.az — a multilingual agency site with a 3D hero, an AI assistant and a self-serve media gallery.",
+      highlights: [
+        "Core pages and the Three.js scene",
+        "AI assistant with localisation",
+        "API-driven photo and video gallery",
+        "Dynamic XML sitemap",
+      ],
+    },
+    fondera: {
+      tagline: "A news portal that also has to work as a job board.",
+      role: "Frontend Developer (features)",
+      timeline: "2026",
+      client: "Fondera",
+      challenge:
+        "The portal already published news; it also needed vacancies that companies can post and readers can browse, and an events list that filters by real dates.",
+      approach:
+        "I built the vacancies feature end to end on the client — listing, detail page, image support and a create-vacancy modal wired to the API — and a date-parsing utility that the home and events pages filter through.",
+      outcome:
+        "Vacancies and event filtering live on fondera.az.",
+      highlights: [
+        "Vacancies listing and detail pages",
+        "Create-vacancy modal with API mutation",
+        "Event date parsing and filtering",
+      ],
+    },
+    shoplink: {
+      tagline: "Your own online store in one click.",
+      role: "Contributor",
+      timeline: "2026",
+      client: "Shoplink",
+      challenge:
+        "Store owners connecting their own domain need to know exactly which nameservers to set.",
+      approach:
+        "I added a Cloudflare nameserver step to the store's domain settings and tidied the settings layout around it.",
+      outcome:
+        "Domain connection guidance inside the Shoplink dashboard.",
+      highlights: ["Cloudflare NS settings in the domain flow"],
+    },
+    fleurGarden: {
+      tagline: "A wholesale flower store with a real order history.",
+      role: "Contributor",
+      timeline: "2026",
+      client: "Fleur Garden",
+      challenge:
+        "Order details were still running on mock data.",
+      approach:
+        "I replaced the mock order data with the backend's responses and added fallback images.",
+      outcome:
+        "Order details showing real data.",
+      highlights: ["Order details on live backend data", "Image fallbacks"],
+    },
+    gbaru: agencyWork({
+      tagline: "A trade network that opens the world to local business.",
+      timeline: "2024 — 2026",
+      client: "GBARU",
+      challenge:
+        "Connecting buyers and suppliers across countries means listings, procurement auctions and company profiles, in several languages, on web and mobile.",
+      approach:
+        "A Next.js front end over a Laravel API, with rich-text listings, auctions and a Flutter mobile app on the same backend.",
+      outcome:
+        "gbaru.com — an AI-assisted B2B platform with listings and procurement across 25+ countries.",
+      highlights: ["Listings and procurement auctions", "Company profiles", "Web, API and mobile clients"],
+    }),
+    platinium: agencyWork({
+      tagline: "A catalogue for professional kitchens.",
+      timeline: "2025 — 2026",
+      client: "Platinium-17",
+      challenge:
+        "A supplier carrying dozens of brands needed its whole range browsable by category, plus projects and news.",
+      approach:
+        "A multilingual Next.js catalogue backed by its own admin panel.",
+      outcome: "platinium-17.az — brands, categories, portfolio and news.",
+      highlights: ["Brand and category catalogue", "Portfolio and news", "Admin panel"],
+    }),
+    elba: agencyWork({
+      tagline: "Earth. Life. Better. Azerbaijan.",
+      timeline: "2025 — 2026",
+      client: "ELBA",
+      challenge:
+        "An industrial complex needed a corporate presence that explains its products, production and sustainability work.",
+      approach: "A multilingual Next.js corporate site.",
+      outcome: "elba.az — products, sustainability, production and news.",
+      highlights: ["Product pages", "Sustainability and production", "News"],
+    }),
+    glassHouse: agencyWork({
+      tagline: "Glass processing, shown on screen.",
+      timeline: "2025",
+      client: "Glass House",
+      challenge:
+        "A glass processor needed to present products, services and finished projects, and hire.",
+      approach: "A multilingual Next.js corporate site.",
+      outcome: "glasshouse.az — products, services, projects, vacancies and gallery.",
+      highlights: ["Products and services", "Projects and gallery", "Vacancies"],
+    }),
+    lezzetGroup: agencyWork({
+      tagline: "Thirty years of a food group, on one site.",
+      timeline: "2024",
+      client: "Lezzet Group",
+      challenge: "A long-running food group needed its business lines, brands and export in one place.",
+      approach: "A Laravel site with a Bootstrap admin.",
+      outcome: "lezzet.az — business lines, brands and export.",
+      highlights: ["Business lines", "Brands", "Export"],
+    }),
+    shamkirAgro: agencyWork({
+      tagline: "An agricultural company from Shamkir.",
+      timeline: "2026",
+      client: "Şəmkir Aqro",
+      challenge: "A presence for the company's products in three languages.",
+      approach: "A multilingual Next.js corporate site.",
+      outcome: "shamkiragro.az — about, products and contact.",
+      highlights: ["About", "Products", "Three languages"],
+    }),
+    innosert: agencyWork({
+      tagline: "Exams, results and certificates in one place.",
+      timeline: "2025",
+      client: "Innosert",
+      challenge: "Running public, private and paid exams and issuing certificates online.",
+      approach: "A Next.js front end over a Laravel API.",
+      outcome: "An exam platform with results and certificates.",
+      highlights: ["Public and code-protected exams", "Paid exams", "Results and certificates"],
+    }),
+    azfar: agencyWork({
+      tagline: "Reservations, run from one panel.",
+      timeline: "2024 — 2025",
+      client: "Azfar Group",
+      challenge: "Managing reservations, including automatic ones, for the group's staff.",
+      approach: "A Next.js CRM over a Laravel API.",
+      outcome: "An internal reservation CRM.",
+      highlights: ["Reservations", "Automatic reservation rules", "Role permissions"],
+    }),
+    feridinEvi: agencyWork({
+      tagline: "Comfortable and safe living.",
+      timeline: "2025",
+      client: "Fərid'in Evi",
+      challenge: "A rental housing concept needed its homes listed, searchable and on a map.",
+      approach: "A multilingual Next.js site with Leaflet maps and its own admin panel.",
+      outcome: "Listings, search, map and campaign sign-ups.",
+      highlights: ["Listings and search", "Map of the homes", "Admin panel"],
+    }),
+    agriman: agencyWork({
+      tagline: "Agricultural consulting, with advice on the record.",
+      timeline: "2025 — 2026",
+      client: "Agriman",
+      challenge: "A consulting firm needed its services, projects and expert advice online, in Azerbaijan and Türkiye.",
+      approach: "A multilingual Next.js site with its own admin panel and a Turkish edition.",
+      outcome: "Services, projects, blog and application forms.",
+      highlights: ["Services and projects", "Expert blog", "Turkish edition"],
+    }),
+    bcGroup: agencyWork({
+      tagline: "Equipment, made and imported.",
+      timeline: "2025",
+      client: "BC Group",
+      challenge: "Presenting the equipment the company manufactures and imports.",
+      approach: "A multilingual Next.js corporate site.",
+      outcome: "Product range, FAQ and enquiry forms.",
+      highlights: ["Product range", "FAQ", "Enquiry forms"],
+    }),
+    consultex: agencyWork({
+      tagline: "A consulting company, introduced.",
+      timeline: "2025",
+      client: "Consultex",
+      challenge: "A corporate presence with dependable contact flows.",
+      approach: "A multilingual Next.js site with its own admin panel.",
+      outcome: "Corporate site with validated contact forms.",
+      highlights: ["Corporate pages", "Validated contact forms", "Admin panel"],
+    }),
+    greenCaspian: agencyWork({
+      tagline: "A corporate site, in several languages.",
+      timeline: "2025",
+      client: "Green Caspian",
+      challenge: "A multilingual corporate presence the client can update.",
+      approach: "A multilingual Next.js site with its own admin panel.",
+      outcome: "Corporate site with admin-managed content.",
+      highlights: ["Corporate pages", "Admin panel"],
+    }),
+    agriGubre: agencyWork({
+      tagline: "A fertiliser company, online.",
+      timeline: "2025",
+      client: "AgriGübrə",
+      challenge: "A multilingual corporate presence.",
+      approach: "A multilingual Next.js corporate site.",
+      outcome: "Corporate site.",
+      highlights: ["Corporate pages", "Multilingual"],
+    }),
+    bakuCreators: agencyWork({
+      tagline: "A videography studio's showcase.",
+      timeline: "2025",
+      client: "Baku Creators",
+      challenge: "Showing a studio's services and work.",
+      approach: "A Next.js site.",
+      outcome: "Services and showcase site.",
+      highlights: ["Services", "Showcase"],
+    }),
   },
 } as const;

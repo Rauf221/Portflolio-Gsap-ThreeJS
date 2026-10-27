@@ -29,9 +29,15 @@ export type SpiralTile = {
 const RADIUS = 7.7;
 const ITEM_WIDTH = 6;
 const ITEM_HEIGHT = 4;
-/** Total vertical span of the helix — tiles ride from -half to +half. */
+/**
+ * Vertical span of the helix for MIN_TILES panels — tiles ride from -half to
+ * +half. Above MIN_TILES the span and the revolutions grow with the count (see
+ * `span` in the effect), because at 12 panels the arc between neighbours,
+ * 2π·RADIUS·REVOLUTIONS/12 ≈ 6.05, is already just over ITEM_WIDTH: packing
+ * more panels into the same helix pushes them into each other.
+ */
 const SPIRAL_HEIGHT = 30;
-/** Wraps around the pole over that span. */
+/** Wraps around the pole over SPIRAL_HEIGHT, again for MIN_TILES panels. */
 const REVOLUTIONS = 1.5;
 /**
  * Bends the panels outward by the SQUARE of their height, so the column pinches
@@ -95,6 +101,8 @@ const FRAGMENT_SHADER = /* glsl */ `
   uniform vec2 planeSize;
   uniform float borderRadius;
   uniform float opacity;
+  uniform vec2 uvRepeat;
+  uniform vec2 uvOffset;
 
   void main() {
     // Rounded corners as a signed distance field rather than a texture mask:
@@ -107,7 +115,8 @@ const FRAGMENT_SHADER = /* glsl */ `
     float alpha = 1.0 - smoothstep(-0.02, 0.02, dist);
     if (alpha < 0.01) discard;
 
-    vec4 texColor = texture2D(map, vUv);
+    // Cover-fit: a poster that is not the tile's 3:2 is cropped, not squeezed.
+    vec4 texColor = texture2D(map, vUv * uvRepeat + uvOffset);
     gl_FragColor = vec4(texColor.rgb, texColor.a * alpha * opacity);
 
     #include <tonemapping_fragment>
@@ -226,6 +235,8 @@ export function WorksSpiralHero({ tiles, onReady }: Props) {
           planeSize: { value: new THREE.Vector2(ITEM_WIDTH, ITEM_HEIGHT) },
           borderRadius: { value: BORDER_RADIUS },
           opacity: { value: 1 },
+          uvRepeat: { value: new THREE.Vector2(1, 1) },
+          uvOffset: { value: new THREE.Vector2(0, 0) },
           poleFlare: { value: POLE_FLARE },
           wind: { value: 0 },
         },
@@ -239,23 +250,40 @@ export function WorksSpiralHero({ tiles, onReady }: Props) {
     // A short archive is cycled around the ring rather than leaving it gappy —
     // once there are MIN_TILES projects, every panel is a different one.
     const count = Math.max(MIN_TILES, tiles.length);
+    // Longer list, longer helix: the step between neighbours (around the pole
+    // and up it) stays what it is at MIN_TILES, so panels never overlap.
+    const span = count / MIN_TILES;
+    const spiralHeight = SPIRAL_HEIGHT * span;
+    const revolutions = REVOLUTIONS * span;
     const meshes: THREE.Mesh<THREE.CylinderGeometry, THREE.ShaderMaterial>[] = [];
 
     for (let i = 0; i < count; i++) {
       const tile = tiles[i % tiles.length];
       let texture: THREE.Texture | null = null;
+      const material = makeMaterial(null);
+      disposables.push(material);
 
       if (tile.src) {
-        texture = loader.load(tile.src);
+        texture = loader.load(tile.src, (loaded) => {
+          const img = loaded.image as { width: number; height: number };
+          const imageAspect = img.width / img.height;
+          const tileAspect = ITEM_WIDTH / ITEM_HEIGHT;
+          const { uvRepeat, uvOffset } = material.uniforms;
+          // Keep the image's centre; show the slice of it that has the tile's shape.
+          if (imageAspect > tileAspect) {
+            uvRepeat.value.set(tileAspect / imageAspect, 1);
+          } else {
+            uvRepeat.value.set(1, imageAspect / tileAspect);
+          }
+          uvOffset.value.set((1 - uvRepeat.value.x) / 2, (1 - uvRepeat.value.y) / 2);
+        });
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.anisotropy = maxAnisotropy;
       } else {
         texture = drawCardTexture(tile);
       }
       if (texture) disposables.push(texture);
-
-      const material = makeMaterial(texture);
-      disposables.push(material);
+      material.uniforms.map.value = texture;
       const mesh = new THREE.Mesh(geometry, material);
       scene.add(mesh);
       meshes.push(mesh);
@@ -311,7 +339,9 @@ export function WorksSpiralHero({ tiles, onReady }: Props) {
       for (let i = 0; i < meshes.length; i++) {
         // Every panel's normalised place on the loop. Wrapping it is what makes
         // the helix endless: a tile that passes the top re-enters at the bottom.
-        let t = i / count + current;
+        // `current / span` keeps the travel per scroll the same in world units
+        // however long the loop has grown.
+        let t = i / count + current / span;
         t -= Math.floor(t);
 
         let edge = 1;
@@ -326,8 +356,8 @@ export function WorksSpiralHero({ tiles, onReady }: Props) {
         uniforms.opacity.value = Math.sin((Math.PI / 2) * edge);
         uniforms.wind.value = velocity * WIND_STRENGTH;
 
-        meshes[i].position.y = (t - 0.5) * SPIRAL_HEIGHT;
-        meshes[i].rotation.y = t * Math.PI * 2 * REVOLUTIONS;
+        meshes[i].position.y = (t - 0.5) * spiralHeight;
+        meshes[i].rotation.y = t * Math.PI * 2 * revolutions;
       }
     };
 

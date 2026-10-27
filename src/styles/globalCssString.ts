@@ -511,12 +511,22 @@ body::before {
   mix-blend-mode: soft-light;
 }
 
-/* ===== Hero overlay (nav, clock, statement, CTA) ===== */
+/* ===== Hero overlay (framed bands) ===== */
 
 /*
  * The hero's entire content layer. The container is pointer-events:none so it
  * never eats clicks over the Unicorn scene; only the anchors inside it opt
  * back in. z-index 4 puts it above the scrim (2).
+ *
+ * Composition: two horizontal bands, one at each edge, with a full-width
+ * hairline under the top one and above the bottom one. Those two rules are the
+ * whole idea — they put the portrait INSIDE a drawn frame, which is a very
+ * different silhouette from content clustered loose in the corners, and they
+ * give the small type something to hang off instead of floating.
+ *
+ * The density all lives in the lower band, arranged as a credit block. Spread
+ * evenly around the frame the same amount of type reads as clutter; collected
+ * into ruled cells it reads as a plate.
  */
 .hero-ui {
   position: absolute;
@@ -524,6 +534,9 @@ body::before {
   z-index: 4;
   pointer-events: none;
   color: var(--hero-ink);
+  /* One margin for both bands, so the two rules span the same measure. */
+  --hero-inset-x: clamp(1.1rem, 2.6vw, 2.8rem);
+  --hero-inset-y: clamp(1rem, 2.2vh, 1.9rem);
 }
 .hero-ui a {
   pointer-events: auto;
@@ -534,183 +547,307 @@ body::before {
   cursor: none;
 }
 
-.hero-ui-mark {
+.hero-head,
+.hero-foot {
   position: absolute;
-  top: 0.6rem;
-  left: 1.6rem;
-  width: clamp(90px, 8vw, 150px);
+  left: var(--hero-inset-x);
+  right: var(--hero-inset-x);
+}
+.hero-head { top: var(--hero-inset-y); }
+/*
+ * Contact at one end of the band, the scroll hint at the other. Pushed apart
+ * rather than stacked, so the foot band spans the same measure as the rail at
+ * the top — the two bands reading as one width is what holds the composition
+ * together now that nothing is ruled across the frame.
+ *
+ * flex-end, not baseline: each end is a label beside a circle, and it is the
+ * circles that have to agree on a line, not the text inside them.
+ */
+.hero-foot {
+  bottom: var(--hero-inset-y);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.9rem clamp(1.5rem, 4vw, 3rem);
+}
+
+/* ── top band: mark, one centred rail of links, clock ── */
+/*
+ * A grid, not space-between: 1fr / auto / 1fr puts the nav on the FRAME's
+ * centre line, where space-between would only centre it in whatever gap the
+ * mark and the clock happen to leave — and the clock's glyphs change width
+ * every second, so the whole rail would drift with it.
+ */
+.hero-rail {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: clamp(1rem, 3vw, 2.5rem);
+  padding-bottom: clamp(0.7rem, 1.6vh, 1.1rem);
+}
+.hero-ui-mark {
+  width: clamp(58px, 4.6vw, 88px);
+  justify-self: start;
   display: block;
   color: var(--hero-ink);
 }
 .hero-ui-mark svg { width: 100%; height: auto; display: block; }
 
-.hero-nav {
-  position: absolute;
-  top: 1.5rem;
-  left: 18vw;
-  display: flex;
-  align-items: flex-start;
-  gap: clamp(2rem, 9vw, 10rem);
-}
-.hero-nav-group-title {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 1.05rem;
-  font-weight: 500;
-  line-height: 1;
-  color: var(--hero-ink);
-  margin-bottom: 0.75rem;
-}
-.hero-nav-glyph {
-  width: 9px;
-  height: 9px;
-  flex: none;
-  background: var(--hero-ink);
-}
-.hero-nav-glyph--circle { border-radius: 50%; }
-.hero-nav-glyph--flag { clip-path: polygon(0 0, 100% 0, 0 100%); }
-
-.hero-nav-list { list-style: none; display: flex; flex-direction: column; gap: 0.55rem; }
 /*
- * Every sub-item carries a resting underline (that is the reference look);
- * hover and the active section only raise its contrast, they do not draw it.
+ * One horizontal rail of plain links — not titled groups. Grouping five items
+ * under headings is a structure that only pays for itself at three times this
+ * count, and it turns the corner into the loudest thing on the screen.
  */
+.hero-nav-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem clamp(1rem, 2.2vw, 2rem);
+}
 .hero-nav-link {
   position: relative;
   display: inline-block;
-  font-size: 1.05rem;
-  line-height: 1.2;
+  font-size: clamp(0.72rem, 0.82vw, 0.86rem);
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--hero-ink-dim);
   transition: color 0.3s;
 }
+/*
+ * A dot under the live item, not a rule. The rail is the widest run of type in
+ * the frame; five underlines across it would out-shout the headline, while one
+ * indigo dot marks the position and changes nothing else's shape. The
+ * translateX has to be baked into BOTH transform states — a bare scale would
+ * drop the centring the moment it runs.
+ */
 .hero-nav-link::after {
   content: '';
   position: absolute;
-  left: 0; right: 0; bottom: -3px;
-  height: 1px;
-  background: var(--hero-line);
-  transition: background 0.3s;
+  left: 50%;
+  bottom: -0.7rem;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--indigo);
+  transform: translateX(-50%) scale(0);
+  transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
 }
 .hero-nav-link:hover,
 .hero-nav-link.is-active { color: var(--hero-ink); }
 .hero-nav-link:hover::after,
-.hero-nav-link.is-active::after { background: var(--hero-ink); }
+.hero-nav-link.is-active::after { transform: translateX(-50%) scale(1); }
 
 .hero-clock {
-  position: absolute;
-  top: 1.1rem;
-  left: 66%;
+  justify-self: end;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.15rem;
+  align-items: baseline;
+  gap: 0.45rem;
+  color: var(--hero-ink-dim);
 }
 .hero-clock-time {
-  padding: 0.15rem 0.35rem;
-  border: 1px solid var(--hero-line);
-  border-radius: 2px;
-  font-size: 0.72rem;
-  line-height: 1.1;
-  /* Fixed-width digits, otherwise the box twitches once a second. */
+  font-size: 0.82rem;
+  /* Fixed-width digits, otherwise the rail twitches once a second. */
   font-variant-numeric: tabular-nums;
 }
-.hero-clock-meta {
-  font-size: 0.68rem;
-  line-height: 1.25;
+.hero-clock-zone {
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ── left-middle: the lead block ── */
+/*
+ * Centred on the frame with top:50% + translateY(-50%) rather than by making
+ * .hero-ui a flex container: the four clusters are pinned to four different
+ * edges, so one shared layout box for all of them does not exist.
+ *
+ * That translate is load-bearing. Nothing may tween y on THIS element — the
+ * entrance timeline animates its children for exactly that reason, and the
+ * scroll fade moves .hero-ui, one level up.
+ */
+.hero-lead {
+  position: absolute;
+  left: var(--hero-inset-x);
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: min(34ch, 36vw);
+}
+.hero-headline {
+  font-size: clamp(2.1rem, 4.4vw, 4rem);
+  font-weight: 400;
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+}
+/* Each line is its own block, so the break is the one written in the content
+   rather than one a measure picked — see the note over the headline entry in
+   content/site.ts. */
+.hero-headline-line { display: block; }
+.hero-headline-accent { color: var(--indigo); }
+
+.hero-subline {
+  margin-top: clamp(0.9rem, 2.2vh, 1.6rem);
+  font-size: clamp(0.9rem, 1.05vw, 1.02rem);
+  line-height: 1.55;
   color: var(--hero-ink-dim);
-  letter-spacing: 0.04em;
+  max-width: 30ch;
 }
-
-.hero-discover {
-  position: absolute;
-  top: 1.2rem;
-  right: 2.8rem;
-  font-size: 0.86rem;
-}
-.hero-rule {
-  position: absolute;
-  top: 0;
-  right: 2rem;
-  width: 1px;
-  height: 105px;
-  background: var(--hero-line);
-}
-
-.hero-cta {
-  position: absolute;
-  top: 76%;
-  left: 1.25rem;
-  padding: 1.15rem 1.6rem;
-  border: 1px solid var(--hero-line);
-  border-radius: 4px;
-  background: rgba(6,6,6,0.72);
-  font-size: 0.95rem;
-  transition: background 0.3s, border-color 0.3s;
-}
-.hero-cta:hover { background: rgba(6,6,6,0.92); border-color: var(--hero-ink); }
-.hero-cta-label > span { display: inline-block; transition: transform 0.3s; }
-.hero-cta:hover .hero-cta-label > span { transform: translateX(4px); }
-/* Four corner dots, inset from the border. */
-.hero-cta-dot {
-  position: absolute;
-  width: 3px; height: 3px;
-  border-radius: 50%;
-  background: var(--hero-ink-dim);
-}
-.hero-cta-dot--tl { top: 6px; left: 6px; }
-.hero-cta-dot--tr { top: 6px; right: 6px; }
-.hero-cta-dot--bl { bottom: 6px; left: 6px; }
-.hero-cta-dot--br { bottom: 6px; right: 6px; }
 
 /*
- * The centre block: three statement lines, a gap, then the era line, all
- * framed by four corner marks. Sized by its own content, so the only position
- * to tune is this top offset — measured against the 900px hero it occupies
- * roughly 630-844, with the marks 30px outside that.
+ * An underlined inline link rather than a bordered button — one button would
+ * be the only filled shape in the upper two thirds of the frame. The rule
+ * rests drawn, unlike the nav's dot: this is the single thing the hero asks
+ * you to click, so it does not wait for a pointer to admit it is a link.
+ *
+ * space-between over a min-width, so the arrow sits at the far end of the rule
+ * instead of tucked against the word.
  */
-.hero-statement {
-  position: absolute;
-  top: 70%;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-  font-size: clamp(1.1rem, 2.1vw, 2.25rem);
-  line-height: 1.28;
-  font-weight: 400;
+.hero-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(1.5rem, 3vw, 2.6rem);
+  min-width: 11.5rem;
+  margin-top: clamp(1.5rem, 3.4vh, 2.6rem);
+  padding-bottom: 0.7rem;
+  font-size: clamp(0.76rem, 0.85vw, 0.88rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hero-ink);
+  transition: color 0.3s;
 }
-.hero-statement-line { white-space: nowrap; }
-/* Four squares marking an invisible frame around the statement. */
-.hero-bracket {
+.hero-cta::after {
+  content: '';
   position: absolute;
-  width: 7px; height: 7px;
-  background: var(--hero-ink);
+  left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: currentColor;
+  transform-origin: 0 50%;
+  transition: transform 0.45s cubic-bezier(0.16,1,0.3,1);
 }
-.hero-bracket--tl { top: -30px; left: -27%; }
-.hero-bracket--tr { top: -30px; right: -27%; }
-.hero-bracket--bl { bottom: -30px; left: -27%; }
-.hero-bracket--br { bottom: -30px; right: -27%; }
+/* The rule retracts to the right as the arrow leaves in the same direction —
+   the two together read as one movement off the end of the word. */
+.hero-cta:hover { color: var(--indigo); }
+.hero-cta:hover::after { transform: scaleX(0); transform-origin: 100% 50%; }
+.hero-cta-arrow {
+  display: inline-block;
+  font-size: 1.15em;
+  transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+.hero-cta:hover .hero-cta-arrow { transform: translate(3px, -3px); }
 
-.hero-era {
-  margin-top: 2.6rem;
-  white-space: nowrap;
-}
-
-.hero-signal {
+/* ── right-middle: the section index ── */
+/*
+ * A hairline with the count hung off it, centred on the same axis as the lead
+ * block so the two middles answer each other across the portrait. The line is
+ * drawn on the LIST, not per row, so it runs continuous behind the whole count
+ * instead of breaking at every row gap.
+ */
+.hero-index {
   position: absolute;
-  bottom: 3%;
-  right: 1.4rem;
+  right: var(--hero-inset-x);
+  top: 50%;
+  transform: translateY(-50%);
+  /* One value for the rail-to-number distance: the list pads by it and the
+     live marker offsets back across it. Two literals would drift apart. */
+  --hero-index-gap: clamp(1.1rem, 1.8vw, 1.8rem);
+}
+.hero-index-list {
+  position: relative;
+  list-style: none;
   display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 12px;
-  opacity: 0.4;
+  flex-direction: column;
+  gap: clamp(1.1rem, 2.6vh, 1.9rem);
+  padding-left: var(--hero-index-gap);
 }
-.hero-signal i { width: 2px; background: var(--hero-ink); }
-.hero-signal i:nth-child(1) { height: 3px; }
-.hero-signal i:nth-child(2) { height: 8px; }
-.hero-signal i:nth-child(3) { height: 12px; }
-.hero-signal i:nth-child(4) { height: 5px; }
+.hero-index-list::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -0.7rem;
+  bottom: -0.7rem;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--hero-line) 16%, var(--hero-line) 84%, transparent);
+}
+.hero-index-link {
+  position: relative;
+  display: block;
+  text-align: right;
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+  color: var(--hero-ink-dim);
+  transition: color 0.3s;
+}
+/*
+ * The live row's marker: a short indigo segment laid ON the hairline at that
+ * row's own height. It belongs to the row, so nothing has to be kept in sync
+ * with the scroll position — the row that lights up is the row that moves it.
+ */
+.hero-index-link::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--hero-index-gap) * -1);
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--indigo);
+  transform: scaleY(0);
+  transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+.hero-index-link:hover { color: var(--hero-ink); }
+.hero-index-link.is-active { color: var(--indigo); }
+.hero-index-link.is-active::before { transform: scaleY(1); }
+
+/* ── foot band: contact at one end, the scroll hint at the other ── */
+.hero-foot-link {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(0.8rem, 1.6vw, 1.4rem);
+}
+.hero-foot-label {
+  font-size: clamp(0.72rem, 0.8vw, 0.84rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hero-ink-dim);
+  transition: color 0.3s;
+}
+.hero-foot-link:hover .hero-foot-label { color: var(--hero-ink); }
+/*
+ * The frame's only two drawn shapes. Deliberately identical at both ends —
+ * same diameter, same hairline, same fill on hover — so the foot reads as one
+ * band with a control at each end, not as a primary and an also-ran.
+ */
+.hero-round {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: clamp(38px, 3.2vw, 48px);
+  height: clamp(38px, 3.2vw, 48px);
+  border: 1px solid var(--hero-line);
+  border-radius: 50%;
+  font-size: 0.95rem;
+  color: var(--hero-ink);
+  /* Each circle nudges the way its own arrow points. Carried as a variable
+     rather than as a second :hover rule, so which one wins does not depend on
+     which one happens to be written last. */
+  --hero-round-nudge: 3px, 0;
+  transition:
+    border-color 0.35s,
+    background-color 0.35s,
+    color 0.35s,
+    transform 0.45s cubic-bezier(0.16,1,0.3,1);
+}
+.hero-foot-link--end .hero-round { --hero-round-nudge: 0, 3px; }
+.hero-foot-link:hover .hero-round {
+  border-color: var(--indigo);
+  background: var(--indigo);
+  color: #fff;
+  transform: translate(var(--hero-round-nudge));
+}
 
 /* ===== Floating dock =====
  *
@@ -1132,60 +1269,53 @@ body::before {
   }
 }
 
+/* All four clusters keep their positions here; the type and the mark come
+   down, and the index rail goes — see the note on it below. */
 @media (max-width: 900px) {
-  /* Three nav columns cannot fit at this width, so the sub-items drop and the
-     group titles collapse into one wrapped row under the mark. The sections
-     stay reachable by scrolling; nothing here is the only route to a page. */
-  .hero-ui-mark { width: 70px; left: 1rem; }
-  .hero-nav {
-    top: 5.2rem;
-    left: 1rem;
-    right: 1rem;
-    flex-wrap: wrap;
-    gap: 1.1rem;
-  }
-  .hero-nav-list { display: none; }
-  .hero-nav-group-title { font-size: 0.8rem; margin-bottom: 0; gap: 0.4rem; }
-  .hero-nav-glyph { width: 7px; height: 7px; }
-
-  .hero-clock { top: 1rem; left: auto; right: 1rem; align-items: flex-end; }
-  .hero-discover { display: none; }
-  .hero-rule { display: none; }
-  .hero-signal { display: none; }
-
-  .hero-statement { top: 52%; font-size: clamp(0.95rem, 4.4vw, 1.4rem); }
-  .hero-bracket { width: 5px; height: 5px; }
-  .hero-bracket--tl, .hero-bracket--tr { top: -18px; }
-  .hero-bracket--bl, .hero-bracket--br { bottom: -18px; }
-  .hero-bracket--tl, .hero-bracket--bl { left: -8%; }
-  .hero-bracket--tr, .hero-bracket--br { right: -8%; }
-  .hero-era { margin-top: 1.6rem; }
-
-  /* Full-width bar at the bottom instead of a floating card. */
-  .hero-cta {
-    top: auto;
-    bottom: 1rem;
-    left: 1rem;
-    right: 1rem;
-    padding: 0.9rem 1rem;
-    text-align: center;
-    font-size: 0.85rem;
-  }
+  .hero-ui-mark { width: 54px; }
+  .hero-rail { gap: 0.9rem 1.4rem; }
+  .hero-nav-link { font-size: 0.76rem; letter-spacing: 0.1em; }
+  /*
+   * The index is a desktop affordance. On a touch screen it is four ~14px tap
+   * targets stacked against the right edge — under every guideline there is —
+   * and the floating dock already carries the same navigation at a size a
+   * thumb can hit.
+   */
+  .hero-index { display: none; }
+  /* The desktop measure is a share of the viewport, which at this width leaves
+     the headline breaking in the middle of its own written lines. */
+  .hero-lead { max-width: min(30rem, 100%); }
 }
 
-/* Narrow phones: the statement lines are nowrap so their three-line shape
-   survives, but below this width a line can genuinely exceed the frame — at
-   which point wrapping is better than being clipped by the page's
-   overflow-x guard. */
+/*
+ * Narrow phones. The rail is what runs out of room first: a mark, five links
+ * and a clock on one line stop fitting well before the foot band does, so the
+ * links drop to a full-width second row of the same grid. Placement, not a DOM
+ * change — the nav is given row 2 explicitly and the mark and clock auto-place
+ * around it into row 1.
+ */
 @media (max-width: 430px) {
-  .hero-statement {
-    width: calc(100% - 2rem);
-    font-size: clamp(0.9rem, 5vw, 1.2rem);
-  }
-  .hero-statement-line { white-space: normal; }
-  .hero-nav { gap: 0.85rem; }
-  .hero-nav-group-title { font-size: 0.72rem; }
-  .hero-clock-meta { display: none; }
+  .hero-rail { grid-template-columns: auto auto; row-gap: 0.85rem; }
+  .hero-rail-nav { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
+  .hero-nav-list { gap: 0.35rem 0.9rem; }
+  .hero-nav-link { font-size: 0.7rem; }
+  .hero-nav-link::after { bottom: -0.45rem; }
+  .hero-clock-time { font-size: 0.76rem; }
+
+  .hero-lead { max-width: none; right: var(--hero-inset-x); }
+  .hero-headline { font-size: clamp(1.9rem, 9vw, 2.5rem); }
+  .hero-subline { max-width: none; }
+  .hero-cta { min-width: 9.5rem; }
+
+  /*
+   * Both labels plus both circles are wider than a phone at this size, and the
+   * band would wrap into two rows that reach up into the lead block. The
+   * scroll hint loses its label instead: the arrow is pointing down at the
+   * bottom of a page, which is the whole message.
+   */
+  .hero-foot { flex-wrap: nowrap; gap: 1rem; }
+  .hero-foot-link--end .hero-foot-label { display: none; }
+  .hero-round { width: 36px; height: 36px; }
 }
 
 /*

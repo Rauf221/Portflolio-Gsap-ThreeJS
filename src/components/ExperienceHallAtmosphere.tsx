@@ -36,9 +36,30 @@ import { MOBILE_MAX_WIDTH, prefersFlatHall } from "../lib/viewport";
  * inside this space rather than sprites pasted over a backdrop.
  * (The shader's UV y runs bottom-up, so the value is flipped there.) */
 
-const COLOR_VOID = new THREE.Color("#08070C");
-const COLOR_HAZE = new THREE.Color("#1A1830");
-const COLOR_GLOW = new THREE.Color("#6B5BCB");
+/*
+ * The hall's air: a black space lit by the page's own paper colour.
+ *
+ * GLOW is cosmic latte — the exact --bg the rest of the site is printed on —
+ * and it paints everything lit: the grid, the light at the vanishing point,
+ * the motes suspended in it. Using the page background as the light source is
+ * the point of the scheme: the reader has been looking at that cream for the
+ * whole scroll, and here it becomes the thing at the end of the tunnel.
+ *
+ * HAZE is the air that light travels through, and it is what decides the
+ * colour the tunnel READS as. It is cosmic latte carried down to ~15%
+ * lightness with its warmth held rather than averaged away — a straight
+ * darkening of a near-white goes grey, and grey air under warm light looks
+ * like a rendering error rather than dust. This is the dial for how much the
+ * volume of the tunnel is tinted; the light itself is GLOW.
+ *
+ * VOID is the unlit far corners: black, warmed by a hair so it sits under the
+ * cream instead of fighting it. It MUST stay equal to --hall-void in
+ * ExperienceSection — the canvas fades in over that CSS background, and any
+ * difference between them shows as a colour shift during the fade.
+ */
+const COLOR_VOID = new THREE.Color("#0A0907");
+const COLOR_HAZE = new THREE.Color("#2F2A1E");
+const COLOR_GLOW = new THREE.Color("#FFF8E7");
 
 export function ExperienceHallAtmosphere() {
   const canvasRef = useRef<HTMLCanvasElement>(null);

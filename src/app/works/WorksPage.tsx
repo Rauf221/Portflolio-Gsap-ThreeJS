@@ -7,7 +7,7 @@ import { flushSync } from "react-dom";
 import { CustomCursor } from "../../components/CustomCursor";
 import { ScrollProgress } from "../../components/ScrollProgress";
 import { SiteFooter } from "../../components/SiteFooter";
-import { worksPage } from "../../content/site";
+import { experience, worksPage } from "../../content/site";
 import {
   WORKS_META,
   WORK_CATEGORY_ORDER,
@@ -84,14 +84,14 @@ export default function WorksPage() {
   const onLoadError = useCallback(() => setLoadFailed(true), []);
 
   /*
-   * One panel per work, in archive order, so the hero is literally the archive
-   * turned on its side. A work with no poster is drawn as an accent card by the
-   * scene itself, and a list shorter than the ring is cycled to fill it — the
-   * spiral needs no maintenance as projects are added.
+   * One panel per work that has a poster, in archive order, so the hero is the
+   * archive's pictures turned on its side. Works without one stay out of the
+   * spiral (they still get their card below); a list shorter than the ring is
+   * cycled to fill it, so the spiral needs no maintenance as projects are added.
    */
   const spiralTiles = useMemo(
     () =>
-      WORKS_META.map((work) => ({
+      WORKS_META.filter((work) => work.poster).map((work) => ({
         src: work.poster,
         label: worksPage.items[work.key as keyof typeof worksPage.items]?.title ?? "",
         accent: work.color,
@@ -251,15 +251,29 @@ export default function WorksPage() {
                          a clip may decode, so a twenty-card archive never has
                          twenty videos competing for frame budget. muted +
                          playsInline are what make that programmatic play()
-                         legal outside a user gesture. */
+                         legal outside a user gesture. With preload="none" the
+                         browser fetches no frame at all, so the poster is the
+                         only thing that fills the card before the first play. */
                       <video
                         className="work-card-video"
                         src={work.video}
+                        poster={work.poster}
                         muted
                         loop
                         playsInline
                         preload="none"
                         aria-hidden="true"
+                      />
+                    ) : work.poster ? (
+                      /* A still with no clip behind it (the homepage
+                         screenshots). Same box and hover scale as the video. */
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        className="work-card-video"
+                        src={work.poster}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
                       />
                     ) : (
                       <span className="work-card-fallback" aria-hidden="true">
@@ -268,6 +282,9 @@ export default function WorksPage() {
                     )}
                   </div>
                   <span className="work-card-year">{work.year}</span>
+                  {work.agency ? (
+                    <span className="work-card-credit">{worksPage.agencyCredit}</span>
+                  ) : null}
                   {/* Every card now leads somewhere — its own detail page — so
                       the mark is unconditional. */}
                   <span className="work-card-arrow" aria-hidden="true">
@@ -322,16 +339,52 @@ export default function WorksPage() {
         </section>
 
         <section className="works-cta">
-          <h2 className="works-cta-title">
-            <MaskedWords text={worksPage.cta.line1} />
-            <br />
-            <MaskedWords text={worksPage.cta.line2} accentFrom={0} />
-          </h2>
-          <a className="works-btn" href={worksPage.cta.href}>
-            <span className="works-btn-fill" aria-hidden="true" />
-            {worksPage.cta.label}
-            <AsteriskMark />
-          </a>
+          <div className="works-cta-main">
+            <h2 className="works-cta-title">
+              <MaskedWords text={worksPage.cta.line1} />
+              <br />
+              <MaskedWords text={worksPage.cta.line2} accentFrom={0} />
+            </h2>
+            <p className="works-cta-lede wk-rise">{worksPage.cta.lede}</p>
+            <a className="works-btn" href={worksPage.cta.href}>
+              <span className="works-btn-fill" aria-hidden="true" />
+              {worksPage.cta.label}
+              <AsteriskMark />
+            </a>
+          </div>
+
+          <div className="works-cta-side">
+            <dl className="works-cta-facts">
+              <div className="works-cta-fact wk-rise">
+                <dt className="works-label">{worksPage.cta.factProjects}</dt>
+                <dd>{WORKS_META.length}</dd>
+              </div>
+              <div className="works-cta-fact wk-rise">
+                <dt className="works-label">{worksPage.cta.factSince}</dt>
+                <dd>{experience.tunnel.year}</dd>
+              </div>
+            </dl>
+            <a className="works-cta-mail wk-rise" href={`mailto:${worksPage.cta.email}`}>
+              <span className="works-label">{worksPage.cta.emailLabel}</span>
+              <span className="works-cta-mail-address">{worksPage.cta.email}</span>
+              <span className="works-cta-mail-arrow" aria-hidden="true">↗</span>
+            </a>
+          </div>
+
+          {/* The archive itself, running past once more on the way out. Two
+              identical runs, so translating by -50% loops without a seam. */}
+          <div className="works-cta-marquee" aria-hidden="true">
+            <div className="works-cta-marquee-track">
+              {[0, 1].map((run) =>
+                WORKS_META.map((work) => (
+                  <span className="works-cta-marquee-item" key={`${run}-${work.key}`}>
+                    {worksPage.items[work.key as keyof typeof worksPage.items]?.title}
+                    <AsteriskMark />
+                  </span>
+                )),
+              )}
+            </div>
+          </div>
         </section>
 
         <SiteFooter />

@@ -13,7 +13,10 @@ export const WORKS_PAGE_CSS = (WORKS_BASE_CSS + `
   position: relative;
   z-index: 2;
   width: 100%;
-  overflow-x: hidden;
+  /* clip, NOT hidden: overflow-x: hidden turns the root into a scroll
+     container, and the sticky rail then sticks to it — which never scrolls —
+     instead of the viewport. clip trims the overflow without that side effect. */
+  overflow-x: clip;
 }
 
 /* ── top bar ─────────────────────────────────────────────────────────── */
@@ -124,7 +127,7 @@ export const WORKS_PAGE_CSS = (WORKS_BASE_CSS + `
   display: grid;
   grid-template-columns: minmax(200px, 240px) 1fr;
   gap: clamp(2rem, 4vw, 4rem);
-  padding: clamp(3.5rem, 10vh, 7rem) var(--pad-x) clamp(4rem, 12vh, 8rem);
+  padding: clamp(3.5rem, 10vh, 7rem) var(--pad-x) clamp(2rem, 5vh, 3.5rem);
   align-items: start;
 }
 .works-rail {
@@ -270,6 +273,19 @@ export const WORKS_PAGE_CSS = (WORKS_BASE_CSS + `
   transition: transform 0.45s var(--ease-out);
 }
 .work-card-media:hover .work-card-year { transform: translateY(-4px); }
+/* Team work without my commits — the same chip as the year, top-left. */
+.work-card-credit {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 4px 11px;
+  border-radius: 20px;
+  color: #fff;
+  background: rgba(0,0,0,0.42);
+  backdrop-filter: blur(6px);
+}
 /* The eight-pointed asterisk turns 45deg onto its own alternate points — the
    same glyph and the same turn as the home panels' row icon. */
 .work-card-arrow {
@@ -351,19 +367,142 @@ export const WORKS_PAGE_CSS = (WORKS_BASE_CSS + `
 .work-card:hover .work-tag { background: color-mix(in srgb, var(--work-accent) 18%, var(--bg)); }
 
 /* ── closing CTA ─────────────────────────────────────────────────────── */
+/* One centred column: headline, lede and button, then the figures and the
+   mail card as a single row under them, then the marquee edge to edge. */
 .works-cta {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: clamp(1.5rem, 4vh, 2.5rem);
-  padding: clamp(4rem, 12vh, 8rem) var(--pad-x) clamp(5rem, 14vh, 9rem);
+  align-items: center;
+  gap: clamp(2.5rem, 6vh, 4rem);
+  padding: clamp(2.5rem, 6vh, 4rem) var(--pad-x) clamp(2.5rem, 6vh, 4rem);
   border-top: 1px solid var(--line);
+  text-align: center;
+}
+.works-cta-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1.25rem, 3.5vh, 2rem);
 }
 .works-cta-title {
-  font-size: clamp(2rem, 6vw, 4.5rem);
+  font-size: clamp(2.4rem, 6.5vw, 5.5rem);
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 1;
+}
+.works-cta-lede {
+  max-width: 34rem;
+  font-size: clamp(0.95rem, 1.2vw, 1.1rem);
+  line-height: 1.6;
+  color: var(--muted);
+}
+.works-cta-side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  align-items: stretch;
+  gap: clamp(1rem, 2vw, 1.5rem);
+  width: min(100%, 60rem);
+}
+.works-cta-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+.works-cta-fact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: clamp(1.25rem, 3vh, 1.75rem) 1rem;
+}
+.works-cta-fact + .works-cta-fact { border-left: 1px solid var(--line); }
+.works-cta-fact dd {
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+/* The email as a card of its own: the most direct way in deserves the most
+   surface. Fills indigo from below on hover, like the button beside it. */
+.works-cta-mail {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: clamp(1.25rem, 3vh, 1.75rem);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: var(--text);
+  text-decoration: none;
+  overflow: hidden;
+  cursor: none;
+  transition: color 0.45s var(--ease-out), border-color 0.45s var(--ease-out);
+}
+.works-cta-mail::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--indigo);
+  transform: scaleY(0);
+  transform-origin: 50% 100%;
+  transition: transform 0.55s var(--ease-out);
+}
+.works-cta-mail .works-label { transition: color 0.45s var(--ease-out); }
+.works-cta-mail-address {
+  font-size: clamp(1.1rem, 2.1vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+/* Pinned to the card's corner so the address itself stays dead centre. */
+.works-cta-mail-arrow {
+  position: absolute;
+  top: 1rem;
+  right: 1.1rem;
+  font-size: 1.3rem;
+  line-height: 1;
+  transition: transform 0.5s var(--ease-out);
+}
+.works-cta-mail:hover { color: #FFF8E7; border-color: var(--indigo); }
+.works-cta-mail:hover::before { transform: scaleY(1); }
+.works-cta-mail:hover .works-label { color: inherit; }
+.works-cta-mail:hover .works-cta-mail-arrow { transform: translate(3px, -3px); }
+/* The archive's names, running past edge to edge under the CTA. */
+.works-cta-marquee {
+  align-self: stretch;
+  margin: 0 calc(var(--pad-x) * -1);
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.works-cta-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: works-cta-marquee 70s linear infinite;
+}
+.works-cta-marquee:hover .works-cta-marquee-track { animation-play-state: paused; }
+.works-cta-marquee-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding-right: 1.5rem;
+  font-size: clamp(1.1rem, 2vw, 1.6rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.works-cta-marquee-item svg { color: var(--indigo); }
+@keyframes works-cta-marquee {
+  to { transform: translateX(-50%); }
 }
 .works-btn {
   position: relative;
@@ -421,6 +560,7 @@ export const WORKS_PAGE_CSS = (WORKS_BASE_CSS + `
   .works-filters::-webkit-scrollbar { display: none; }
   .works-filter { width: auto; flex: 0 0 auto; border-radius: 999px; }
   .works-rail-note { display: none; }
+  .works-cta-side { grid-template-columns: 1fr; }
 }
 @media (max-width: ${MOBILE_MAX_WIDTH}px) {
   :root { --pad-x: 1.25rem; }
@@ -444,6 +584,9 @@ export const WORKS_PAGE_CSS = (WORKS_BASE_CSS + `
   .work-card-year,
   .work-card-arrow,
   .works-btn-fill,
-  .works-filter-fill { transition: none; }
+  .works-filter-fill,
+  .works-cta-mail,
+  .works-cta-mail::before { transition: none; }
+  .works-cta-marquee-track { animation: none; }
 }
 `+WORKS_CURSOR_CSS).trim();

@@ -48,11 +48,31 @@ export function ExperienceSection({ experienceRef }: Props) {
            The physics lives in animations/experienceGravity.ts; this file owns
            only the markup and the paint. */
         #experience {
-          --hall-void: #08070C;
-          --hall-ink: #EDEAF7;
-          --hall-dim: rgba(237,234,247,0.40);
-          --hall-edge: #C9C0FF;
-          --hall-accent: #9C8FE8;
+          /*
+           * The hall's palette. Every tone is the page's own cosmic latte
+           * (--bg, #FFF8E7) at a different lightness, so the cards are lit by
+           * the same light as the tunnel behind them rather than introducing a
+           * second hue into the section.
+           *
+           * Declared as RGB CHANNEL TRIPLETS, not just as colours, because a
+           * dozen rules below need these tones at their own alpha — borders at
+           * 0.28, an inset highlight at 0.14, a glow at 0.38. Before this they
+           * were retyped as raw rgba() numbers in every one of those places,
+           * which meant a retint was fifteen edits and any one of them could
+           * be missed. Now the hue lives on exactly four lines.
+           */
+          --hall-void-rgb: 10, 9, 7;
+          --hall-ink-rgb: 255, 248, 231;
+          --hall-edge-rgb: 216, 205, 180;
+          --hall-accent-rgb: 240, 223, 184;
+
+          /* MUST match COLOR_VOID in ExperienceHallAtmosphere — the canvas
+             fades in over this, so a mismatch shows as a colour shift. */
+          --hall-void: rgb(var(--hall-void-rgb));
+          --hall-ink: rgb(var(--hall-ink-rgb));
+          --hall-dim: rgba(var(--hall-ink-rgb), 0.40);
+          --hall-edge: rgb(var(--hall-edge-rgb));
+          --hall-accent: rgb(var(--hall-accent-rgb));
           background: var(--hall-void);
         }
 
@@ -111,16 +131,19 @@ export function ExperienceSection({ experienceRef }: Props) {
           user-select: text;
           opacity: 0;                 /* the physics loop owns opacity from here */
           will-change: transform, opacity;
-          border: 1px solid rgba(201,192,255,0.28);
+          border: 1px solid rgba(var(--hall-edge-rgb), 0.28);
           border-radius: 12px;
+          /* Warm blacks, not neutral ones: a card is a dark object sitting in
+             cream light, and a neutral-grey face under a warm source reads as
+             a hole cut in the frame rather than a surface. */
           background: linear-gradient(165deg,
-            #100E1E 0%,
-            #0B0A15 42%,
-            #070610 100%);
+            #16130C 0%,
+            #100E09 42%,
+            #0A0906 100%);
           box-shadow:
-            0 0 0 1px rgba(8,7,12,0.9),
+            0 0 0 1px rgba(var(--hall-void-rgb), 0.9),
             0 24px 70px -18px rgba(0,0,0,0.85),
-            inset 0 1px 0 rgba(201,192,255,0.14);
+            inset 0 1px 0 rgba(var(--hall-edge-rgb), 0.14);
         }
         .grav-card:active { cursor: grabbing; }
 
@@ -134,24 +157,24 @@ export function ExperienceSection({ experienceRef }: Props) {
 
         /* Close to the eye: the card catches the hall light. */
         .grav-card--near {
-          border-color: rgba(201,192,255,0.55);
+          border-color: rgba(var(--hall-edge-rgb), 0.55);
           box-shadow:
-            0 0 0 1px rgba(8,7,12,0.9),
+            0 0 0 1px rgba(var(--hall-void-rgb), 0.9),
             0 34px 90px -16px rgba(0,0,0,0.9),
-            0 0 54px -8px rgba(156,143,232,0.38),
-            inset 0 1px 0 rgba(201,192,255,0.22);
+            0 0 54px -8px rgba(var(--hall-accent-rgb), 0.38),
+            inset 0 1px 0 rgba(var(--hall-edge-rgb), 0.22);
         }
 
         /* In the hand: held on the readable plane, lit like an object under a
            lamp rather than a thing in the air. */
         .grav-card--held {
           cursor: grabbing;
-          border-color: rgba(201,192,255,0.8);
+          border-color: rgba(var(--hall-edge-rgb), 0.8);
           box-shadow:
-            0 0 0 1px rgba(8,7,12,0.9),
+            0 0 0 1px rgba(var(--hall-void-rgb), 0.9),
             0 44px 110px -14px rgba(0,0,0,0.95),
-            0 0 74px -6px rgba(156,143,232,0.55),
-            inset 0 1px 0 rgba(201,192,255,0.3);
+            0 0 74px -6px rgba(var(--hall-accent-rgb), 0.55),
+            inset 0 1px 0 rgba(var(--hall-edge-rgb), 0.3);
         }
 
         /* Kill selection everywhere only while a drag is live — the copy stays
@@ -172,14 +195,14 @@ export function ExperienceSection({ experienceRef }: Props) {
           /* Etched rather than printed: the number falls off into the card
              instead of sitting on it. */
           background: linear-gradient(180deg,
-            rgba(237,234,247,0.92), rgba(237,234,247,0.18));
+            rgba(var(--hall-ink-rgb), 0.92), rgba(var(--hall-ink-rgb), 0.18));
           -webkit-background-clip: text; background-clip: text;
           -webkit-text-fill-color: transparent;
           color: transparent;
         }
         .grav-rule {
           width: 34px; height: 1px;
-          background: rgba(201,192,255,0.4);
+          background: rgba(var(--hall-edge-rgb), 0.4);
           margin: 0.95rem 0 0.9rem;
         }
         .grav-company {
@@ -201,7 +224,7 @@ export function ExperienceSection({ experienceRef }: Props) {
           font-size: 0.58rem;
           letter-spacing: 0.24em;
           text-transform: uppercase;
-          color: rgba(237,234,247,0.3);
+          color: rgba(var(--hall-ink-rgb), 0.3);
           margin-bottom: 0.85rem;
         }
         .grav-desc {
@@ -214,13 +237,17 @@ export function ExperienceSection({ experienceRef }: Props) {
         /* Atmospheric perspective: a card deep in the frame washes toward the
            haze colour instead of merely dimming. The physics loop drives the
            opacity from depth, exactly as the hall drove .mono-haze. Rounded to
-           match the card so the wash never leaks past the border. */
+           match the card so the wash never leaks past the border.
+
+           MUST match COLOR_HAZE in ExperienceHallAtmosphere — a card receding
+           is receding into the tunnel's own air, so if the two disagree the
+           card fades toward a colour the space behind it is not. */
         .grav-haze {
           position: absolute;
           inset: 0;
           z-index: 2;
           border-radius: 11px;
-          background: #1A1830;
+          background: #2F2A1E;
           pointer-events: none;
         }
 
@@ -241,7 +268,7 @@ export function ExperienceSection({ experienceRef }: Props) {
           font-size: 0.6rem;
           letter-spacing: 0.38em;
           text-transform: uppercase;
-          color: rgba(201,192,255,0.55);
+          color: rgba(var(--hall-edge-rgb), 0.55);
           margin-bottom: 0.7rem;
         }
         .grav-title {
@@ -256,7 +283,7 @@ export function ExperienceSection({ experienceRef }: Props) {
           bottom: clamp(1.75rem, 5vh, 3rem); left: 50%;
           transform: translateX(-50%);
           font-size: 0.62rem; letter-spacing: 0.3em; text-transform: uppercase;
-          color: rgba(237,234,247,0.35);
+          color: rgba(var(--hall-ink-rgb), 0.35);
           white-space: nowrap;
           transition: opacity 0.5s ease;
         }
@@ -264,7 +291,7 @@ export function ExperienceSection({ experienceRef }: Props) {
         .grav-hud--done .grav-hint--catch { display: none; }
         .grav-hud--done .grav-hint--done {
           display: block;
-          color: rgba(201,192,255,0.6);
+          color: rgba(var(--hall-edge-rgb), 0.6);
         }
 
         .grav-count {
@@ -280,7 +307,7 @@ export function ExperienceSection({ experienceRef }: Props) {
           font-size: 0.6rem;
           letter-spacing: 0.3em;
           text-transform: uppercase;
-          color: rgba(237,234,247,0.35);
+          color: rgba(var(--hall-ink-rgb), 0.35);
         }
         .grav-count-num {
           font-size: clamp(1.3rem, 2vw, 1.8rem);

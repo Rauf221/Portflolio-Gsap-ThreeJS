@@ -110,6 +110,15 @@ export function initWorksCta(gsap: typeof window.gsap) {
     ease: EASE,
     scrollTrigger: { trigger: ".works-cta", start: "top 74%", once: true },
   });
+  // Status, lede, the two figures and the mail card follow the headline in.
+  gsap.from(".works-cta .wk-rise", {
+    y: 24,
+    opacity: 0,
+    duration: 0.8,
+    ease: EASE,
+    stagger: 0.08,
+    scrollTrigger: { trigger: ".works-cta", start: "top 74%", once: true },
+  });
 }
 
 /**

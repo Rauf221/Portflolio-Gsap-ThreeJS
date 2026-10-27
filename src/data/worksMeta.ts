@@ -17,7 +17,7 @@
  */
 
 /** Filter buckets. Adding one means adding its label to worksPage.filters. */
-export type WorkCategory = "platform" | "product" | "ecommerce" | "experience";
+export type WorkCategory = "platform" | "product" | "ecommerce" | "corporate" | "experience";
 
 /**
  * One band of the detail page's stack spectrum.
@@ -54,6 +54,11 @@ export type WorkMeta = {
   readonly stack?: readonly StackBand[];
   readonly href?: string;
   readonly featured?: boolean;
+  /**
+   * Shipped by the Markup Agency team without my commits in it. The card and
+   * the detail page say so; these sit after my own work in the list.
+   */
+  readonly agency?: boolean;
 };
 
 const INDIGO = "#6B5BCB";
@@ -72,6 +77,7 @@ export const WORKS_META: readonly WorkMeta[] = [
     color: INDIGO,
     video: "/projects/burdaqal.mp4",
     poster: "/works/burdaqal.jpg",
+    href: "https://burdaqal.az",
     gallery: gallery("burdaqal"),
     stack: [
       { name: "TypeScript", share: 38, color: "#3178C6", role: "Language" },
@@ -127,6 +133,7 @@ export const WORKS_META: readonly WorkMeta[] = [
     color: INK,
     video: "/projects/casiobaku.mp4",
     poster: "/works/casiobaku.jpg",
+    href: "https://casiobaku.az",
     gallery: gallery("casiobaku"),
     stack: [
       { name: "TypeScript", share: 34, color: "#3178C6", role: "Language" },
@@ -135,6 +142,31 @@ export const WORKS_META: readonly WorkMeta[] = [
       { name: "Motion", share: 18, color: "#0055FF", role: "Motion" },
     ],
     featured: true,
+  },
+  {
+    key: "fonderaPlatform",
+    slug: "fondera-platform",
+    category: "platform",
+    year: "2026",
+    color: INDIGO,
+  },
+  {
+    key: "markupAgency",
+    slug: "markup-agency",
+    category: "experience",
+    year: "2026",
+    color: INK,
+    poster: "/works/markup.jpg",
+    href: "https://markup.az",
+  },
+  {
+    key: "fondera",
+    slug: "fondera",
+    category: "product",
+    year: "2026",
+    color: INDIGO,
+    poster: "/works/fondera.jpg",
+    href: "https://fondera.az",
   },
   {
     key: "wayouth",
@@ -151,6 +183,22 @@ export const WORKS_META: readonly WorkMeta[] = [
     ],
   },
   {
+    key: "shoplink",
+    slug: "shoplink",
+    category: "ecommerce",
+    year: "2026",
+    color: INK,
+    poster: "/works/shoplink.jpg",
+    href: "https://shoplink.az",
+  },
+  {
+    key: "fleurGarden",
+    slug: "fleur-garden",
+    category: "ecommerce",
+    year: "2026",
+    color: INDIGO,
+  },
+  {
     key: "portfolio",
     slug: "portfolio",
     category: "experience",
@@ -164,6 +212,140 @@ export const WORKS_META: readonly WorkMeta[] = [
       { name: "CSS", share: 10, color: "#1572B6", role: "Styling" },
     ],
   },
+
+  /* ── Markup Agency team work ─────────────────────────────────────────── */
+  {
+    key: "gbaru",
+    slug: "gbaru",
+    category: "platform",
+    year: "2024",
+    color: INK,
+    poster: "/works/gbaru.jpg",
+    href: "https://gbaru.com/az",
+    agency: true,
+  },
+  {
+    key: "platinium",
+    slug: "platinium-17",
+    category: "ecommerce",
+    year: "2025",
+    color: INDIGO,
+    poster: "/works/platinium.jpg",
+    href: "https://platinium-17.az",
+    agency: true,
+  },
+  {
+    key: "elba",
+    slug: "elba",
+    category: "corporate",
+    year: "2025",
+    color: INK,
+    poster: "/works/elba.jpg",
+    href: "https://elba.az/az",
+    agency: true,
+  },
+  {
+    key: "glassHouse",
+    slug: "glass-house",
+    category: "corporate",
+    year: "2025",
+    color: INDIGO,
+    poster: "/works/glass-house.jpg",
+    href: "https://glasshouse.az",
+    agency: true,
+  },
+  {
+    key: "lezzetGroup",
+    slug: "lezzet-group",
+    category: "corporate",
+    year: "2024",
+    color: INK,
+    poster: "/works/lezzet-group.jpg",
+    href: "https://lezzet.az",
+    agency: true,
+  },
+  {
+    key: "shamkirAgro",
+    slug: "shamkir-agro",
+    category: "corporate",
+    year: "2026",
+    color: INDIGO,
+    poster: "/works/shamkir-agro.jpg",
+    href: "https://shamkiragro.az",
+    agency: true,
+  },
+  {
+    key: "innosert",
+    slug: "innosert",
+    category: "platform",
+    year: "2025",
+    color: INK,
+    agency: true,
+  },
+  {
+    key: "azfar",
+    slug: "azfar",
+    category: "platform",
+    year: "2024",
+    color: INDIGO,
+    agency: true,
+  },
+  {
+    key: "feridinEvi",
+    slug: "feridin-evi",
+    category: "product",
+    year: "2025",
+    color: INK,
+    agency: true,
+  },
+  {
+    key: "agriman",
+    slug: "agriman",
+    category: "corporate",
+    year: "2025",
+    color: INDIGO,
+    agency: true,
+  },
+  {
+    key: "bcGroup",
+    slug: "bc-group",
+    category: "corporate",
+    year: "2025",
+    color: INK,
+    agency: true,
+  },
+  {
+    key: "consultex",
+    slug: "consultex",
+    category: "corporate",
+    year: "2025",
+    color: INDIGO,
+    agency: true,
+  },
+  {
+    key: "greenCaspian",
+    slug: "green-caspian",
+    category: "corporate",
+    year: "2025",
+    color: INK,
+    agency: true,
+  },
+  {
+    key: "agriGubre",
+    slug: "agri-gubre",
+    category: "corporate",
+    year: "2025",
+    color: INDIGO,
+    agency: true,
+  },
+  {
+    key: "bakuCreators",
+    slug: "baku-creators",
+    category: "experience",
+    year: "2025",
+    color: INK,
+    agency: true,
+  },
 ];
 
 /** Order of the filter rail; "all" is prepended by the page itself. */
@@ -171,6 +353,7 @@ export const WORK_CATEGORY_ORDER: readonly WorkCategory[] = [
   "platform",
   "product",
   "ecommerce",
+  "corporate",
   "experience",
 ];
 
